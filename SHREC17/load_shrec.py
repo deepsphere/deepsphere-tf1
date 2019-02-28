@@ -231,6 +231,7 @@ class Shrec17DeepSphere(object):
             self.download(dataset, perturbed)
 
         if not self._check_exists():
+            print(self.dir)
             raise RuntimeError('Dataset not found.' +
                                ' You can use download=True to download it')
 
