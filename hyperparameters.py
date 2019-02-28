@@ -128,7 +128,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
 
     # Training.
     params['num_epochs'] = 80  # Number of passes through the training data.
-    params['batch_size'] = 16 * order**2  # Constant quantity of information (#pixels) per step (invariant to sample size).
+    params['batch_size'] = 32  # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.
     params['scheduler'] = lambda step: tf.train.exponential_decay(2e-4, step, decay_steps=1, decay_rate=0.999)
