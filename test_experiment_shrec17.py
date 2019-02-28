@@ -20,7 +20,7 @@ from deepsphere import models, experiment_helper
 from deepsphere.data import LabeledDatasetWithNoise, LabeledDataset
 import hyperparameters
 
-from SHREC17.eval_test import Shrec17DeepSphere as shrecDataset
+from SHREC17.load_shrec import Shrec17DeepSphere as shrecDataset
 
 
 def single_experiment(datapath, sigma_noise, experiment_type):
