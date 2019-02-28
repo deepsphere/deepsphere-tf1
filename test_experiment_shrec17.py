@@ -91,7 +91,7 @@ if __name__ == '__main__':
         grid = [(sigma_noise)]
     else:
         datapath = '../../data/shrec17/'
-        grid = [(0.,)]
+        grid = [0.]
 
     ename = '_'+experiment_type
 
