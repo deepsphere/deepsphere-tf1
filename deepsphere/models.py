@@ -117,6 +117,7 @@ class base_model(object):
         predictions, loss = self.predict(data, labels, sess)
         ncorrects = sum(predictions == labels)
         accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
+        print(set(predictions)-set(labels))
         f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
         string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (weighted): {:.2f}, loss: {:.2e}'.format(
                 accuracy, ncorrects, len(labels), f1, loss)
@@ -131,7 +132,9 @@ class base_model(object):
             self.loadable_generator.load(train_dataset.iter(self.batch_size))
 
         t_cpu, t_wall = process_time(), time.time()
-        sess = tf.Session(graph=self.graph)
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        sess = tf.Session(graph=self.graph, config=config)
         if self.debug:
             sess = tf_debug.TensorBoardDebugWrapperSession(sess, 'localhost:6064')
         shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
@@ -139,7 +142,7 @@ class base_model(object):
         shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
         os.makedirs(self._get_path('checkpoints'))
         path = os.path.join(self._get_path('checkpoints'), 'model')
-
+        
         # Initialization
         sess.run(self.op_init)
 
@@ -332,7 +335,9 @@ class base_model(object):
     def _get_session(self, sess=None):
         """Restore parameters if no session given."""
         if sess is None:
-            sess = tf.Session(graph=self.graph)
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            sess = tf.Session(graph=self.graph, config=config)
             print(self._get_path('checkpoints'))
             filename = tf.train.latest_checkpoint(self._get_path('checkpoints'))
             self.op_saver.restore(sess, filename)

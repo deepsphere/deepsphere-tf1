@@ -13,3 +13,6 @@ __pycache__/
 
 # Figures are produced by paper_plots.ipynb
 /figures/
+
+# Data too big
+/data/

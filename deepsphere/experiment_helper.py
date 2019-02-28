@@ -99,9 +99,9 @@ def hp_split(img, order, nest=True):
     return img.reshape([nsample, npix // nsample])
 
 
-def get_training_data(sigma, order):
+def get_training_data(sigma, order, data_path='data/same_psd/'):
     # Load the data
-    data_path = 'data/same_psd/'
+    # data_path = 'data/same_psd/'
     ds1 = np.load(data_path + 'smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
     ds2 = np.load(data_path + 'smoothed_class2_sigma{}.npz'.format(sigma))['arr_0']
     datasample = dict()
@@ -122,9 +122,9 @@ def get_training_data(sigma, order):
     return x_raw, labels, x_raw_std
 
 
-def get_testing_data(sigma, order, sigma_noise, x_raw_std=None):
-    ds1 = np.load('data/same_psd_testing/smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
-    ds2 = np.load('data/same_psd_testing/smoothed_class2_sigma{}.npz'.format(sigma))['arr_0']
+def get_testing_data(sigma, order, sigma_noise, x_raw_std=None, data_path='data/'):
+    ds1 = np.load(data_path+'same_psd_testing/smoothed_class1_sigma{}.npz'.format(sigma))['arr_0']
+    ds2 = np.load(data_path+'same_psd_testing/smoothed_class2_sigma{}.npz'.format(sigma))['arr_0']
 
     datasample = dict()
     datasample['class1'] = np.vstack(
@@ -187,7 +187,7 @@ def data_preprossing(x_raw_train, labels_train, x_raw_test, sigma_noise, feature
     rs = np.random.RandomState(1)
     x_noise = x_raw_train + sigma_noise * rs.randn(*x_raw_train.shape)
 
-    ret = train_test_split(x_raw_train, x_noise, labels_train, train_size=train_size, shuffle=True, random_state=0)
+    ret = train_test_split(x_raw_train, x_noise, labels_train, test_size=None, train_size=train_size, shuffle=True, random_state=0)
     x_raw_train, x_raw_validation, x_noise_train, x_noise_validation, labels_train, labels_validation = ret
 
     print('Class 1 VS class 2')

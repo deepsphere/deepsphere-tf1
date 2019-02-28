@@ -4,14 +4,14 @@ scikit-learn==0.19.1
 matplotlib==2.2.0
 svgutils==0.3.1
 
-#tensorflow-gpu==1.6.0
-tensorflow==1.6.0
+tensorflow-gpu==1.6.0
+#tensorflow==1.6.0
 
 healpy==1.11.0
 #PyGSP==0.5.1
 git+https://github.com/epfl-lts2/pygsp.git@ac7c5ec59d24eadf07c838b83334b816ac5bf040#egg=PyGSP
 tqdm==4.19.6
-
+# plop
 notebook==5.4.0
 
 # Dependencies

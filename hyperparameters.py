@@ -59,6 +59,8 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
     params['eval_frequency'] = int(params['num_epochs'] * ntrain / params['batch_size'] / n_evaluations)
 
     if verbose:
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
         print('#sides: {}'.format(nsides))
         print('#pixels: {}'.format([(nside//order)**2 for nside in nsides]))
         # Number of pixels on the full sphere: 12 * nsides**2.
@@ -68,7 +70,7 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
         print('=> #pixels for training (input): {:,}'.format(params['num_epochs']*ntrain*(Nside//order)**2))
 
         n_steps = params['num_epochs'] * ntrain // params['batch_size']
-        lr = [params['scheduler'](step).eval(session=tf.Session()) for step in [0, n_steps]]
+        lr = [params['scheduler'](step).eval(session=tf.Session(config=config)) for step in [0, n_steps]]
         print('Learning rate will start at {:.1e} and finish at {:.1e}.'.format(*lr))
 
     return params
