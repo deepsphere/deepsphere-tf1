@@ -53,7 +53,7 @@ def single_experiment(datapath, sigma_noise, experiment_type):
 
     input("create model")
 
-    params = hyperparameters.get_params_shrec17(training.N, EXP_NAME, train_dataset.nclass, Nside, architecture=experiment_type)
+    params = hyperparameters.get_params_shrec17(training.N, EXP_NAME, Nside, train_dataset.nclass, architecture=experiment_type)
     model = models.deepsphere(**params)
 
     input("rmtree")
