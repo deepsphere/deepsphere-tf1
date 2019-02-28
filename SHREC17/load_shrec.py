@@ -13,6 +13,7 @@ import re
 import numpy as np
 import trimesh
 import healpy as hp
+from tqdm import tqdm
 
 
 def rotmat(a, b, c, hom_coord=False):   # apply to mesh using mesh.apply_transform(rotmat(a,b,c, True))
@@ -252,7 +253,7 @@ class Shrec17DeepSphere(object):
         head, _ = os.path.split(self.files[0])
         os.makedirs(head+'/deepsphere', exist_ok=True)
         self.data = np.zeros((0, 12*nside**2, 6))       # N x npix x nfeature
-        for i, file in enumerate(self.files):
+        for i, file in tqdm(enumerate(self.files)):
             data = np.asarray(self.cache_npy(file, repeat=augmentation))
             self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
             del data
