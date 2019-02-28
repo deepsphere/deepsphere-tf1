@@ -253,6 +253,8 @@ class Shrec17DeepSphere(object):
         head, _ = os.path.split(self.files[0])
         os.makedirs(head+'/deepsphere', exist_ok=True)
         self.data = np.zeros((0, 12*nside**2, 6))       # N x npix x nfeature
+        self.files = self.files[:200]
+        self.labels = self.labels[:200]
         for i, file in tqdm(enumerate(self.files)):
             data = np.asarray(self.cache_npy(file, repeat=augmentation))
             self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
