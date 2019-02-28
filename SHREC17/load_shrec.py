@@ -302,8 +302,8 @@ class Shrec17DeepSphere(object):
 
         return output
 
-    def return_data(self, test=False, sigma=1.):
-        if test:
+    def return_data(self, train=False, sigma=0.):
+        if train:
             ret = self._data_preprocess(self.data, sigma)
         else:
             ret = self.data, self.labels
@@ -314,7 +314,7 @@ class Shrec17DeepSphere(object):
         from sklearn.model_selection import train_test_split
         rs = np.random.RandomState(1)
         x_noise = x_raw_train + sigma_noise * rs.randn(*x_raw_train.shape)
-        ret = train_test_split(x_raw_train, x_noise, self.labels, test_size=None, train_size=0.8, shuffle=True, random_state=0)
+        ret = train_test_split(x_raw_train, x_noise, self.labels, test_size=None, train_size=0.7, shuffle=True, random_state=0)
         x_raw_train, x_raw_validation, x_noise_train, x_noise_validation, labels_train, labels_validation = ret
 
         print('Number of elements / class')
