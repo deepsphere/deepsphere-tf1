@@ -220,7 +220,7 @@ class base_model(object):
 
     # Methods to construct the computational graph.
 
-    def build_graph(self, M_0):
+    def build_graph(self, M_0, nfeature=1):
         """Build the computational graph of the model."""
 
         self.loadable_generator = LoadableGenerator()
@@ -229,14 +229,14 @@ class base_model(object):
         with self.graph.as_default():
 
             # Make the dataset
-            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32))
+            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32, tf.int32))
             self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
             ph_data, ph_labels = self.tf_data_iterator.get_next()
 
 
             # Inputs.
             with tf.name_scope('inputs'):
-                self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0), 'data')
+                self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0, nfeature), 'data')
                 self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
                 self.ph_training = tf.placeholder(tf.bool, (), 'training')
 
@@ -411,7 +411,7 @@ class cgcnn(base_model):
     """
 
     def __init__(self, L, F, K, p, batch_norm, M,
-                num_epochs, scheduler, optimizer,
+                num_epochs, scheduler, optimizer, num_feat_in=1,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200,
                 dir_name='', profile=False, debug=False):
@@ -431,7 +431,7 @@ class cgcnn(base_model):
                              'layer if no fully connected layer follows.')
 
         # Keep the useful Laplacians only. May be zero.
-        M_0 = L[0].shape[0]
+        M_0 = L[0].shape[0]     # Laplacian size is npix x npix
         j = 0
         self.L = L
 
@@ -499,7 +499,10 @@ class cgcnn(base_model):
         self.profile, self.debug = profile, debug
 
         # Build the computational graph.
-        self.build_graph(M_0)
+        if num_feat_in is 1:
+            self.build_graph(M_0)
+        else:
+            self.build_graph(M_0, num_feat_in)
 
         # show_all_variables()
 
@@ -654,7 +657,7 @@ class cgcnn(base_model):
     def _inference(self, x, training):
 
         # Graph convolutional layers.
-        x = tf.expand_dims(x, 2)  # N x M x F=1
+        # x = tf.expand_dims(x, 2)  # N x M x F=1        # or N x M x F=num_features_in
         for i in range(len(self.p)):
             with tf.variable_scope('conv{}'.format(i+1)):
                 with tf.name_scope('filter'):
