@@ -71,6 +71,7 @@ def single_experiment(datapath, sigma_noise, experiment_type):
     error_validation = experiment_helper.model_error(model, x_val, labels_val)
     print('The validation error is {}%'.format(error_validation * 100), flush=True)
 
+    #model.predict(features)
     #error_test = experiment_helper.model_error(model, features_test, labels_test)
     #print('The testing error is {}%'.format(error_test * 100), flush=True)
 
