@@ -64,7 +64,7 @@ def single_experiment(datapath, sigma_noise, experiment_type):
 
     input("fit")
 
-    model.fit(training, validation)
+    accuracy_validation, loss_validation, loss_training, t_step = model.fit(training, validation)
 
     input("error")
 

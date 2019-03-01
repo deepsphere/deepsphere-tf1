@@ -156,12 +156,16 @@ class base_model(object):
             sess.run(self.tf_data_iterator.initializer)
 
         val_data, val_labels = val_dataset.get_all_data()
+        if len(val_data.shape) is 2:
+            val_data = np.expand_dims(val_data, axis=2)
         for step in range(1, num_steps+1):
 
             if not use_tf_dataset:
                 batch_data, batch_labels = next(train_iter)
                 if type(batch_data) is not np.ndarray:
                     batch_data = batch_data.toarray()  # convert sparse matrices
+                if len(batch_data.shape) is 2:
+                    batch_data = np.expand_dims(batch_data, axis=2)
                 feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
             else:
                 feed_dict = {self.ph_training: True}
@@ -228,7 +232,7 @@ class base_model(object):
         with self.graph.as_default():
 
             # Make the dataset
-            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32, tf.int32))
+            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32))
             self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
             ph_data, ph_labels = self.tf_data_iterator.get_next()
 
@@ -418,6 +422,7 @@ class cgcnn(base_model):
 
         # Verify the consistency w.r.t. the number of layers.
         if not len(L) == len(F) == len(K) == len(p) == len(batch_norm):
+            print(len(L), len(F), len(K), len(p), len(batch_norm))
             raise ValueError('Wrong specification of the convolutional layers: '
                              'parameters L, F, K, p, batch_norm, must have the same length.')
         if not np.all(np.array(p) >= 1):
