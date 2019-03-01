@@ -105,7 +105,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['M'] = []  # Fully connected layers: output dimensionalities.
 
     # Pooling.
-    nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//8]
+    nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//16]
     params['nsides'] = nsides
     params['indexes'] = None
 
