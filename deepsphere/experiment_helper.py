@@ -74,7 +74,8 @@ def psd_unseen(x, Nside=1024, multiprocessing=False):
         return psd_unseen_helper(x, Nside=Nside)
 
 def classification_error(pred, labels):
-    return sum(np.abs(pred - labels)) / len(labels)
+    #return sum(np.abs(pred - labels)) / len(labels)
+    return sum(pred == labels) / len(labels)
 
 def model_error(model, x, labels):
     """Compute the prediction error of a model."""

@@ -75,8 +75,8 @@ class base_model(object):
             end = begin + self.batch_size
             end = min([end, size])
 
-            batch_data = np.zeros((self.batch_size, data.shape[1]))
-            tmp_data = data[begin:end,:]
+            batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
+            tmp_data = data[begin:end, :, :]
             if type(tmp_data) is not np.ndarray:
                 tmp_data = tmp_data.toarray()  # convert sparse matrices
             batch_data[:end-begin] = tmp_data
@@ -117,7 +117,6 @@ class base_model(object):
         predictions, loss = self.predict(data, labels, sess)
         ncorrects = sum(predictions == labels)
         accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
-        print(set(predictions)-set(labels))
         f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
         string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (weighted): {:.2f}, loss: {:.2e}'.format(
                 accuracy, ncorrects, len(labels), f1, loss)
@@ -499,10 +498,7 @@ class cgcnn(base_model):
         self.profile, self.debug = profile, debug
 
         # Build the computational graph.
-        if num_feat_in is 1:
-            self.build_graph(M_0)
-        else:
-            self.build_graph(M_0, num_feat_in)
+        self.build_graph(M_0, num_feat_in)
 
         # show_all_variables()
 
