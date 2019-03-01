@@ -15,6 +15,8 @@ import trimesh
 import healpy as hp
 from tqdm import tqdm
 
+import time
+
 
 def rotmat(a, b, c, hom_coord=False):   # apply to mesh using mesh.apply_transform(rotmat(a,b,c, True))
     """
@@ -219,7 +221,7 @@ class Shrec17DeepSphere(object):
     url_data = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.zip'
     url_label = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.csv'
 
-    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1):
+    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1, nfile=2000):
         self.nside = nside
         self.root = os.path.expanduser(root)
 
@@ -252,14 +254,20 @@ class Shrec17DeepSphere(object):
             self.labels = None
         head, _ = os.path.split(self.files[0])
         os.makedirs(head+'/deepsphere', exist_ok=True)
-        self.data = np.zeros((0, 12*nside**2, 6))       # N x npix x nfeature
-        self.files = self.files[:200]
-        self.labels = self.labels[:200]
+        self.files = self.files[:nfile]
+        self.labels = self.labels[:nfile]
         self.ids = []
+        if nfile == -1:
+            nfile = len(self.files)
+        self.data = np.zeros((nfile, 12*nside**2, 6))       # N x npix x nfeature
         for i, file in tqdm(enumerate(self.files)):
             self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
             data = np.asarray(self.cache_npy(file, repeat=augmentation))
-            self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
+            #time1 = time.time()
+            #self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
+            self.data[i] = data
+            #time2 = time.time()
+            #print("time elapsed for change elem:",(time2-time1)*1000.)
             del data
 
         self.std = np.std(self.data, axis=(0, 1))
@@ -323,7 +331,7 @@ class Shrec17DeepSphere(object):
         from sklearn.model_selection import train_test_split
         rs = np.random.RandomState(1)
         x_noise = x_raw_train + sigma_noise * rs.randn(*x_raw_train.shape)
-        ret = train_test_split(x_raw_train, x_noise, self.labels, test_size=None, train_size=0.7, shuffle=True, random_state=0)
+        ret = train_test_split(x_raw_train, x_noise, self.labels, test_size=None, train_size=0.8, shuffle=True, random_state=0)
         x_raw_train, x_raw_validation, x_noise_train, x_noise_validation, labels_train, labels_validation = ret
 
         print('Number of elements / class')

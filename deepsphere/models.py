@@ -75,8 +75,8 @@ class base_model(object):
             end = begin + self.batch_size
             end = min([end, size])
 
-            batch_data = np.zeros((self.batch_size, data.shape[1]))
-            tmp_data = data[begin:end,:]
+            batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
+            tmp_data = data[begin:end, :, :]
             if type(tmp_data) is not np.ndarray:
                 tmp_data = tmp_data.toarray()  # convert sparse matrices
             batch_data[:end-begin] = tmp_data
@@ -117,7 +117,7 @@ class base_model(object):
         predictions, loss = self.predict(data, labels, sess)
         ncorrects = sum(predictions == labels)
         accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
-        print(set(predictions)-set(labels))
+        print(set(labels)-set(predictions))
         f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
         string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (weighted): {:.2f}, loss: {:.2e}'.format(
                 accuracy, ncorrects, len(labels), f1, loss)
@@ -157,12 +157,16 @@ class base_model(object):
             sess.run(self.tf_data_iterator.initializer)
 
         val_data, val_labels = val_dataset.get_all_data()
+        if len(val_data.shape) is 2:
+            val_data = np.expand_dims(val_data, axis=2)
         for step in range(1, num_steps+1):
 
             if not use_tf_dataset:
                 batch_data, batch_labels = next(train_iter)
                 if type(batch_data) is not np.ndarray:
                     batch_data = batch_data.toarray()  # convert sparse matrices
+                if len(batch_data.shape) is 2:
+                    batch_data = np.expand_dims(batch_data, axis=2)
                 feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
             else:
                 feed_dict = {self.ph_training: True}
@@ -229,7 +233,7 @@ class base_model(object):
         with self.graph.as_default():
 
             # Make the dataset
-            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32, tf.int32))
+            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32))
             self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
             ph_data, ph_labels = self.tf_data_iterator.get_next()
 
