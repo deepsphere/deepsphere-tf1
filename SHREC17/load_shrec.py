@@ -253,12 +253,9 @@ class Shrec17DeepSphere(object):
         head, _ = os.path.split(self.files[0])
         os.makedirs(head+'/deepsphere', exist_ok=True)
         self.data = np.zeros((0, 12*nside**2, 6))       # N x npix x nfeature
-<<<<<<< HEAD
         self.files = self.files[:200]
         self.labels = self.labels[:200]
-=======
         self.ids = []
->>>>>>> ef760940a6eee825a16337c1f53457fafa88270b
         for i, file in tqdm(enumerate(self.files)):
             self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
             data = np.asarray(self.cache_npy(file, repeat=augmentation))
