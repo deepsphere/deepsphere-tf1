@@ -253,9 +253,14 @@ class Shrec17DeepSphere(object):
         head, _ = os.path.split(self.files[0])
         os.makedirs(head+'/deepsphere', exist_ok=True)
         self.data = np.zeros((0, 12*nside**2, 6))       # N x npix x nfeature
+<<<<<<< HEAD
         self.files = self.files[:200]
         self.labels = self.labels[:200]
+=======
+        self.ids = []
+>>>>>>> ef760940a6eee825a16337c1f53457fafa88270b
         for i, file in tqdm(enumerate(self.files)):
+            self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
             data = np.asarray(self.cache_npy(file, repeat=augmentation))
             self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
             del data
@@ -314,6 +319,9 @@ class Shrec17DeepSphere(object):
         # features_train, labels_train, features_validation, labels_validation = ret
         return ret
 
+    def retrieve_ids(self):
+        return self.ids
+
     def _data_preprocess(self, x_raw_train, sigma_noise=0.):
         from sklearn.model_selection import train_test_split
         rs = np.random.RandomState(1)
@@ -332,7 +340,7 @@ class Shrec17DeepSphere(object):
 
         return x_raw_train, labels_train, x_noise_validation, labels_validation
 
-    def _target_transform(self, target):
+    def _target_transform(self, target, reverse=False):
         classes = ['02691156', '02747177', '02773838', '02801938', '02808440', '02818832', '02828884', '02843684', '02871439', '02876657',
                    '02880940', '02924116', '02933112', '02942699', '02946921', '02954340', '02958343', '02992529', '03001627', '03046257',
                    '03085013', '03207941', '03211117', '03261776', '03325088', '03337140', '03467517', '03513137', '03593526', '03624134',
@@ -340,6 +348,8 @@ class Shrec17DeepSphere(object):
                    '03948459', '03991062', '04004475', '04074963', '04090263', '04099429', '04225987', '04256520', '04330267', '04379243',
                    '04401088', '04460130', '04468005', '04530566', '04554684']
         self.nclass = len(classes)
+        if reverse:
+            return classes[target]
         return classes.index(target[0])
 
     def _check_exists(self):
