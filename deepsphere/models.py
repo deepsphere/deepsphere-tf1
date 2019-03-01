@@ -419,6 +419,7 @@ class cgcnn(base_model):
 
         # Verify the consistency w.r.t. the number of layers.
         if not len(L) == len(F) == len(K) == len(p) == len(batch_norm):
+            print(len(L), len(F), len(K), len(p), len(batch_norm))
             raise ValueError('Wrong specification of the convolutional layers: '
                              'parameters L, F, K, p, batch_norm, must have the same length.')
         if not np.all(np.array(p) >= 1):
