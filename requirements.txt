@@ -4,15 +4,21 @@ scikit-learn==0.19.1
 matplotlib==2.2.0
 svgutils==0.3.1
 
-tensorflow-gpu==1.6.0
-#tensorflow==1.6.0
+tensorflow-gpu==1.9.0
+#tensorflow==1.9.0
 
 healpy==1.11.0
 #PyGSP==0.5.1
 git+https://github.com/epfl-lts2/pygsp.git@ac7c5ec59d24eadf07c838b83334b816ac5bf040#egg=PyGSP
 tqdm==4.19.6
-# plop
+
 notebook==5.4.0
+
+# obj file handling
+rtree==0.8.3
+shapely==1.6.4
+pyembree==0.1.5
+trimesh[easy]==2.37.2
 
 # Dependencies
 
@@ -64,3 +70,5 @@ tornado==5.0
 traitlets==4.3.2
 wcwidth==0.1.7
 Werkzeug==0.14.1
+embree==2.14.0
+networkx==2.2
