@@ -99,28 +99,23 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['statistics'] = 'mean'  # Statistics (for invariance): None, mean, var, meanvar, hist.
 
     # Architecture.
-    params['F'] = [16, 32, 64, n_classes]  # Graph convolutional layers: number of feature maps.        # Maybe mul by Fin, or maybe not
-    #params['F'] = [100, 100, n_classes, n_classes]  # Graph convolutional layers: number of feature maps.        # Maybe mul by Fin, or maybe not
+    params['F'] = [100, 100, n_classes]  # Graph convolutional layers: number of feature maps.
     params['K'] = [5] * 4  # Polynomial orders.
     params['batch_norm'] = [True] * 4  # Batch normalization.
     params['M'] = []  # Fully connected layers: output dimensionalities.
 
     # Pooling.
-    nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16]
-    #nsides = [Nside, Nside//4, Nside//8, Nside//8]
+    nsides = [Nside, Nside//4, Nside//8, Nside//8]
     params['nsides'] = nsides
     params['indexes'] = None
 
     if architecture == "CNN":
         # Replace the last graph convolution and global average pooling by a fully connected layer.
         # That is, change the classifier while keeping the feature extractor.
-        params['F'] = params['F'][:-1]
         params['K'] = params['K'][:-1]
         params['batch_norm'] = params['batch_norm'][:-1]
-        params['nsides'] = params['nsides'][:-1]
-        # params['indexes'] = params['indexes'][:-1]
         params['statistics'] = None
-        params['M'] = [64, n_classes]
+        params['M'] = [n_classes]
     elif architecture != "FCN":
         raise ValueError('Unknown architecture {}.'.format(architecture))
 
@@ -129,7 +124,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.
-    params['num_epochs'] = 10  # Number of passes through the training data.
+    params['num_epochs'] = 30  # Number of passes through the training data.
     params['batch_size'] = 32  # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.
