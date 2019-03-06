@@ -206,6 +206,28 @@ def ProjectOnSphere(nside, mesh):
 
     return im       # must be npix x nfeature
 
+def fix_dataset(dir):
+    """
+    Remove unnecessary information from obj files
+    """
+    print("Fix obj files")
+
+    r = re.compile(r'f (\d+)[/\d]* (\d+)[/\d]* (\d+)[/\d]*')
+
+    path = os.path.join(dir, "*.obj")
+    files = sorted(glob.glob(path))
+
+    c = 0
+    for i, f in enumerate(files):
+        with open(f, "rt") as x:
+            y = x.read()
+            yy = r.sub(r"f \1 \2 \3", y)
+            if y != yy:
+                c += 1
+                with open(f, "wt") as x:
+                    x.write(yy)
+        print("{}/{}  {} fixed    ".format(i + 1, len(files), c), end="\r")
+
 
 
 
@@ -256,16 +278,18 @@ class Shrec17DeepSphere(object):
         os.makedirs(head+'/deepsphere', exist_ok=True)
         self.files = self.files[:nfile]
         self.labels = self.labels[:nfile]
+        self.labels = self.labels.repeat(augmentation)
         self.ids = []
         if nfile == -1:
             nfile = len(self.files)
-        self.data = np.zeros((nfile, 12*nside**2, 6))       # N x npix x nfeature
+        self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
         for i, file in tqdm(enumerate(self.files)):
-            self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
+            for j in range(augmentation):
+                self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
             data = np.asarray(self.cache_npy(file, repeat=augmentation))
             #time1 = time.time()
             #self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
-            self.data[i] = data
+            self.data[augmentation*i:augmentation*(i+1)] = data
             #time2 = time.time()
             #print("time elapsed for change elem:",(time2-time1)*1000.)
             del data
@@ -320,7 +344,7 @@ class Shrec17DeepSphere(object):
         if train:
             ret = self._data_preprocess(self.data, sigma)
         else:
-            ret = self.data, self.labels
+            ret = self.data, self.labels, self.ids
         # features_train, labels_train, features_validation, labels_validation = ret
         return ret
 
@@ -331,8 +355,8 @@ class Shrec17DeepSphere(object):
         from sklearn.model_selection import train_test_split
         rs = np.random.RandomState(1)
         x_noise = x_raw_train + sigma_noise * rs.randn(*x_raw_train.shape)
-        ret = train_test_split(x_raw_train, x_noise, self.labels, test_size=None, train_size=0.8, shuffle=True, random_state=0)
-        x_raw_train, x_raw_validation, x_noise_train, x_noise_validation, labels_train, labels_validation = ret
+        ret = train_test_split(x_raw_train, x_noise, self.labels, self.ids, test_size=None, train_size=0.8, shuffle=True, random_state=0)
+        x_raw_train, x_raw_validation, x_noise_train, x_noise_validation, labels_train, labels_validation, ids_train, ids_val = ret
 
         print('Number of elements / class')
         print('  Training set: ')
@@ -343,7 +367,7 @@ class Shrec17DeepSphere(object):
         for i in range(self.nclass):
             print('    Class {}: {} elements'.format(i, np.sum(labels_validation == i)), flush=True)
 
-        return x_raw_train, labels_train, x_noise_validation, labels_validation
+        return x_raw_train, labels_train, x_noise_validation, labels_validation, ids_train, ids_val
 
     def _target_transform(self, target, reverse=False):
         classes = ['02691156', '02747177', '02773838', '02801938', '02808440', '02818832', '02828884', '02843684', '02871439', '02876657',

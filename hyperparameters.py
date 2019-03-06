@@ -99,13 +99,15 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['statistics'] = 'mean'  # Statistics (for invariance): None, mean, var, meanvar, hist.
 
     # Architecture.
-    params['F'] = [16*nfeat_in, 32*nfeat_in, 64*nfeat_in, 64*nfeat_in, n_classes]  # Graph convolutional layers: number of feature maps.        # Maybe mul by Fin, or maybe not
-    params['K'] = [5] * 5  # Polynomial orders.
-    params['batch_norm'] = [True] * 5  # Batch normalization.
+    params['F'] = [16, 32, 64, n_classes]  # Graph convolutional layers: number of feature maps.        # Maybe mul by Fin, or maybe not
+    #params['F'] = [100, 100, n_classes, n_classes]  # Graph convolutional layers: number of feature maps.        # Maybe mul by Fin, or maybe not
+    params['K'] = [5] * 4  # Polynomial orders.
+    params['batch_norm'] = [True] * 4  # Batch normalization.
     params['M'] = []  # Fully connected layers: output dimensionalities.
 
     # Pooling.
-    nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//16]
+    nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16]
+    #nsides = [Nside, Nside//4, Nside//8, Nside//8]
     params['nsides'] = nsides
     params['indexes'] = None
 
@@ -118,7 +120,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
         params['nsides'] = params['nsides'][:-1]
         # params['indexes'] = params['indexes'][:-1]
         params['statistics'] = None
-        params['M'] = [n_classes]
+        params['M'] = [64, n_classes]
     elif architecture != "FCN":
         raise ValueError('Unknown architecture {}.'.format(architecture))
 
@@ -127,11 +129,12 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.
-    params['num_epochs'] = 80  # Number of passes through the training data.
+    params['num_epochs'] = 10  # Number of passes through the training data.
     params['batch_size'] = 32  # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.
-    params['scheduler'] = lambda step: tf.train.exponential_decay(2e-4, step, decay_steps=1, decay_rate=0.999)
+    params['scheduler'] = lambda step: tf.train.exponential_decay(2e-2, step, decay_steps=5, decay_rate=0.999)
+    #params['scheduler'] = lambda step: tf.train.exponential_decay(5e-5, step, decay_steps=5, decay_rate=0.999)
     params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
 
     # Number of model evaluations during training (influence training time).
