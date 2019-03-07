@@ -11,12 +11,12 @@
 ** params['regularization'] = 0
 ** params['dropout'] = 1
 ** params['scheduler'] = lambda step: tf.train.exponential_decay(2e-2, step, decay_steps=5, decay_rate=0.999)   # peut être changer
-** params['K'] = [5] * 3  Pas sur de ça, mais y a pas moyen de faire un truc similaire
+** params['K'] = [Nside]  Pas sur de ça, mais pas encore trouvé moyen de faire un truc similaire
 * nparams = weights (500+50000+27500+580800) + bias (100 + 100 + 55) = ~600k
 * train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
-* accuracy, F1, loss of validation part: (, , )
-* test on val_perturbed dataset:
-* test on test_perturbed dataset:
+* accuracy, F1, loss of validation part: (65.82, 64.05, 1.86+e03)
+* test on val_perturbed dataset: P@N 0.154, R@N 0.159, F1@N 0.155, mAP 0.144, NDCG 0.214
+* test on test_perturbed dataset: P@N 0.520, R@N 0.566, F1@N 0.527, mAP 0.483, NDCG 0.530
 
 ## experiment 2
 

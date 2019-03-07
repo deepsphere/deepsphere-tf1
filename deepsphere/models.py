@@ -23,10 +23,13 @@ from . import utils
 # Python 2 compatibility.
 if hasattr(time, 'process_time'):
     process_time = time.process_time
+    perf_counter = time.perf_counter
 else:
     import warnings
     warnings.warn('The CPU time is not working with Python 2.')
     def process_time():
+        return np.nan
+    def perf_counter():
         return np.nan
 
 # def show_all_variables():
@@ -98,6 +101,39 @@ class base_model(object):
             return predictions, loss * self.batch_size / size
         else:
             return predictions
+        
+    def probs(self, data, nb_class, labels=None, sess=None):
+        loss = 0
+        size = data.shape[0]
+        probabilities = np.empty((size, nb_class))
+        sess = self._get_session(sess)
+        for begin in range(0, size, self.batch_size):
+            end = begin + self.batch_size
+            end = min([end, size])
+
+            batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
+            tmp_data = data[begin:end, :, :]
+            if type(tmp_data) is not np.ndarray:
+                tmp_data = tmp_data.toarray()  # convert sparse matrices
+            batch_data[:end-begin] = tmp_data
+            feed_dict = {self.ph_data: batch_data, self.ph_training: False}
+
+            # Compute loss if labels are given.
+            if labels is not None:
+                batch_labels = np.zeros(self.batch_size)
+                batch_labels[:end-begin] = labels[begin:end]
+                feed_dict[self.ph_labels] = batch_labels
+                batch_prob, batch_loss = sess.run([self.op_probabilities, self.op_loss], feed_dict)
+                loss += batch_loss
+            else:
+                batch_prob = sess.run(self.op_probabilities, feed_dict)
+
+            probabilities[begin:end] = batch_prob[:end-begin]
+
+        if labels is not None:
+            return probabilities, loss * self.batch_size / size
+        else:
+            return probabilities
 
     def evaluate(self, data, labels, sess=None):
         """
@@ -158,8 +194,10 @@ class base_model(object):
         val_data, val_labels = val_dataset.get_all_data()
         if len(val_data.shape) is 2:
             val_data = np.expand_dims(val_data, axis=2)
+            
+        times = []
         for step in range(1, num_steps+1):
-
+            t_begin = perf_counter()
             if not use_tf_dataset:
                 batch_data, batch_labels = next(train_iter)
                 if type(batch_data) is not np.ndarray:
@@ -181,7 +219,8 @@ class base_model(object):
                 run_metadata = None
 
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict, run_options, run_metadata)
-
+            
+            times.append(perf_counter()-t_begin)
             # Periodical evaluation of the model.
             if evaluate:
                 epoch = step * self.batch_size / train_dataset.N
@@ -211,6 +250,7 @@ class base_model(object):
         writer.close()
         sess.close()
 
+        print('time per batch: mean = {:.2f}, var = {:.2f}'.format(np.mean(times), np.var(times))) 
         t_step = (time.time() - t_wall) / num_steps
         return accuracies_validation, losses_validation, losses_training, t_step
 
@@ -248,6 +288,7 @@ class base_model(object):
             self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization)
             self.op_train = self.training(self.op_loss)
             self.op_prediction = self.prediction(op_logits)
+            self.op_probabilities = self.probabilities(op_logits)
 
             # Initialize variables, i.e. weights and biases.
             self.op_init = tf.global_variables_initializer()

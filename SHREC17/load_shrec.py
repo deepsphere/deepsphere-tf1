@@ -277,8 +277,9 @@ class Shrec17DeepSphere(object):
         head, _ = os.path.split(self.files[0])
         os.makedirs(head+'/deepsphere', exist_ok=True)
         self.files = self.files[:nfile]
-        self.labels = self.labels[:nfile]
-        self.labels = self.labels.repeat(augmentation)
+        if self.labels is not None:
+            self.labels = self.labels[:nfile]
+            self.labels = self.labels.repeat(augmentation)
         self.ids = []
         if nfile == -1:
             nfile = len(self.files)
@@ -340,9 +341,9 @@ class Shrec17DeepSphere(object):
 
         return output
 
-    def return_data(self, train=False, sigma=0.):
+    def return_data(self, train=False, sigma=0., train_ratio=0.8):
         if train:
-            ret = self._data_preprocess(self.data, sigma)
+            ret = self._data_preprocess(self.data, sigma, train_ratio)
         else:
             ret = self.data, self.labels, self.ids
         # features_train, labels_train, features_validation, labels_validation = ret
@@ -351,11 +352,11 @@ class Shrec17DeepSphere(object):
     def retrieve_ids(self):
         return self.ids
 
-    def _data_preprocess(self, x_raw_train, sigma_noise=0.):
+    def _data_preprocess(self, x_raw_train, sigma_noise=0., train_ratio=0.8):
         from sklearn.model_selection import train_test_split
         rs = np.random.RandomState(1)
         x_noise = x_raw_train + sigma_noise * rs.randn(*x_raw_train.shape)
-        ret = train_test_split(x_raw_train, x_noise, self.labels, self.ids, test_size=None, train_size=0.8, shuffle=True, random_state=0)
+        ret = train_test_split(x_raw_train, x_noise, self.labels, self.ids, test_size=None, train_size=train_ratio, shuffle=True, random_state=0)
         x_raw_train, x_raw_validation, x_noise_train, x_noise_validation, labels_train, labels_validation, ids_train, ids_val = ret
 
         print('Number of elements / class')
