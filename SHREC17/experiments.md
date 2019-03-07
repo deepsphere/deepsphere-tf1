@@ -1,6 +1,6 @@
 # Deepsphere model
 ## experiment 1
-* git commit:
+* git commit: cadabb447b8364eee80babb49373593592ddbc88
 * similar parameters as Cohen simple:
 ** nsides = [Nside, Nside//4, Nside//8, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100, n_classes]
