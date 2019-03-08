@@ -260,6 +260,24 @@ class base_model(object):
         val = sess.run(var)
         sess.close()
         return val
+    
+    def get_nbr_var(self):
+        #print(self.graph.get_collection('trainable_variables'))
+        total_parameters = 0
+        for variable in self.graph.get_collection('trainable_variables'):
+            print(variable.name)
+            # shape is an array of tf.Dimension
+            shape = variable.get_shape()
+            #print(shape)
+            #print(len(shape))
+            variable_parameters = 1
+            for dim in shape:
+                #print(dim)
+                variable_parameters *= dim.value
+            #print(variable_parameters)
+            total_parameters += variable_parameters
+        #print(total_parameters)
+        return total_parameters
 
     # Methods to construct the computational graph.
 
@@ -490,7 +508,7 @@ class cgcnn(base_model):
             print('  layer {0}: cgconv{0}'.format(i+1))
             print('    representation: M_{0} * F_{1} / p_{1} = {2} * {3} / {4} = {5}'.format(
                     i, i+1, L[i].shape[0], F[i], p[i], L[i].shape[0]*F[i]//p[i]))
-            F_last = F[i-1] if i > 0 else 1
+            F_last = F[i-1] if i > 0 else num_feat_in
             print('    weights: F_{0} * F_{1} * K_{1} = {2} * {3} * {4} = {5}'.format(
                     i, i+1, F_last, F[i], K[i], F_last*F[i]*K[i]))
             if not (i == Ngconv-1 and len(M) == 0):  # No bias if it's a softmax.
@@ -729,6 +747,10 @@ class cgcnn(base_model):
                 n_bins = 20
                 x = self.learned_histogram(x, n_bins)
                 x = tf.reshape(x, [int(n_samples), n_bins * int(n_features)])
+            elif self.statistics is 'max':
+                x = tf.reduce_max(x, axis=1)
+            #elif self.statistics is 'integrate':  # same as average pooling
+            #    x = x
             else:
                 raise ValueError('Unknown statistical layer {}'.format(self.statistics))
 

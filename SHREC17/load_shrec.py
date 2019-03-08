@@ -346,6 +346,7 @@ class Shrec17DeepSphere(object):
             ret = self._data_preprocess(self.data, sigma, train_ratio)
         else:
             ret = self.data, self.labels, self.ids
+            #self._print_histogram(self.labels)
         # features_train, labels_train, features_validation, labels_validation = ret
         return ret
 
@@ -353,22 +354,54 @@ class Shrec17DeepSphere(object):
         return self.ids
 
     def _data_preprocess(self, x_raw_train, sigma_noise=0., train_ratio=0.8):
+        if train_ratio == 1.0:
+            p = np.random.permutation(len(x_raw_train))
+            labels_train = self.labels[p]
+            ids_train = np.asarray(self.ids)[p]
+            print('Number of elements / class')
+            self._print_histogram(labels_train)
+#             print('  Training set: ')
+#             for i in range(self.nclass):
+#                 print('    Class {}: {} elements'.format(i, np.sum(labels_train == i)), flush=True)
+            return x_raw_train[p,:,:], labels_train, ids_train
         from sklearn.model_selection import train_test_split
         rs = np.random.RandomState(1)
         x_noise = x_raw_train + sigma_noise * rs.randn(*x_raw_train.shape)
         ret = train_test_split(x_raw_train, x_noise, self.labels, self.ids, test_size=None, train_size=train_ratio, shuffle=True, random_state=0)
         x_raw_train, x_raw_validation, x_noise_train, x_noise_validation, labels_train, labels_validation, ids_train, ids_val = ret
-
         print('Number of elements / class')
-        print('  Training set: ')
-        for i in range(self.nclass):
-            print('    Class {}: {} elements'.format(i, np.sum(labels_train == i)), flush=True)
+        self._print_histogram(labels_train, labels_val)
+#         print('  Training set: ')
+#         for i in range(self.nclass):
+#             print('    Class {}: {} elements'.format(i, np.sum(labels_train == i)), flush=True)
 
-        print('  Validation set: ')
-        for i in range(self.nclass):
-            print('    Class {}: {} elements'.format(i, np.sum(labels_validation == i)), flush=True)
+#         print('  Validation set: ')
+#         for i in range(self.nclass):
+#             print('    Class {}: {} elements'.format(i, np.sum(labels_validation == i)), flush=True)
 
         return x_raw_train, labels_train, x_noise_validation, labels_validation, ids_train, ids_val
+    
+    def _print_histogram(self, labels_train, labels_val=None):
+        import matplotlib.pyplot as plt
+        from collections import Counter
+        hist_train=Counter(labels_train)
+#         for i in range(self.nclass):
+#             hist_train.append(np.sum(labels_train == i))
+        labels, values = zip(*hist.items())
+        indexes = np.arange(self.nclass)
+        width = 1
+        plt.bar(indexes, values, width)
+        plt.title("labels distribution")
+        #plt.xticks(indexes + width * 0.5, labels)
+        if labels_val is not None:
+            hist_val=Counter(labels_val)
+            plt.figure()
+            labels, values = zip(*hist.items())
+            indexes = np.asarray(labels)
+            width = 1
+            plt.bar(indexes, values, width)
+            plt.title("validation labels distribution")
+        plt.show()
 
     def _target_transform(self, target, reverse=False):
         classes = ['02691156', '02747177', '02773838', '02801938', '02808440', '02818832', '02828884', '02843684', '02871439', '02876657',
