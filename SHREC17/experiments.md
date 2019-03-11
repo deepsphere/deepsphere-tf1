@@ -71,7 +71,7 @@
 * git commit: ?? 
 * random parameters:
 ** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//16] 
-** params['F'] = [16, 32, 64, 64, 55]
+** params['F'] = [16*6, 32*6, 64*6, 64*6, 55]
 ** params['batch_norm'] = [True] * 5
 ** params['num_epochs'] = 40
 ** params['batch_size'] = 32
@@ -81,11 +81,12 @@
 ** params['scheduler'] = lambda step: tf.train.exponential_decay(2e-4, step, decay_steps=1, decay_rate=0.999)   # peut être changer
 ** params['K'] = [5] * 5  
 ** average pooling but no fully connected
-* nparams = weights  + bias  = ???
+* nparams = weights  + bias  = 1.307M
 * train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
-* accuracy, F1, loss of validation part: (, , )
+* accuracy, F1, loss of validation part: (74.56, 72.15, 7.57e-1)
+* accuracy, F1, loss of test part: (69.99, 68.11, 1.1)
 * test on val_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
-* test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
+* test on test_perturbed dataset: P@N 0.601, R@N 0.624, F1@N 0.600, mAP 0.562, NDCG 0.651
 * time per batch: 0.?? s
 
 # Cohen model

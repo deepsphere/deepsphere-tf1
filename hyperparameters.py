@@ -100,13 +100,13 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['statistics'] = 'mean'  # Statistics (for invariance): None, mean, var, meanvar, hist.
 
     # Architecture.
-    params['F'] = [100, 100, n_classes]  # Graph convolutional layers: number of feature maps.
-    params['K'] = [5] * 3  # Polynomial orders.
-    params['batch_norm'] = [True] * 3  # Batch normalization.
+    params['F'] = [16*6, 32*6, 64*6, 64*6, n_classes] #[100, 100, n_classes]  # Graph convolutional layers: number of feature maps.
+    params['K'] = [5] * 5 #[5] * 3  # Polynomial orders.
+    params['batch_norm'] = [True] * 5  # Batch normalization.
     params['M'] = []  # Fully connected layers: output dimensionalities.
 
     # Pooling.
-    nsides = [Nside, Nside//4, Nside//8]
+    nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//16] #[Nside, Nside//4, Nside//8]
     params['nsides'] = nsides
     params['indexes'] = None
 
@@ -123,7 +123,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
         raise ValueError('Unknown architecture {}.'.format(architecture))
 
     # Regularization (to prevent over-fitting).
-    params['regularization'] = 1  # Amount of L2 regularization over the weights (will be divided by the number of weights).
+    params['regularization'] = 0 #1  # Amount of L2 regularization over the weights (will be divided by the number of weights).
     params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.
