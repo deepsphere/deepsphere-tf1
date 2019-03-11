@@ -17,8 +17,8 @@
 * nparams = weights (500+50000+27500+580800) + bias (100 + 100 + 55) = ~600k
 * train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
 * accuracy, F1, loss of validation part: (65.82, 64.05, 1.86+e03)
-* test on val_perturbed dataset: P@N 0.154, R@N 0.159, F1@N 0.155, mAP 0.144, NDCG 0.214
-* test on test_perturbed dataset: P@N 0.520, R@N 0.566, F1@N 0.527, mAP 0.483, NDCG 0.530
+* test on val_perturbed dataset: P@N 0.520, R@N 0.566, F1@N 0.527, mAP 0.483, NDCG 0.530
+* test on test_perturbed dataset: xxx
 * time per batch: N/A
 
 ## experiment 2
@@ -39,13 +39,13 @@
 ** params['M'] = [55] Fully connected
 * nparams = weights (33600+130000+5500) + bias (100 + 100) = ~170k
 * train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
-* accuracy, F1, loss of validation part: (71.12, 68.18, 1.23)
-* test on val_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
-* test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
+* accuracy, F1, loss of validation part: (71.19, 68.20, 1.2)
+* test on val_perturbed dataset: xxx
+* test on test_perturbed dataset: P@N 0.550, R@N 0.607, F1@N 0.560, mAP 0.525, NDCG 0.608
 * time per batch: 0.75 s
 
 ## experiment 0
-* git commit: 
+* git commit: a120887dd9098a1e29b91066b63d7fdce5661428
 * similar parameters as Cohen simple:
 ** nsides = [Nside, Nside//4, Nside//8, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100]
@@ -63,8 +63,8 @@
 * train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
 * accuracy, F1, loss of validation part: (72.53, 69.61, 1.23)
 * accuracy, F1, loss of test part: (67.41, 64.92, 1.4)
-* test on val_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
-* test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
+* test on val_perturbed dataset: P@N 0.576, R@N 0.658, F1@N 0.596, mAP 0.579, NDCG 0.606
+* test on test_perturbed dataset: P@N 0.564, R@N 0.600, F1@N 0.567, mAP 0.532, NDCG 0.619
 * time per batch: 0.12 s
 
 ## essai

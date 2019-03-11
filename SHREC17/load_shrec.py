@@ -396,7 +396,7 @@ class Shrec17DeepSphere(object):
 #         for i in range(self.nclass):
 #             hist_train.append(np.sum(labels_train == i))
         labels, values = zip(*hist_train.items())
-        indexes = np.arange(self.nclass)
+        indexes = np.asarray(labels)
         width = 1
         plt.bar(indexes, values, width)
         plt.title("labels distribution")

@@ -115,7 +115,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
         # That is, change the classifier while keeping the feature extractor.
         params['F'] = params['F'][:-1]
         #params['K'] = params['K'][:-1]
-        params['K'] = [5]*2 #[np.ceil(np.sqrt(3)*Nside).astype(int), np.ceil(np.sqrt(3)*Nside//4).astype(int)]
+        params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int), np.ceil(np.sqrt(3)*Nside//4).astype(int)]
         params['batch_norm'] = params['batch_norm'][:-1]
         params['statistics'] = 'mean'
         params['M'] = [n_classes]
