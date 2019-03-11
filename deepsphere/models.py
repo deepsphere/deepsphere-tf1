@@ -160,7 +160,7 @@ class base_model(object):
             string += '\nCPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall)
         return string, accuracy, f1, loss
 
-    def fit(self, train_dataset, val_dataset, use_tf_dataset=False):
+    def fit(self, train_dataset, val_dataset, use_tf_dataset=False, verbose=True):
 
         # Load the dataset
         if use_tf_dataset:
@@ -224,14 +224,16 @@ class base_model(object):
             # Periodical evaluation of the model.
             if evaluate:
                 epoch = step * self.batch_size / train_dataset.N
-                print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
-                print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
+                if verbose:
+                    print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
+                    print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
                 losses_training.append(loss)
                 string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
                 accuracies_validation.append(accuracy)
                 losses_validation.append(loss)
-                print('  validation {}'.format(string))
-                print('  CPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall))
+                if verbose:
+                    print('  validation {}'.format(string))
+                    print('  CPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall))
 
                 # Summaries for TensorBoard.
                 summary = tf.Summary()
@@ -246,11 +248,12 @@ class base_model(object):
                 # Save model parameters (for evaluation).
                 self.op_saver.save(sess, path, global_step=step)
 
-        print('validation accuracy: best = {:.2f}, mean = {:.2f}'.format(max(accuracies_validation), np.mean(accuracies_validation[-10:])))
+        if verbose:
+            print('validation accuracy: best = {:.2f}, mean = {:.2f}'.format(max(accuracies_validation), np.mean(accuracies_validation[-10:])))
         writer.close()
         sess.close()
-
-        print('time per batch: mean = {:.2f}, var = {:.2f}'.format(np.mean(times), np.var(times))) 
+        if verbose:
+            print('time per batch: mean = {:.2f}, var = {:.2f}'.format(np.mean(times), np.var(times))) 
         t_step = (time.time() - t_wall) / num_steps
         return accuracies_validation, losses_validation, losses_training, t_step
 

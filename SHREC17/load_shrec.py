@@ -261,7 +261,7 @@ class Shrec17DeepSphere(object):
                                ' You can use download=True to download it')
 
         self.files = sorted(glob.glob(os.path.join(self.dir, '*.obj')))
-        if dataset != "test":
+        if dataset != "test_pert":
             with open(os.path.join(self.root, dataset + ".csv"), 'rt') as f:
                 reader = csv.reader(f)
                 self.labels_dict = {}
@@ -276,13 +276,16 @@ class Shrec17DeepSphere(object):
             self.labels = None
         head, _ = os.path.split(self.files[0])
         os.makedirs(head+'/deepsphere', exist_ok=True)
-        self.files = self.files[:nfile]
-        if self.labels is not None:
-            self.labels = self.labels[:nfile]
-            self.labels = self.labels.repeat(augmentation)
+        if nfile is not None:
+            self.files = self.files[:nfile]
+            if self.labels is not None:
+                self.labels = self.labels[:nfile]
+                self.labels = self.labels.repeat(augmentation)
         self.ids = []
-        if nfile == -1:
+        if nfile is None:
             nfile = len(self.files)
+        if nfile < 0:
+            nfile = len(self.files) + nfile
         self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
         for i, file in tqdm(enumerate(self.files)):
             for j in range(augmentation):
@@ -341,25 +344,27 @@ class Shrec17DeepSphere(object):
 
         return output
 
-    def return_data(self, train=False, sigma=0., train_ratio=0.8):
+    def return_data(self, train=False, sigma=0., train_ratio=0.8, verbose=True):
         if train:
-            ret = self._data_preprocess(self.data, sigma, train_ratio)
+            ret = self._data_preprocess(self.data, sigma, train_ratio, verbose=verbose)
         else:
             ret = self.data, self.labels, self.ids
-            #self._print_histogram(self.labels)
+            if verbose:
+                self._print_histogram(self.labels)
         # features_train, labels_train, features_validation, labels_validation = ret
         return ret
 
     def retrieve_ids(self):
         return self.ids
 
-    def _data_preprocess(self, x_raw_train, sigma_noise=0., train_ratio=0.8):
+    def _data_preprocess(self, x_raw_train, sigma_noise=0., train_ratio=0.8, verbose=True):
         if train_ratio == 1.0:
             p = np.random.permutation(len(x_raw_train))
             labels_train = self.labels[p]
             ids_train = np.asarray(self.ids)[p]
-            print('Number of elements / class')
-            self._print_histogram(labels_train)
+            if verbose:
+                print('Number of elements / class')
+                self._print_histogram(labels_train)
 #             print('  Training set: ')
 #             for i in range(self.nclass):
 #                 print('    Class {}: {} elements'.format(i, np.sum(labels_train == i)), flush=True)
@@ -369,8 +374,9 @@ class Shrec17DeepSphere(object):
         x_noise = x_raw_train + sigma_noise * rs.randn(*x_raw_train.shape)
         ret = train_test_split(x_raw_train, x_noise, self.labels, self.ids, test_size=None, train_size=train_ratio, shuffle=True, random_state=0)
         x_raw_train, x_raw_validation, x_noise_train, x_noise_validation, labels_train, labels_validation, ids_train, ids_val = ret
-        print('Number of elements / class')
-        self._print_histogram(labels_train, labels_val)
+        if verbose:
+            print('Number of elements / class')
+            self._print_histogram(labels_train, labels_val)
 #         print('  Training set: ')
 #         for i in range(self.nclass):
 #             print('    Class {}: {} elements'.format(i, np.sum(labels_train == i)), flush=True)
@@ -382,12 +388,14 @@ class Shrec17DeepSphere(object):
         return x_raw_train, labels_train, x_noise_validation, labels_validation, ids_train, ids_val
     
     def _print_histogram(self, labels_train, labels_val=None):
+        if labels_train is None:
+            return
         import matplotlib.pyplot as plt
         from collections import Counter
         hist_train=Counter(labels_train)
 #         for i in range(self.nclass):
 #             hist_train.append(np.sum(labels_train == i))
-        labels, values = zip(*hist.items())
+        labels, values = zip(*hist_train.items())
         indexes = np.arange(self.nclass)
         width = 1
         plt.bar(indexes, values, width)
@@ -396,7 +404,7 @@ class Shrec17DeepSphere(object):
         if labels_val is not None:
             hist_val=Counter(labels_val)
             plt.figure()
-            labels, values = zip(*hist.items())
+            labels, values = zip(*hist_val.items())
             indexes = np.asarray(labels)
             width = 1
             plt.bar(indexes, values, width)
