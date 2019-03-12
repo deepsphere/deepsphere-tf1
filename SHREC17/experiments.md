@@ -19,7 +19,8 @@
 * accuracy, F1, loss of validation part: (65.82, 64.05, 1.86+e03)
 * test on val_perturbed dataset: P@N 0.520, R@N 0.566, F1@N 0.527, mAP 0.483, NDCG 0.530
 * test on test_perturbed dataset: xxx
-* time per batch: N/A
+* time per batch: 0.33 s
+TODO: revoir les résultats
 
 ## experiment 2
 * git commit: 5874eb9a337610361a32f30c9d8060afd682ba97
@@ -42,12 +43,12 @@
 * accuracy, F1, loss of validation part: (71.19, 68.20, 1.2)
 * test on val_perturbed dataset: xxx
 * test on test_perturbed dataset: P@N 0.550, R@N 0.607, F1@N 0.560, mAP 0.525, NDCG 0.608
-* time per batch: 0.75 s
+* time per batch: 0.58 s
 
 ## experiment 0
 * git commit: a120887dd9098a1e29b91066b63d7fdce5661428
 * similar parameters as Cohen simple:
-** nsides = [Nside, Nside//4, Nside//8, Nside//8] ==> npixel [12'228, 768, 192]
+** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100]
 ** params['batch_norm'] = [True] * 2
 ** params['num_epochs'] = 80
@@ -87,7 +88,30 @@
 * accuracy, F1, loss of test part: (69.99, 68.11, 1.1)
 * test on val_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
 * test on test_perturbed dataset: P@N 0.601, R@N 0.624, F1@N 0.600, mAP 0.562, NDCG 0.651
-* time per batch: 0.?? s
+* time per batch: 0.34 s
+
+## experiment 3
+* git commit: 
+* similar parameters as Cohen simple:
+** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
+** params['F'] = [100, 100]
+** params['batch_norm'] = [True] * 2
+** params['num_epochs'] = 145
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0.1
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: tf.train.exponential_decay(4e-2, step, decay_steps=1, decay_rate=0.999)   # peut être changer
+** params['K'] = [5] * 2  
+** average pooling before fully-connected
+** params['M'] = [55] Fully connected
+* nparams = weights (500+50000+5500) + bias (100 + 100) = ~59k
+* train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
+* accuracy, F1, loss of validation part: (75.36, 73.17, 1.12)
+* accuracy, F1, loss of test part: (70.12, 68.36, 1.28)
+* test on val_perturbed dataset: NaN
+* test on test_perturbed dataset: P@N 0.594, R@N 0.621, F1@N 0.596, mAP 0.562, NDCG 0.645
+* time per batch: 0.12 s
 
 # Cohen model
 ## paper experiment

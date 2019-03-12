@@ -100,13 +100,13 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['statistics'] = 'mean'  # Statistics (for invariance): None, mean, var, meanvar, hist.
 
     # Architecture.
-    params['F'] = [16*6, 32*6, 64*6, 64*6, n_classes] #[100, 100, n_classes]  # Graph convolutional layers: number of feature maps.
-    params['K'] = [5] * 5 #[5] * 3  # Polynomial orders.
-    params['batch_norm'] = [True] * 5  # Batch normalization.
+    params['F'] = [100, 100, n_classes]  # Graph convolutional layers: number of feature maps.
+    params['K'] = [5] * 3  # Polynomial orders.
+    params['batch_norm'] = [True] * 3  # Batch normalization.
     params['M'] = []  # Fully connected layers: output dimensionalities.
 
     # Pooling.
-    nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//16] #[Nside, Nside//4, Nside//8]
+    nsides = [Nside, Nside//4, Nside//8]
     params['nsides'] = nsides
     params['indexes'] = None
 
@@ -115,7 +115,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
         # That is, change the classifier while keeping the feature extractor.
         params['F'] = params['F'][:-1]
         #params['K'] = params['K'][:-1]
-        params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int), np.ceil(np.sqrt(3)*Nside//4).astype(int)]
+        params['K'] = [5]*2 #[np.ceil(np.sqrt(3)*Nside).astype(int), np.ceil(np.sqrt(3)*Nside//4).astype(int)]
         params['batch_norm'] = params['batch_norm'][:-1]
         params['statistics'] = 'mean'
         params['M'] = [n_classes]
@@ -123,15 +123,15 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
         raise ValueError('Unknown architecture {}.'.format(architecture))
 
     # Regularization (to prevent over-fitting).
-    params['regularization'] = 0 #1  # Amount of L2 regularization over the weights (will be divided by the number of weights).
+    params['regularization'] = 0.1  # Amount of L2 regularization over the weights (will be divided by the number of weights).
     params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.
-    params['num_epochs'] = 40  # Number of passes through the training data.
+    params['num_epochs'] = 300  # Number of passes through the training data.
     params['batch_size'] = 32  # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.
-    params['scheduler'] = lambda step: tf.train.exponential_decay(2e-2, step, decay_steps=5, decay_rate=0.999)
+    params['scheduler'] = lambda step: tf.train.exponential_decay(4e-2, step, decay_steps=1, decay_rate=0.999)
     #params['scheduler'] = lambda step: tf.train.exponential_decay(5e-5, step, decay_steps=5, decay_rate=0.999)
     params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
 

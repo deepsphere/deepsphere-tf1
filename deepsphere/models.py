@@ -233,7 +233,7 @@ class base_model(object):
                 losses_validation.append(loss)
                 if verbose:
                     print('  validation {}'.format(string))
-                    print('  CPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall))
+                    print('  CPU time: {:.0f}s, wall time: {:.0f}s, perf_time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall, times[-1]))
 
                 # Summaries for TensorBoard.
                 summary = tf.Summary()
