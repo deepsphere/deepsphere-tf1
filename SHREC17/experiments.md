@@ -91,7 +91,7 @@ TODO: revoir les résultats
 * time per batch: 0.34 s
 
 ## experiment 3
-* git commit: 
+* git commit: fd5fb8156d6c482c886ec6863f13b1f19ef41fdd
 * similar parameters as Cohen simple:
 ** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100]
@@ -112,6 +112,29 @@ TODO: revoir les résultats
 * test on val_perturbed dataset: NaN
 * test on test_perturbed dataset: P@N 0.594, R@N 0.621, F1@N 0.596, mAP 0.562, NDCG 0.645
 * time per batch: 0.12 s
+
+## experiment 4
+* git commit: 
+* similar parameters as Cohen simple:
+** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
+** params['F'] = [100, 100]
+** params['batch_norm'] = [True] * 2
+** params['num_epochs'] = 108
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0.1
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: tf.train.exponential_decay(4e-2, step, decay_steps=1, decay_rate=0.999)   # peut être changer
+** params['K'] = sqrt(3) * nsides 
+** average pooling before fully-connected
+** params['M'] = [55] Fully connected
+* nparams = weights + bias = ~170k
+* train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
+* accuracy, F1, loss of validation part: (76.12, 74.18, 1.03)
+* accuracy, F1, loss of test part: (71.73, 70.29, 1.17)
+* test on val_perturbed dataset: NaN
+* test on test_perturbed dataset: P@N 0.617, R@N 0.641, F1@N 0.616, mAP 0.582, NDCG 0.672
+* time per batch: 0.58 s
 
 # Cohen model
 ## paper experiment
@@ -164,6 +187,7 @@ TODO: revoir les résultats
 ** integration on SO3 before fully-connected
 * nparams = ~400k
 * no augmentation, random translation and rotation
+* validation part: accuracy 80.81, f1 80.44
 * test on val_perturbed dataset: P@N 0.701, R@N 0.710, F1@N 0.699, mAP 0.667, NDCG 0.699
 * test on test_perturbed dataset: P@N 0.669, R@N 0.662, F1@N 0.659, mAP 0.621, NDCG 0.707
 * time per batch: 0.43 s
