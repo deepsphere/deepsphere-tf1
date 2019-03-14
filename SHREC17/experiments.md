@@ -114,7 +114,7 @@ TODO: revoir les résultats
 * time per batch: 0.12 s
 
 ## experiment 4
-* git commit: 
+* git commit: 62a667aea3b555b9c92cebeba02fcaabf4138d0b
 * similar parameters as Cohen simple:
 ** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100]
@@ -134,7 +134,31 @@ TODO: revoir les résultats
 * accuracy, F1, loss of test part: (71.73, 70.29, 1.17)
 * test on val_perturbed dataset: NaN
 * test on test_perturbed dataset: P@N 0.617, R@N 0.641, F1@N 0.616, mAP 0.582, NDCG 0.672
-* time per batch: 0.58 s
+* time per batch: 0.56 s
+
+## experiment 4.2
+* git commit: 
+* similar parameters as Cohen simple:
+** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
+** params['F'] = [100, 100]
+** params['batch_norm'] = [True] * 2
+** params['num_epochs'] = 108
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0.1
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: tf.train.exponential_decay(4e-2, step, decay_steps=1, decay_rate=0.999)   # peut être changer
+** params['K'] = [5] * 2 
+** optimizer: SGD
+** average pooling before fully-connected
+** params['M'] = [55] Fully connected
+* nparams = weights + bias = ~59k
+* train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
+* accuracy, F1, loss of validation part: (76.17, 74.35, 0.97)
+* accuracy, F1, loss of test part: (72.09, 70.68, 1.11)
+* test on val_perturbed dataset: P@N 0.630, R@N 0.682, F1@N 0.641, mAP 0.619, NDCG 0.649
+* test on test_perturbed dataset: P@N 0.623, R@N 0.639, F1@N 0.619, mAP 0.584, NDCG 0.672
+* time per batch: 0.11 s
 
 # Cohen model
 ## paper experiment
@@ -191,3 +215,24 @@ TODO: revoir les résultats
 * test on val_perturbed dataset: P@N 0.701, R@N 0.710, F1@N 0.699, mAP 0.667, NDCG 0.699
 * test on test_perturbed dataset: P@N 0.669, R@N 0.662, F1@N 0.659, mAP 0.621, NDCG 0.707
 * time per batch: 0.43 s
+
+## experiment augmentation
+* parameters
+** bandwidth = [64, 16, 10] ==> npixel [16384, 32768(1024), 8000(400)]
+** features = [100, 100, n_classes]
+** batch norm 3D = yes
+** num epoch = 300
+** batch_size = 32
+** activation = relu
+** no regularization
+** no fully connected: so3 integration
+** learning rate = 0.5
+** kernel in spatial space, grid is a ring around equator of size (2 * bandwidth, 1) ==> non-local filter
+** integration on SO3 before fully-connected
+* nparams = ~400k
+* augmentation, 3 random translations and rotations
+* training part: accuracy 0.96, loss 0.13
+* validation part: accuracy , f1 
+* test on val_perturbed dataset: P@N 0.701, R@N 0.710, F1@N 0.699, mAP 0.667, NDCG 0.699
+* test on test_perturbed dataset: P@N 0.669, R@N 0.662, F1@N 0.659, mAP 0.621, NDCG 0.707
+* time per batch: 0.46 s

@@ -246,6 +246,7 @@ class Shrec17DeepSphere(object):
     def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1, nfile=2000):
         self.nside = nside
         self.root = os.path.expanduser(root)
+        self.repeat = augmentation
 
         if dataset not in ["train", "test", "val"]:
             raise ValueError("Invalid dataset")
@@ -348,6 +349,7 @@ class Shrec17DeepSphere(object):
         if train:
             ret = self._data_preprocess(self.data, sigma, train_ratio, verbose=verbose)
         else:
+            #data = self.data.reshape((-1, self.repeat, 12*self.nside**2, 6))
             ret = self.data, self.labels, self.ids
             if verbose:
                 self._print_histogram(self.labels)
