@@ -115,6 +115,30 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
     return W
 
 
+def equiangular_weightmatrix(bw=64, indexes=None, dtype=np.float32):
+    # define a way to read the grid
+    if indexes is None:
+        indexes = range((2*bw)**2)
+    npix = len(indexes)  # Number of pixels.
+    
+    # Find a mean to take only indexes from grid
+    beta = np.arange(2 * bw) * np.pi / (2. * bw)  # Driscoll-Heally
+    alpha = np.arange(2 * bw) * np.pi / bw
+    theta, phi = np.meshgrid(*(beta, alpha),indexing='ij')
+    ct = np.cos(theta)
+    st = np.sin(theta)
+    cp = np.cos(phi)
+    sp = np.sin(phi)
+    x = st * cp
+    y = st * sp
+    z = ct
+    coords = np.vstack([x, y, z]).transpose()   # Verify this
+    coords = np.asarray(coords, dtype=dtype)
+    
+    
+    W = None
+    return W
+
 def build_laplacian(W, lap_type='normalized', dtype=np.float32):
     """Build a Laplacian (tensorflow)."""
     d = np.ravel(W.sum(1))
@@ -176,6 +200,21 @@ def healpix_laplacian(nside=16,
     L = build_laplacian(W, lap_type=lap_type)
     return L
 
+def equiangular_laplacian(bw=16,
+                          lap_type='normalized',
+                          indexes=None,
+                          dtype=np.float32,
+                          use_4=False):
+    """Build a Equiangular Laplacian."""
+    if use_4:
+        raise NotImplementedError()
+        #W = build_matrix_4_neighboors(nside, indexes, nest=nest, dtype=dtype)
+    else:
+        W = equiangular_weightmatrix(
+            bw=bw, indexes=indexes, dtype=dtype)
+    L = build_laplacian(W, lap_type=lap_type)# see if change
+    return L
+
 
 def rescale_L(L, lmax=2, scale=1):
     """Rescale the Laplacian eigenvalues in [-scale,scale]."""
@@ -186,7 +225,7 @@ def rescale_L(L, lmax=2, scale=1):
     return L*scale
 
 
-def build_laplacians(nsides, indexes=None, use_4=False):
+def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix'):
     """Build a list of Laplacians (and down-sampling factors) from a list of nsides."""
     L = []
     p = []
@@ -197,7 +236,12 @@ def build_laplacians(nsides, indexes=None, use_4=False):
             p.append((nside_last // nside)**2)
         nside_last = nside
         if i < len(nsides) - 1:  # Last does not need a Laplacian.
-            laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4)
+            if sampling is 'healpix':
+                laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4)
+            elif sampling is 'equiangular':
+                laplacian = equiangular_laplacian(bw=nside, indexes=index, use_4=use_4)
+            else:
+                raise ValueError('Unknown sampling: '+sampling)
             L.append(laplacian)
     return L, p
 

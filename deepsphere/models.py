@@ -862,8 +862,10 @@ class deepsphere(cgcnn):
         dir_name: Name for directories (summaries and model parameters).
     """
 
-    def __init__(self, nsides, indexes=None, use_4=False, **kwargs):
-        L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4)
+    def __init__(self, nsides, indexes=None, use_4=False, sampling='healpix', **kwargs):
+        # nsides is bandwidth if sampling is equiangular (SOFT)
+        L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4, sampling=sampling)
+        self.sampling = sampling
         self.nsides = nsides
         self.pygsp_graphs = [None] * len(nsides)
         super(deepsphere, self).__init__(L=L, p=p, **kwargs)
@@ -882,7 +884,10 @@ class deepsphere(cgcnn):
         trained_weights = self.get_filter_coeffs(layer, ind_in, ind_out)
         nside = self.nsides[layer-1]
         if self.pygsp_graphs[layer-1] is None:
-            self.pygsp_graphs[layer-1] = utils.healpix_graph(nside=nside)
+            if self.sampling is 'healpix':
+                self.pygsp_graphs[layer-1] = utils.healpix_graph(nside=nside)
+            else:
+                raise valueError('Unknown sampling: '+self.sampling)
             self.pygsp_graphs[layer-1].estimate_lmax()
         return filters.Chebyshev(self.pygsp_graphs[layer-1], trained_weights)
 

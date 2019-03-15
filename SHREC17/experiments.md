@@ -238,7 +238,7 @@ TODO: revoir les résultats
 * Remarks: 
 
 ## experiment 5.5
-* git commit: 
+* git commit: b8f4ff3507cd4dc691eac7aaaabe13dfeb46d47e
 * similar parameters as Cohen simple:
 ** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100]
