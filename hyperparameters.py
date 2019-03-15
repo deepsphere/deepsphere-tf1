@@ -114,8 +114,8 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
         # Replace the last graph convolution and global average pooling by a fully connected layer.
         # That is, change the classifier while keeping the feature extractor.
         params['F'] = params['F'][:-1]
-        #params['K'] = params['K'][:-1]
-        params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int), np.ceil(np.sqrt(3)*Nside//4).astype(int)]
+        params['K'] = params['K'][:-1]
+        #params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int), np.ceil(np.sqrt(3)*Nside//4).astype(int)]
         params['batch_norm'] = params['batch_norm'][:-1]
         params['statistics'] = 'mean'
         params['M'] = [n_classes]
@@ -123,7 +123,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
         raise ValueError('Unknown architecture {}.'.format(architecture))
 
     # Regularization (to prevent over-fitting).
-    params['regularization'] = 0#.08  # Amount of L2 regularization over the weights (will be divided by the number of weights).
+    params['regularization'] = 0#1e-4  # Amount of L2 regularization over the weights (will be divided by the number of weights).
     params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.

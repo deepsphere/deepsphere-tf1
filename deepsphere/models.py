@@ -223,7 +223,7 @@ class base_model(object):
             times.append(perf_counter()-t_begin)
             # Periodical evaluation of the model.
             if evaluate:
-                # Change evaluation in case of augmentation, maybe? In order to get a more accurate response of the model
+                # Change evaluation in case of augmentation, maybe? In order to get a more accurate response of the model (in evaluation, same as Cohen) But need change of datastructure
                 epoch = step * self.batch_size / train_dataset.N
                 if verbose:
                     print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
@@ -254,7 +254,7 @@ class base_model(object):
         writer.close()
         sess.close()
         if verbose:
-            print('time per batch: mean = {:.2f}, var = {:.2f}'.format(np.mean(times), np.var(times))) 
+            print('time per batch: mean = {:.2f}, var = {:.2f}%'.format(np.mean(times), 100*np.var(times))) 
         t_step = (time.time() - t_wall) / num_steps
         return accuracies_validation, losses_validation, losses_training, t_step
 

@@ -186,7 +186,7 @@ TODO: revoir les résultats
 * time per batch: 0.12 s
 
 ## experiment 5.2
-* git commit: 
+* git commit: ecc809d1dc1aa27b9b5245056f9efa2469a4a9f2
 * similar parameters as Cohen simple:
 ** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100]
@@ -206,10 +206,62 @@ TODO: revoir les résultats
 * accuracy, F1, loss of training part: (91.34, 91.17, 0.266)
 * accuracy, F1, loss of validation part: (78.84, 78.02, 1.06)
 * accuracy, F1, loss of test part: (73.95, 73.62, 1.26)
-* test on val_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
-* test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
+* test on val_perturbed dataset: P@N 0.675, R@N 0.667, F1@N 0.674, mAP 0.654, NDCG 0.677
+* test on test_perturbed dataset: P@N 0.664, R@N 0.656, F1@N 0.650, mAP 0.618, NDCG 0.702
 * time per batch: 0.59 s
 * Remarks: num_epochs too big, validation loss is increasing, but f1 score keeps increasing
+
+## experiment 5.3
+* git commit: 
+* similar parameters as Cohen simple:
+** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
+** params['F'] = [100, 100]
+** params['batch_norm'] = [True] * 2
+** params['num_epochs'] = 100
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0.08
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: 5e-2
+** params['K'] = [5] * 2  
+** optimizer: SGD
+** average pooling before fully-connected
+** params['M'] = [55] Fully connected
+* nparams = weights + bias = ~60k
+* train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
+* accuracy, F1, loss of training part: (, , )
+* accuracy, F1, loss of validation part: (, , )
+* accuracy, F1, loss of test part: (, , )
+* test on val_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
+* test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
+* time per batch: 0.12 s
+* Remarks: 
+
+## experiment 5.5
+* git commit: 
+* similar parameters as Cohen simple:
+** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
+** params['F'] = [100, 100]
+** params['batch_norm'] = [True] * 2
+** params['num_epochs'] = 25
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0.08
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: 5e-2
+** params['K'] = [5] * 2  
+** optimizer: SGD
+** average pooling before fully-connected
+** params['M'] = [55] Fully connected
+* nparams = weights + bias = ~60k
+* train on perturbed dataset, augmentation=3, random translation and rotation (object not on the center of the sphere)
+* accuracy, F1, loss of training part: (87.16, 87.11, 0.87)
+* accuracy, F1, loss of validation part: (78.75, 78.28, 0.873)
+* accuracy, F1, loss of test part: (75.87, 75.83, 0.996)
+* test on val_perturbed dataset: P@N 0.690, R@N 0.701, F1@N 0.686, mAP 0.662, NDCG 0.688
+* test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
+* time per batch: 0.12 s
+* Remarks: 
 
 # Cohen model
 ## paper experiment
@@ -263,6 +315,7 @@ TODO: revoir les résultats
 * nparams = ~400k
 * no augmentation, random translation and rotation
 * validation part: accuracy 80.81, f1 80.44
+* testing part: accuracy 75.93, f1 76.19
 * test on val_perturbed dataset: P@N 0.701, R@N 0.710, F1@N 0.699, mAP 0.667, NDCG 0.699
 * test on test_perturbed dataset: P@N 0.669, R@N 0.662, F1@N 0.659, mAP 0.621, NDCG 0.707
 * time per batch: 0.43 s
