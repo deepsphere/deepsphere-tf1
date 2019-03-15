@@ -223,6 +223,7 @@ class base_model(object):
             times.append(perf_counter()-t_begin)
             # Periodical evaluation of the model.
             if evaluate:
+                # Change evaluation in case of augmentation, maybe? In order to get a more accurate response of the model
                 epoch = step * self.batch_size / train_dataset.N
                 if verbose:
                     print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))

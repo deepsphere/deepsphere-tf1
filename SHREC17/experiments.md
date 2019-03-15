@@ -161,7 +161,7 @@ TODO: revoir les résultats
 * time per batch: 0.11 s
 
 ## experiment 5.1
-* git commit: 
+* git commit: 5ffd65b74f6665ec7dcf01fcae4eecf5b1446d26
 * similar parameters as Cohen simple:
 ** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100]
@@ -203,11 +203,13 @@ TODO: revoir les résultats
 ** params['M'] = [55] Fully connected
 * nparams = weights + bias = ~180k
 * train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
-* accuracy, F1, loss of validation part: (, , )
-* accuracy, F1, loss of test part: (, , )
+* accuracy, F1, loss of training part: (91.34, 91.17, 0.266)
+* accuracy, F1, loss of validation part: (78.84, 78.02, 1.06)
+* accuracy, F1, loss of test part: (73.95, 73.62, 1.26)
 * test on val_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
 * test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
-* time per batch: 0.58 s
+* time per batch: 0.59 s
+* Remarks: num_epochs too big, validation loss is increasing, but f1 score keeps increasing
 
 # Cohen model
 ## paper experiment

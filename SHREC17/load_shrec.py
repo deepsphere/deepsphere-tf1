@@ -59,25 +59,25 @@ def make_sgrid(nside, alpha, beta, gamma):
     return sgrid
 
 
-def make_sgrid_daniildis(res=64, alpha=0, beta=0, gamma=0):     # nchannel = 1, 2 if d, sin(alpha) input_res=64, batch size 9843???
-    # res x res equiangular grid
-    beta = np.arange(2 * res) * np.pi / (2. * res)  # Driscoll-Heally
-    alpha = np.arange(2 * res) * np.pi / res
-    # beta = np.arange(1,2 * res, 2) * np.pi / (2 * res - 1)   # equiangular?
-    # alpha = 2 * np.pi * np.arange(2*res - 1) / (2*res-1)
-    theta, phi = np.meshgrid(*(beta, alpha),indexing='ij')
-    out = np.empty(theta.shape + (3,))
-    ct = np.cos(theta)
-    st = np.sin(theta)
-    cp = np.cos(phi)
-    sp = np.sin(phi)
-    x = st * cp
-    y = st * sp
-    z = ct
-    out[..., 0] = x
-    out[..., 1] = y
-    out[..., 2] = z
-    return out
+# def make_sgrid_daniildis(res=64, alpha=0, beta=0, gamma=0):     # nchannel = 1, 2 if d, sin(alpha) input_res=64, batch size 9843???
+#     # res x res equiangular grid
+#     beta = np.arange(2 * res) * np.pi / (2. * res)  # Driscoll-Heally
+#     alpha = np.arange(2 * res) * np.pi / res
+#     # beta = np.arange(1,2 * res, 2) * np.pi / (2 * res - 1)   # equiangular?
+#     # alpha = 2 * np.pi * np.arange(2*res - 1) / (2*res-1)
+#     theta, phi = np.meshgrid(*(beta, alpha),indexing='ij')
+#     out = np.empty(theta.shape + (3,))
+#     ct = np.cos(theta)
+#     st = np.sin(theta)
+#     cp = np.cos(phi)
+#     sp = np.sin(phi)
+#     x = st * cp
+#     y = st * sp
+#     z = ct
+#     out[..., 0] = x
+#     out[..., 1] = y
+#     out[..., 2] = z
+#     return out
 
 
 def render_model(mesh, sgrid):
@@ -281,7 +281,7 @@ class Shrec17DeepSphere(object):
             self.files = self.files[:nfile]
             if self.labels is not None:
                 self.labels = self.labels[:nfile]
-                self.labels = self.labels.repeat(augmentation)
+        self.labels = self.labels.repeat(augmentation)
         self.ids = []
         if nfile is None:
             nfile = len(self.files)
@@ -289,8 +289,8 @@ class Shrec17DeepSphere(object):
             nfile = len(self.files) + nfile
         self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
         for i, file in tqdm(enumerate(self.files)):
-            for j in range(augmentation):
-                self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
+            #for j in range(augmentation):
+            self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
             data = np.asarray(self.cache_npy(file, repeat=augmentation))
             #time1 = time.time()
             #self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
@@ -299,9 +299,11 @@ class Shrec17DeepSphere(object):
             #print("time elapsed for change elem:",(time2-time1)*1000.)
             del data
 
-        self.std = np.std(self.data, axis=(0, 1))
-        self.mean = np.mean(self.data, axis=(0, 1))
-        self.data = (self.data - self.mean) / self.std
+        # better to remove mean before?
+        self.std = np.std(self.data[::1,:,:], axis=(0, 1))
+        self.mean = np.mean(self.data[::1,:,:], axis=(0, 1))
+        self.data = self.data - self.mean
+        self.data = self.data / self.std
         self.N = len(self.data)
 
     def check_trans(self, file_path):
