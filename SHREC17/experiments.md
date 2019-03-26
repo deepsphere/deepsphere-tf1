@@ -166,24 +166,24 @@ TODO: revoir les résultats
 ** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100]
 ** params['batch_norm'] = [True] * 2
-** params['num_epochs'] = 100
+** params['num_epochs'] = 100  //  300
 ** params['batch_size'] = 32
 ** params['activation'] = 'relu'
 ** params['regularization'] = 0
 ** params['dropout'] = 1
-** params['scheduler'] = lambda step: 5e-2
+** params['scheduler'] = lambda step: 5e-1
 ** params['K'] = [5] * 2 
 ** optimizer: SGD
 ** average pooling before fully-connected
 ** params['M'] = [55] Fully connected
 * nparams = weights + bias = ~59k
 * train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
-* accuracy, F1, loss of training part: (86.60, 86.44, 0.44)
-* accuracy, F1, loss of validation part: (77.54, 76.64, 1.02)
-* accuracy, F1, loss of test part: (73.07, 72.84, 1.22)
-* test on val_perturbed dataset: P@N 0.656, R@N 0.684, F1@N 0.655, mAP 0.634, NDCG 0.660
-* test on test_perturbed dataset: P@N 0.619, R@N 0.649, F1@N 0.617, mAP 0.588, NDCG 0.669
-* time per batch: 0.12 s
+* accuracy, F1, loss of training part: (86.60, 86.44, 0.44)  //  (90.52, 90.21, 0.30)
+* accuracy, F1, loss of validation part: (77.54, 76.64, 1.02)  //  (78.90, 78.05, 1.12)
+* accuracy, F1, loss of test part: (73.07, 72.84, 1.22)  //  (74.71, 74.11, 1.30)
+* test on val_perturbed dataset: P@N 0.656, R@N 0.684, F1@N 0.655, mAP 0.634, NDCG 0.660  //  0.676, 0.698, 0.677, 0.655, 0.680
+* test on test_perturbed dataset: P@N 0.619, R@N 0.649, F1@N 0.617, mAP 0.588, NDCG 0.669  //  0.656, 0.659, 0.649, 0.620, 0.702
+* time per batch: 0.12 s, 2415 MiB, 3h45 // 11h training
 
 ## experiment 5.2
 * git commit: ecc809d1dc1aa27b9b5245056f9efa2469a4a9f2
@@ -196,7 +196,7 @@ TODO: revoir les résultats
 ** params['activation'] = 'relu'
 ** params['regularization'] = 0
 ** params['dropout'] = 1
-** params['scheduler'] = lambda step: 5e-2
+** params['scheduler'] = lambda step: 5e-1
 ** params['K'] = sqrt(3) * nsides  
 ** optimizer: SGD
 ** average pooling before fully-connected
@@ -209,7 +209,7 @@ TODO: revoir les résultats
 * test on val_perturbed dataset: P@N 0.675, R@N 0.667, F1@N 0.674, mAP 0.654, NDCG 0.677
 * test on test_perturbed dataset: P@N 0.664, R@N 0.656, F1@N 0.650, mAP 0.618, NDCG 0.702
 * time per batch: 0.59 s
-* Remarks: num_epochs too big, validation loss is increasing, but f1 score keeps increasing
+* Remarks: num_epochs too big, validation loss is increasing, but f1 score keeps increasing, 2415 MiB, 18 // xx hours
 
 ## experiment 5.3
 * git commit: 
@@ -222,7 +222,7 @@ TODO: revoir les résultats
 ** params['activation'] = 'relu'
 ** params['regularization'] = 0.08
 ** params['dropout'] = 1
-** params['scheduler'] = lambda step: 5e-2
+** params['scheduler'] = lambda step: 5e-1
 ** params['K'] = [5] * 2  
 ** optimizer: SGD
 ** average pooling before fully-connected
@@ -246,9 +246,9 @@ TODO: revoir les résultats
 ** params['num_epochs'] = 25
 ** params['batch_size'] = 32
 ** params['activation'] = 'relu'
-** params['regularization'] = 0.08
+** params['regularization'] = 0
 ** params['dropout'] = 1
-** params['scheduler'] = lambda step: 5e-2
+** params['scheduler'] = lambda step: 5e-1
 ** params['K'] = [5] * 2  
 ** optimizer: SGD
 ** average pooling before fully-connected
@@ -261,7 +261,7 @@ TODO: revoir les résultats
 * test on val_perturbed dataset: P@N 0.690, R@N 0.701, F1@N 0.686, mAP 0.662, NDCG 0.688
 * test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
 * time per batch: 0.12 s
-* Remarks: 
+* Remarks: 2419 MiB on GPU, 
 
 # Cohen model
 ## paper experiment

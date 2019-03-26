@@ -17,6 +17,14 @@ from tqdm import tqdm
 
 import time
 
+#import tensorflow as tf
+from itertools import cycle
+# To handle python 2
+try:
+    from itertools import zip_longest as zip_longest
+except:
+    from itertools import izip_longest as zip_longest
+
 
 def rotmat(a, b, c, hom_coord=False):   # apply to mesh using mesh.apply_transform(rotmat(a,b,c, True))
     """
@@ -231,7 +239,7 @@ def fix_dataset(dir):
 
 
 
-class Shrec17DeepSphere(object):
+class Shrec17Dataset(object):
     '''
     Download SHREC17 and output spherical HEALpix maps of obj files
     * root = folder where data is stored
@@ -289,8 +297,8 @@ class Shrec17DeepSphere(object):
             nfile = len(self.files) + nfile
         self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
         for i, file in tqdm(enumerate(self.files)):
-            #for j in range(augmentation):
-            self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
+            for j in range(augmentation):
+                self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
             data = np.asarray(self.cache_npy(file, repeat=augmentation))
             #time1 = time.time()
             #self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
@@ -357,9 +365,6 @@ class Shrec17DeepSphere(object):
                 self._print_histogram(self.labels)
         # features_train, labels_train, features_validation, labels_validation = ret
         return ret
-
-    def retrieve_ids(self):
-        return self.ids
 
     def _data_preprocess(self, x_raw_train, sigma_noise=0., train_ratio=0.8, verbose=True):
         if train_ratio == 1.0:
@@ -508,3 +513,259 @@ class Shrec17DeepSphere(object):
             self._download(url)
 
         print('Done!')
+
+        
+class Shrec17DatasetCache(object):
+    '''
+    Download SHREC17 and output spherical HEALpix maps of obj files
+    * root = folder where data is stored
+    * dataset ['train','test','val']
+    * perturbed = use the perturbation dataset version
+    * download = is the data already downloaded
+    '''
+
+    url_data = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.zip'
+    url_label = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.csv'
+
+    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1, nfile=2000):
+        self.mean = np.array([ 0.76423665, -0.08207781,  0.58800055,  0.57971995,  0.74730743, 0.58085993])
+        self.std = np.array([0.27203578, 0.7116338 , 0.28400871, 0.22612295, 0.2069686, 0.2432338 ])
+        self.nside = nside
+        self.root = os.path.expanduser(root)
+        self.repeat = augmentation
+
+        if dataset not in ["train", "test", "val"]:
+            raise ValueError("Invalid dataset")
+
+        self.dir = os.path.join(self.root, dataset + ("_perturbed" if perturbed else ""))
+
+        if download:
+            self.download(dataset, perturbed)
+
+        if not self._check_exists():
+            print(self.dir)
+            raise RuntimeError('Dataset not found.' +
+                               ' You can use download=True to download it')
+
+        self.files = sorted(glob.glob(os.path.join(self.dir, '*.obj')))
+        if dataset != "test_pert":
+            with open(os.path.join(self.root, dataset + ".csv"), 'rt') as f:
+                reader = csv.reader(f)
+                self.labels_dict = {}
+                for row in [x for x in reader][1:]:
+                    self.labels_dict[row[0]] = (row[1], row[2])
+            self.labels = []
+            for file in self.files:
+                file = os.path.splitext(os.path.basename(file))[0]
+                self.labels.append(self._target_transform(self.labels_dict[file]))
+            self.labels = np.asarray(self.labels, dtype=int)
+        else:
+            self.labels = None
+        head, _ = os.path.split(self.files[0])
+        os.makedirs(head+'/deepsphere', exist_ok=True)
+        if nfile is not None:
+            self.files = self.files[:nfile]
+            if self.labels is not None:
+                self.labels = self.labels[:nfile]
+        self.labels = self.labels.repeat(augmentation)
+        self.ids = []
+        if nfile is None:
+            nfile = len(self.files)
+        if nfile < 0:
+            nfile = len(self.files) + nfile
+        self.nfile = nfile
+        self.augmentation = augmentation
+        self.N = nfile * augmentation
+        self.files = np.asarray(self.files).repeat(augmentation)
+        #super(Shrec17DatasetCache, self).__init__()
+            
+#         self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
+        for i, file in tqdm(enumerate(self.files)):
+            for j in range(augmentation):
+                self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
+#             data = np.asarray(self.cache_npy(file, repeat=augmentation))
+#             #time1 = time.time()
+#             #self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
+#             self.data[augmentation*i:augmentation*(i+1)] = data
+#             #time2 = time.time()
+#             #print("time elapsed for change elem:",(time2-time1)*1000.)
+#             del data
+
+#         # better to remove mean before?
+#         self.std = np.std(self.data[::1,:,:], axis=(0, 1))
+#         self.mean = np.mean(self.data[::1,:,:], axis=(0, 1))
+#         self.data = self.data - self.mean
+#         self.data = self.data / self.std
+#         self.N = len(self.data)
+
+    def iter(self, batch_size):
+        return self.__iter__(batch_size)
+    
+    def __iter__(self, batch_size):
+        
+        self._p = np.random.permutation(self.N)
+        self.ids = np.array(self.ids)[self._p]
+
+        if batch_size>1:
+            _iter = grouper(cycle(self._p), batch_size)
+        else:
+            _iter = cycle(self._p)
+        for p in _iter:
+            data, label = self.get_item(p)
+            data, label = np.array(data), np.array(label)
+            data = data - self.mean / self.std
+            yield data, label
+    
+    def get_item(self, p):
+        datas = []
+        labels = []
+        for elem in p:
+            file = self.files[elem]
+            datas.append(self.cache_npy(file, pick_randomly=True, repeat=self.augmentation))
+            labels.append(self.labels[elem])
+        return datas, labels
+
+    def check_trans(self, file_path):
+        # print("transform {}...".format(file_path))
+        try:
+            mesh = ToMesh(file_path, rot=True, tr=0.1)
+            data = ProjectOnSphere(self.nside, mesh)
+            return data
+        except:
+            print("Exception during transform of {}".format(file_path))
+            raise
+
+    def cache_npy(self, file_path, pick_randomly=False, repeat=1, experiment='deepsphere'):
+        prefix = "nside{}_".format(self.nside)
+
+        head, tail = os.path.split(file_path)
+        root, _ = os.path.splitext(tail)
+        npy_path = os.path.join(head, experiment, prefix + root + '_{0}.npy')
+
+        exists = [os.path.exists(npy_path.format(i)) for i in range(repeat)]
+
+        if pick_randomly and all(exists):
+            i = np.random.randint(repeat)
+            try: return np.load(npy_path.format(i))
+            except OSError: exists[i] = False
+
+        if pick_randomly:
+            img = self.check_trans(file_path)
+            np.save(npy_path.format(exists.index(False)), img)
+
+            return img
+
+        output = []
+        for i in range(repeat):
+            try:
+                img = np.load(npy_path.format(i))
+            except (OSError, FileNotFoundError):
+                img = self.check_trans(file_path)
+                np.save(npy_path.format(i), img)
+            output.append(img)
+
+        return output
+
+    def _target_transform(self, target, reverse=False):
+        classes = ['02691156', '02747177', '02773838', '02801938', '02808440', '02818832', '02828884', '02843684', '02871439', '02876657',
+                   '02880940', '02924116', '02933112', '02942699', '02946921', '02954340', '02958343', '02992529', '03001627', '03046257',
+                   '03085013', '03207941', '03211117', '03261776', '03325088', '03337140', '03467517', '03513137', '03593526', '03624134',
+                   '03636649', '03642806', '03691459', '03710193', '03759954', '03761084', '03790512', '03797390', '03928116', '03938244',
+                   '03948459', '03991062', '04004475', '04074963', '04090263', '04099429', '04225987', '04256520', '04330267', '04379243',
+                   '04401088', '04460130', '04468005', '04530566', '04554684']
+        self.nclass = len(classes)
+        if reverse:
+            return classes[target]
+        return classes.index(target[0])
+
+    def _check_exists(self):
+        files = glob.glob(os.path.join(self.dir, "*.obj"))
+
+        return len(files) > 0
+
+    def _download(self, url):
+        import requests
+
+        filename = url.split('/')[-1]
+        file_path = os.path.join(self.root, filename)
+
+        if os.path.exists(file_path):
+            return file_path
+
+        print('Downloading ' + url)
+
+        r = requests.get(url, stream=True)
+        with open(file_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=16 * 1024 ** 2):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
+                    f.flush()
+
+        return file_path
+
+    def _unzip(self, file_path):
+        import zipfile
+
+        if os.path.exists(self.dir):
+            return
+
+        print('Unzip ' + file_path)
+
+        zip_ref = zipfile.ZipFile(file_path, 'r')
+        zip_ref.extractall(self.root)
+        zip_ref.close()
+        os.unlink(file_path)
+
+    def _fix(self):
+        print("Fix obj files")
+
+        r = re.compile(r'f (\d+)[/\d]* (\d+)[/\d]* (\d+)[/\d]*')
+
+        path = os.path.join(self.dir, "*.obj")
+        files = sorted(glob.glob(path))
+
+        c = 0
+        for i, f in enumerate(files):
+            with open(f, "rt") as x:
+                y = x.read()
+                yy = r.sub(r"f \1 \2 \3", y)
+                if y != yy:
+                    c += 1
+                    with open(f, "wt") as x:
+                        x.write(yy)
+            print("{}/{}  {} fixed    ".format(i + 1, len(files), c), end="\r")
+
+    def download(self, dataset, perturbed):
+
+        if self._check_exists():
+            return
+
+        # download files
+        try:
+            os.makedirs(self.root)
+        except OSError as e:
+            if e.errno == os.errno.EEXIST:
+                pass
+            else:
+                raise
+
+        url = self.url_data.format(dataset + ("_perturbed" if perturbed else ""))
+        file_path = self._download(url)
+        self._unzip(file_path)
+        self._fix()
+
+        if dataset != "test":
+            url = self.url_label.format(dataset)
+            self._download(url)
+
+        print('Done!')
+
+
+def grouper(iterable, n, fillvalue=None):
+    """
+    Collect data into fixed-length chunks or blocks.
+    This function comes from itertools.
+    """
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx
+    args = [iter(iterable)] * n
+    return zip_longest(fillvalue=fillvalue, *args)

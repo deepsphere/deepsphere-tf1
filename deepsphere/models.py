@@ -886,6 +886,8 @@ class deepsphere(cgcnn):
         if self.pygsp_graphs[layer-1] is None:
             if self.sampling is 'healpix':
                 self.pygsp_graphs[layer-1] = utils.healpix_graph(nside=nside)
+            elif self.sampling is 'equiangular':
+                self.pygsp_graphs[layer-1] = utils.equiangular_graph(bw=nside)
             else:
                 raise valueError('Unknown sampling: '+self.sampling)
             self.pygsp_graphs[layer-1].estimate_lmax()

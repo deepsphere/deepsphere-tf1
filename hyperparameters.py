@@ -114,8 +114,8 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
         # Replace the last graph convolution and global average pooling by a fully connected layer.
         # That is, change the classifier while keeping the feature extractor.
         params['F'] = params['F'][:-1]
-        params['K'] = params['K'][:-1]
-        #params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int), np.ceil(np.sqrt(3)*Nside//4).astype(int)]
+        #params['K'] = params['K'][:-1]
+        params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int), np.ceil(np.sqrt(3)*Nside//4).astype(int)]
         params['batch_norm'] = params['batch_norm'][:-1]
         params['statistics'] = 'mean'
         params['M'] = [n_classes]
@@ -127,7 +127,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.
-    params['num_epochs'] = 100  # Number of passes through the training data.
+    params['num_epochs'] = 300  # Number of passes through the training data.
     params['batch_size'] = 32  # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.
@@ -137,7 +137,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['optimizer'] = lambda lr: tf.train.GradientDescentOptimizer(lr)
 
     # Number of model evaluations during training (influence training time).
-    n_evaluations = 200
+    n_evaluations = 6000
     params['eval_frequency'] = int(params['num_epochs'] * ntrain / params['batch_size'] / n_evaluations)
 
     if verbose:
