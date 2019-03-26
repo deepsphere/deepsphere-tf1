@@ -30,15 +30,15 @@ augmentation = 3
 # EXP_NAME = 'shrec17_Cohen_simple_SGD_max_nsides_300epoch_reg_{}sides{}'.format(Nside, ename)
 EXP_NAME = 'shrec17_Cohen_simple_SGD_max_nsides_300epoch_aug_{}sides{}'.format(Nside, ename)
 
-nclass = 55 # train_dataset.nclass
+nclass = train_dataset.nclass
 
-train_dataset = Shrec17DatasetCache(datapath, 'train', nside=Nside, augmentation=augmentation, nfile=None)
+train_dataset = Shrec17Dataset(datapath, 'train', nside=Nside, augmentation=augmentation, nfile=None)
 val_dataset = Shrec17Dataset(datapath, 'val', nside=Nside, augmentation=augmentation, nfile=None)
 
-#x_train, labels_train, ids_train = train_dataset.return_data(train=True, train_ratio=1., verbose=False)
+x_train, labels_train, ids_train = train_dataset.return_data(train=True, train_ratio=1., verbose=False)
 x_val, labels_val, ids_val = val_dataset.return_data(train=False, verbose=False)
 
-#training = LabeledDataset(x_train, labels_train)
+training = LabeledDataset(x_train, labels_train)
 validation = LabeledDataset(x_val, labels_val)
 
 params = hyperparameters.get_params_shrec17(train_dataset.N, EXP_NAME, Nside, nclass, architecture=experiment_type, verbose=False)
@@ -47,4 +47,4 @@ model = models.deepsphere(**params)
 shutil.rmtree('summaries/{}/'.format(EXP_NAME), ignore_errors=True)
 shutil.rmtree('checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
 
-accuracy_validation, loss_validation, loss_training, t_step = model.fit(train_dataset, validation, verbose=False)
+accuracy_validation, loss_validation, loss_training, t_step = model.fit(training, validation, verbose=False)

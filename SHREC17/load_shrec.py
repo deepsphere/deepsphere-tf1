@@ -251,7 +251,8 @@ class Shrec17Dataset(object):
     url_data = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.zip'
     url_label = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.csv'
 
-    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1, nfile=2000):
+    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1, nfile=2000, experiment = 'deepsphere'):
+        # nside is bw in case of equiangular experiment
         self.nside = nside
         self.root = os.path.expanduser(root)
         self.repeat = augmentation
@@ -295,11 +296,14 @@ class Shrec17Dataset(object):
             nfile = len(self.files)
         if nfile < 0:
             nfile = len(self.files) + nfile
-        self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
+        if experiment is 'deepsphere':
+            self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
+        elif experiment is 'equiangular':
+            self.data = np.zeros((nfile*augmentation, 4*nside**2, 6))
         for i, file in tqdm(enumerate(self.files)):
             for j in range(augmentation):
                 self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
-            data = np.asarray(self.cache_npy(file, repeat=augmentation))
+            data = np.asarray(self.cache_npy(file, repeat=augmentation, experiment = experiment))
             #time1 = time.time()
             #self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
             self.data[augmentation*i:augmentation*(i+1)] = data
@@ -330,6 +334,9 @@ class Shrec17Dataset(object):
         head, tail = os.path.split(file_path)
         root, _ = os.path.splitext(tail)
         npy_path = os.path.join(head, experiment, prefix + root + '_{0}.npy')
+        if experiment is 'equiangular':
+            prefix = "b{}_".format(self.nside)
+            npy_path = os.path.join(head, prefix + root + '_{0}.npy')
 
         exists = [os.path.exists(npy_path.format(i)) for i in range(repeat)]
 
@@ -348,6 +355,8 @@ class Shrec17Dataset(object):
         for i in range(repeat):
             try:
                 img = np.load(npy_path.format(i))
+                if experiment is 'equiangular':
+                    img = img.reshape((6,-1)).T
             except (OSError, FileNotFoundError):
                 img = self.check_trans(file_path)
                 np.save(npy_path.format(i), img)
