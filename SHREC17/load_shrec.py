@@ -168,8 +168,8 @@ def ToMesh(path, rot=False, tr=0.):
         if not rot:
             mesh.apply_transform(rotR.T)
 
-    if rot:
-        mesh.apply_transform(rnd_rot())
+    #if rot:
+    #    mesh.apply_transform(rnd_rot())
 
     r = np.max(np.linalg.norm(mesh.vertices, axis=-1))
     mesh.apply_scale(0.99 / r)
@@ -251,8 +251,14 @@ class Shrec17Dataset(object):
     url_data = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.zip'
     url_label = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.csv'
 
-    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1, nfile=2000, experiment = 'deepsphere'):
+    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1, 
+                 nfile=2000, experiment = 'deepsphere', verbose=True):
         # nside is bw in case of equiangular experiment
+        if not verbose:
+            def fun(x):
+                return x
+        else:
+            fun = tqdm
         self.nside = nside
         self.root = os.path.expanduser(root)
         self.repeat = augmentation
@@ -285,7 +291,7 @@ class Shrec17Dataset(object):
         else:
             self.labels = None
         head, _ = os.path.split(self.files[0])
-        os.makedirs(head+'/deepsphere', exist_ok=True)
+        os.makedirs(head+'/'+experiment, exist_ok=True)
         if nfile is not None:
             self.files = self.files[:nfile]
             if self.labels is not None:
@@ -296,11 +302,11 @@ class Shrec17Dataset(object):
             nfile = len(self.files)
         if nfile < 0:
             nfile = len(self.files) + nfile
-        if experiment is 'deepsphere':
+        if 'deepsphere' in experiment:
             self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
         elif experiment is 'equiangular':
             self.data = np.zeros((nfile*augmentation, 4*nside**2, 6))
-        for i, file in tqdm(enumerate(self.files)):
+        for i, file in fun(enumerate(self.files)):
             for j in range(augmentation):
                 self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
             data = np.asarray(self.cache_npy(file, repeat=augmentation, experiment = experiment))

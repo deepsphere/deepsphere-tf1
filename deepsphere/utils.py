@@ -117,12 +117,15 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
 
 def equiangular_weightmatrix(bw=64, indexes=None, dtype=np.float32):
     # define a way to read the grid
+    # The first 8 points are the same points. Do we need them?
     if indexes is None:
         indexes = range((2*bw)**2)
     npix = len(indexes)  # Number of pixels.
     
     # Find a mean to take only indexes from grid
-    beta = np.arange(2 * bw) * np.pi / (2. * bw)  # Driscoll-Heally
+    #beta = np.arange(2 * bw) * np.pi / (2. * bw)  # Driscoll-Heally
+    #alpha = np.arange(2 * bw) * np.pi / bw
+    beta = np.pi * (2 * np.arange(2 * bw) + 1) / (4. * bw) #SOFT
     alpha = np.arange(2 * bw) * np.pi / bw
     theta, phi = np.meshgrid(*(beta, alpha),indexing='ij')
     ct = np.cos(theta)
