@@ -303,16 +303,18 @@ class Shrec17Dataset(object):
         if nfile < 0:
             nfile = len(self.files) + nfile
         if 'deepsphere' in experiment:
-            self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
+            #self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
+            pass
         elif experiment is 'equiangular':
             self.data = np.zeros((nfile*augmentation, 4*nside**2, 6))
+            pass
         for i, file in fun(enumerate(self.files)):
             for j in range(augmentation):
                 self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
             data = np.asarray(self.cache_npy(file, repeat=augmentation, experiment = experiment))
             #time1 = time.time()
             #self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
-            self.data[augmentation*i:augmentation*(i+1)] = data
+            #self.data[augmentation*i:augmentation*(i+1)] = data
             #time2 = time.time()
             #print("time elapsed for change elem:",(time2-time1)*1000.)
             del data

@@ -123,7 +123,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
         raise ValueError('Unknown architecture {}.'.format(architecture))
 
     # Regularization (to prevent over-fitting).
-    params['regularization'] = 0#1e-4  # Amount of L2 regularization over the weights (will be divided by the number of weights).
+    params['regularization'] = 1e-4#0.1  # Amount of L2 regularization over the weights (will be divided by the number of weights).
     params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.

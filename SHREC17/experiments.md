@@ -203,13 +203,13 @@ TODO: revoir les résultats
 ** params['M'] = [55] Fully connected
 * nparams = weights + bias = ~180k
 * train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
-* accuracy, F1, loss of training part: (91.34, 91.17, 0.266)
-* accuracy, F1, loss of validation part: (78.84, 78.02, 1.06)
-* accuracy, F1, loss of test part: (73.95, 73.62, 1.26)
-* test on val_perturbed dataset: P@N 0.675, R@N 0.667, F1@N 0.674, mAP 0.654, NDCG 0.677
-* test on test_perturbed dataset: P@N 0.664, R@N 0.656, F1@N 0.650, mAP 0.618, NDCG 0.702
+* accuracy, F1, loss of training part: (91.34, 91.17, 0.266)  //  (96.53, 96.54, 0.11)
+* accuracy, F1, loss of validation part: (78.84, 78.02, 1.06)  //  (79.97, 79.57, 1.21)
+* accuracy, F1, loss of test part: (73.95, 73.62, 1.26)  //  (74.91, 75.08, 1.45)
+* test on val_perturbed dataset: P@N 0.675, R@N 0.667, F1@N 0.674, mAP 0.654, NDCG 0.677  //  0.694, 0.703, 0.691, 0.663, 0.694
+* test on test_perturbed dataset: P@N 0.664, R@N 0.656, F1@N 0.650, mAP 0.618, NDCG 0.702  //  0.666, 0.659, 0.655, 0.624, 0.710
 * time per batch: 0.59 s
-* Remarks: num_epochs too big, validation loss is increasing, but f1 score keeps increasing, 2415 MiB, 18 // xx hours
+* Remarks: num_epochs too big, validation loss is increasing, but f1 score keeps increasing, 2415 MiB, 18 // 61 hours
 
 ## experiment 5.3
 * git commit: 
@@ -262,6 +262,32 @@ TODO: revoir les résultats
 * test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
 * time per batch: 0.12 s
 * Remarks: 2419 MiB on GPU, 
+
+## experiment 6 equiangular
+* git commit: c2b14ccd96be7e5f4810a949ba8ae3cc822565fb
+* similar parameters as Cohen simple:
+** bandwidths = [64, 16, 10] 
+** params['F'] = [100, 100]
+** params['batch_norm'] = [True] * 2
+** params['num_epochs'] = 71
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: 5e-1
+** params['K'] = [bw] * 2  
+** optimizer: SGD
+** average pooling before fully-connected
+** params['M'] = [55] Fully connected
+* nparams = weights + bias = ~204k
+* train on perturbed dataset, augmentation=3, random translation and rotation (object not on the center of the sphere)
+* accuracy, F1, loss of training part: (84.63, 84.40, 0.54)
+* accuracy, F1, loss of validation part: (74.42, 73.38, 1.26)
+* accuracy, F1, loss of test part: (69.43, 69.35, 1.49)
+* test on val_perturbed dataset: P@N 0.621, R@N 0.647, F1@N 0.617, mAP 0.590, NDCG 0.624
+* test on test_perturbed dataset: P@N 0.597, R@N 0.612, F1@N 0.587, mAP 0.548, NDCG 0.634
+* time per batch: 1.0 s
+* Remarks: 4419 MiB on GPU, 
 
 # Cohen model
 ## paper experiment

@@ -11,14 +11,16 @@ if len(sys.argv) > 4:
     experiment = sys.argv[2]
     nside = sys.argv[3]
     augmentation = sys.argv[4]
+    verbose = False
 else:
     nside = 32
     augmentation = 3
     data_path = '../data/shrec17/'
     experiment = 'deepsphere_norot'
+    verbose = False
 
-Shrec17Dataset(data_path, 'train', nside=nside, augmentation=augmentation, experiment = experiment, verbose=False)
+Shrec17Dataset(data_path, 'train', nside=nside, augmentation=augmentation, experiment = experiment, nfile=None, verbose=verbose)
 #fix_dataset(data_path+'val_perturbed')
-Shrec17Dataset(data_path, 'val', perturbed=True, nside=nside, augmentation=augmentation, experiment = experiment, verbose=False)
+Shrec17Dataset(data_path, 'val', perturbed=True, nside=nside, augmentation=augmentation, experiment = experiment, nfile=None, verbose=verbose)
 #fix_dataset(data_path+'test_perturbed')
-Shrec17Dataset(data_path, 'test', nside=nside, augmentation=augmentation, experiment = experiment, verbose=False)
+Shrec17Dataset(data_path, 'test', nside=nside, augmentation=augmentation, experiment = experiment, nfile=None, verbose=verbose)
