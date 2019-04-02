@@ -191,7 +191,7 @@ TODO: revoir les résultats
 ** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100]
 ** params['batch_norm'] = [True] * 2
-** params['num_epochs'] = 100
+** params['num_epochs'] = 100  //  300
 ** params['batch_size'] = 32
 ** params['activation'] = 'relu'
 ** params['regularization'] = 0
@@ -288,6 +288,50 @@ TODO: revoir les résultats
 * test on test_perturbed dataset: P@N 0.597, R@N 0.612, F1@N 0.587, mAP 0.548, NDCG 0.634
 * time per batch: 1.0 s
 * Remarks: 4419 MiB on GPU, 
+
+## experiment 7.1 best
+* git commit: 
+** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//16]
+** params['F'] = [32, 32, 64, 64, n_classes]
+** params['batch_norm'] = [True] * 5
+** params['num_epochs'] = 300
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0.1
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: 1e-3
+** params['K'] = [5] * 5  
+** optimizer: Adam
+** average pooling at the end
+* nparams = weights + bias = ~55k
+* train on perturbed dataset, augmentation=1, random translation (object not on the center of the sphere)
+* accuracy, F1, loss of training part: (90.12, 89.85, 0.52)
+* accuracy, F1, loss of validation part: (78.26, 77.62, 1.20)
+* accuracy, F1, loss of test part: (73.94, 73.66, 1.33)
+* time per batch: 0.12 s
+* Remarks: 883 MiB on GPU, 11h to train
+
+## experiment 7.1 best
+* git commit: 
+** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
+** params['F'] = [32, 32, 64, 64, 128, n_classes]
+** params['batch_norm'] = [True] * 6
+** params['num_epochs'] = 100
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0.5
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: 1e-3
+** params['K'] = [5] * 6  
+** optimizer: Adam
+** average pooling at the end
+* nparams = weights + bias = ~190k
+* train on perturbed dataset, augmentation=1, random translation (object not on the center of the sphere)
+* accuracy, F1, loss of training part: (91.18, 90.99, 0.61)
+* accuracy, F1, loss of validation part: (79.52, 78.65, 1.25)
+* accuracy, F1, loss of test part: (74.76, 74.48, 1.40)
+* time per batch: 0.14 s
+* Remarks: 1395 MiB on GPU, 4h to train
 
 # Cohen model
 ## paper experiment

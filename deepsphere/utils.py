@@ -197,6 +197,11 @@ def equiangular_weightmatrix(bw=64, indexes=None, dtype=np.float32):
     W = sparse.csr_matrix(
         (weights, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
     
+    # adjustments
+    mat = W[:2*bw,2*bw:4*bw]*5/(2*bw)
+    W[:2*bw,2*bw:4*bw] = mat
+    W[2*bw:4*bw,:2*bw] = mat.T
+    
     return W
 
 def build_laplacian(W, lap_type='normalized', dtype=np.float32):

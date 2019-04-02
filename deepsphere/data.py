@@ -27,6 +27,7 @@ class LabeledDataset(object):
         self._transform = transform
         self._N = len(X)
         if shuffle:
+            #np.random.seed(42)
             self._p = np.random.permutation(self._N)
         else:
             self._p = np.arange(self._N)
@@ -53,16 +54,27 @@ class LabeledDataset(object):
     def __iter__(self, batch_size=1):
         if self.shuffled:
             self._p = np.random.permutation(self._N)
+            pass
         else:
-            self._p = np.arange(self._N)    
+            self._p = np.arange(self._N)
 
         if batch_size>1:
+#             if len(self._p)%batch_size != 0:
+#                 _p = np.append(self._p, [None]*(batch_size-len(self._p)%batch_size))
+#             else:
+#                 _p = self._p
             data_iter = grouper(cycle(self._X[self._p]), batch_size)
             label_iter = grouper(cycle(self._label[self._p]), batch_size)
+#             _iter = grouper(cycle(_p), batch_size)
         else:
             data_iter = cycle(self._X[self._p])
             label_iter = cycle(self._label[self._p])
+#             _iter = cycle(_p)
         for data, label in zip_longest(data_iter, label_iter):
+#         for p in _iter:
+#             p = [x for x in p if x is not None]
+#             data = self._X[p]
+#             label = self._label[p]
             if batch_size>1:
                 data, label = np.array(data), np.array(label)
             if self._transform:

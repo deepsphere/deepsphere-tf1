@@ -16,6 +16,7 @@ import healpy as hp
 from tqdm import tqdm
 
 import time
+import pickle as pkl
 
 #import tensorflow as tf
 from itertools import cycle
@@ -168,8 +169,8 @@ def ToMesh(path, rot=False, tr=0.):
         if not rot:
             mesh.apply_transform(rotR.T)
 
-    #if rot:
-    #    mesh.apply_transform(rnd_rot())
+    if rot:
+        mesh.apply_transform(rnd_rot())
 
     r = np.max(np.linalg.norm(mesh.vertices, axis=-1))
     mesh.apply_scale(0.99 / r)
@@ -298,12 +299,10 @@ class Shrec17Dataset(object):
                 self.labels = self.labels[:nfile]
         self.labels = self.labels.repeat(augmentation)
         self.ids = []
-        if nfile is None:
+        if nfile is None or nfile < 0:
             nfile = len(self.files)
-        if nfile < 0:
-            nfile = len(self.files) + nfile
         if 'deepsphere' in experiment:
-            #self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
+            self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
             pass
         elif experiment is 'equiangular':
             self.data = np.zeros((nfile*augmentation, 4*nside**2, 6))
@@ -313,23 +312,40 @@ class Shrec17Dataset(object):
                 self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
             data = np.asarray(self.cache_npy(file, repeat=augmentation, experiment = experiment))
             #time1 = time.time()
-            #self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
-            #self.data[augmentation*i:augmentation*(i+1)] = data
+            # must be smthg like (nbr map x nbr pixels x nbr feature)
+            self.data[augmentation*i:augmentation*(i+1)] = data
             #time2 = time.time()
             #print("time elapsed for change elem:",(time2-time1)*1000.)
             del data
 
         # better to remove mean before?
-        self.std = np.std(self.data[::1,:,:], axis=(0, 1))
-        self.mean = np.mean(self.data[::1,:,:], axis=(0, 1))
+        file = root+"/info.pkl"
+        try:
+            info = pkl.load(open(file,'rb'))
+        except:
+            print("file non-existent")
+            info = {}
+        try:       
+            self.mean = info[self.nside][dataset]['mean']
+            self.std = info[self.nside][dataset]['std']
+        except:
+            print("info non-existent")
+            self.std = np.std(self.data[::1,:,:], axis=(0, 1))
+            self.mean = np.mean(self.data[::1,:,:], axis=(0, 1))
         self.data = self.data - self.mean
         self.data = self.data / self.std
         self.N = len(self.data)
+        if self.nside in info.keys():
+            info[self.nside][dataset]={"mean":self.mean,"std":self.std}
+        else:
+            info[self.nside] = {dataset:{"mean":self.mean,"std":self.std}}
+        pkl.dump(info, open(file, 'wb'))
+        
 
     def check_trans(self, file_path):
         # print("transform {}...".format(file_path))
         try:
-            mesh = ToMesh(file_path, rot=True, tr=0.1)
+            mesh = ToMesh(file_path, rot=False, tr=0.1)
             data = ProjectOnSphere(self.nside, mesh)
             return data
         except:
@@ -544,9 +560,31 @@ class Shrec17DatasetCache(object):
     url_data = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.zip'
     url_label = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.csv'
 
-    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1, nfile=2000):
-        self.mean = np.array([ 0.76423665, -0.08207781,  0.58800055,  0.57971995,  0.74730743, 0.58085993])
-        self.std = np.array([0.27203578, 0.7116338 , 0.28400871, 0.22612295, 0.2069686, 0.2432338 ])
+    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, 
+                 augmentation=1, nfile=2000, experiment = 'deepsphere', verbose=True):
+        self.experiment = experiment
+#         if experiment is 'deepsphere':
+#             if nside==32:
+#                 if dataset is 'train':
+#                     self.mean = np.array([ 0.76423665, -0.08207781,  0.58800055,  0.57971995,  0.74730743, 0.58085993])
+#                     self.std = np.array([0.27203578, 0.7116338 , 0.28400871, 0.22612295, 0.2069686, 0.2432338 ])
+#                 elif dataset is 'val':
+#                     self.mean = np.array([ 0.77143387, -0.06222059, 0.58987524, 0.58569188, 0.74413875, 0.5852325])
+#                     self.std = np.array([0.26941943, 0.71316672, 0.28338772, 0.22418983, 0.20745156, 0.24289361])
+#         else:
+#             self.mean = 0.
+#             self.std = 1.
+        file = root+"/info.pkl"
+        try:
+            info = pkl.load(open(file,'rb'))
+            self.mean = info[nside][dataset]['mean']
+            self.std = info[nside][dataset]['std']
+            self.loaded = True
+        except:
+            self.mean = 0.
+            self.std = 1.
+            self.loaded = False
+            print("no information currently available")
         self.nside = nside
         self.root = os.path.expanduser(root)
         self.repeat = augmentation
@@ -579,7 +617,7 @@ class Shrec17DatasetCache(object):
         else:
             self.labels = None
         head, _ = os.path.split(self.files[0])
-        os.makedirs(head+'/deepsphere', exist_ok=True)
+        os.makedirs(head+'/'+experiment, exist_ok=True)
         if nfile is not None:
             self.files = self.files[:nfile]
             if self.labels is not None:
@@ -596,10 +634,8 @@ class Shrec17DatasetCache(object):
         self.files = np.asarray(self.files).repeat(augmentation)
         #super(Shrec17DatasetCache, self).__init__()
             
-#         self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
-        for i, file in tqdm(enumerate(self.files)):
-            for j in range(augmentation):
-                self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
+        for i, file in enumerate(self.files):
+            self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
 #             data = np.asarray(self.cache_npy(file, repeat=augmentation))
 #             #time1 = time.time()
 #             #self.data = np.vstack([self.data, data])       # must be smthg like (nbr map x nbr pixels x nbr feature)
@@ -607,45 +643,55 @@ class Shrec17DatasetCache(object):
 #             #time2 = time.time()
 #             #print("time elapsed for change elem:",(time2-time1)*1000.)
 #             del data
-
-#         # better to remove mean before?
-#         self.std = np.std(self.data[::1,:,:], axis=(0, 1))
-#         self.mean = np.mean(self.data[::1,:,:], axis=(0, 1))
-#         self.data = self.data - self.mean
-#         self.data = self.data / self.std
-#         self.N = len(self.data)
+#         p = np.random.permutation(len(x_raw_train))
+#         labels_train = self.labels[p]
+#         ids_train = np.asarray(self.ids)[p]
 
     def iter(self, batch_size):
         return self.__iter__(batch_size)
     
     def __iter__(self, batch_size):
-        
+        #np.random.seed(42)
         self._p = np.random.permutation(self.N)
         self.ids = np.array(self.ids)[self._p]
-
+        
         if batch_size>1:
+#             if len(self._p)%batch_size != 0:
+#                 _p = np.append(self._p, [None]*(batch_size-len(self._p)%batch_size))
+#             else:
+#                 _p = self._p
             _iter = grouper(cycle(self._p), batch_size)
         else:
             _iter = cycle(self._p)
         for p in _iter:
             data, label = self.get_item(p)
             data, label = np.array(data), np.array(label)
-            data = data - self.mean / self.std
+            if not self.loaded:
+                self.std = np.std(data[::1,:,:], axis=(0, 1))
+                self.mean = np.mean(data[::1,:,:], axis=(0, 1))
+            data = data - self.mean
+            data = data / self.std
             yield data, label
     
     def get_item(self, p):
         datas = []
         labels = []
+        if type(p) is not tuple:
+            p = (p,)
         for elem in p:
+#             if elem is None:
+#                 continue
             file = self.files[elem]
-            datas.append(self.cache_npy(file, pick_randomly=True, repeat=self.augmentation))
+            data = self.cache_npy(file, pick_randomly=False, repeat=self.augmentation, experiment=self.experiment)
+            datas.append(data[elem%self.repeat])
+            #datas.append(self.cache_npy(file, pick_randomly=True, repeat=self.augmentation, experiment=self.experiment))
             labels.append(self.labels[elem])
         return datas, labels
 
     def check_trans(self, file_path):
-        # print("transform {}...".format(file_path))
+        #print("transform {}...".format(file_path))
         try:
-            mesh = ToMesh(file_path, rot=True, tr=0.1)
+            mesh = ToMesh(file_path, rot=False, tr=0.1)
             data = ProjectOnSphere(self.nside, mesh)
             return data
         except:
@@ -658,6 +704,9 @@ class Shrec17DatasetCache(object):
         head, tail = os.path.split(file_path)
         root, _ = os.path.splitext(tail)
         npy_path = os.path.join(head, experiment, prefix + root + '_{0}.npy')
+        if experiment is 'equiangular':
+            prefix = "b{}_".format(self.nside)
+            npy_path = os.path.join(head, prefix + root + '_{0}.npy')
 
         exists = [os.path.exists(npy_path.format(i)) for i in range(repeat)]
 
@@ -676,6 +725,8 @@ class Shrec17DatasetCache(object):
         for i in range(repeat):
             try:
                 img = np.load(npy_path.format(i))
+                if experiment is 'equiangular':
+                    img = img.reshape((6,-1)).T
             except (OSError, FileNotFoundError):
                 img = self.check_trans(file_path)
                 np.save(npy_path.format(i), img)

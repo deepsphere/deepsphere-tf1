@@ -51,6 +51,7 @@ class LoadableGenerator(object):
         self.update()
         while self.curr:
             yield self.curr
+            self.update()        # Isn't it better with this? Or i just don't understand this part of the code
     def load(self, it):
         self.it = it
     def update(self):
@@ -185,6 +186,7 @@ class base_model(object):
         accuracies_validation = []
         losses_validation = []
         losses_training = []
+        #num_steps = int(self.num_epochs * np.ceil(train_dataset.N / self.batch_size))
         num_steps = int(self.num_epochs * train_dataset.N / self.batch_size)
         if not use_tf_dataset:
             train_iter = train_dataset.iter(self.batch_size)
@@ -207,9 +209,9 @@ class base_model(object):
                 feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
             else:
                 feed_dict = {self.ph_training: True}
+            t_begin_load = perf_counter()
 
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
-
             evaluate = (step % self.eval_frequency == 0) or (step == num_steps)
             if evaluate and self.profile:
                 run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -219,8 +221,8 @@ class base_model(object):
                 run_metadata = None
 
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict, run_options, run_metadata)
-            
-            times.append(perf_counter()-t_begin)
+            t_end = perf_counter()
+            times.append(t_end-t_begin)
             # Periodical evaluation of the model.
             if evaluate:
                 # Change evaluation in case of augmentation, maybe? In order to get a more accurate response of the model (in evaluation, same as Cohen) But need change of datastructure
@@ -234,7 +236,7 @@ class base_model(object):
                 losses_validation.append(loss)
                 if verbose:
                     print('  validation {}'.format(string))
-                    print('  CPU time: {:.0f}s, wall time: {:.0f}s, perf_time: {:.2f}s'.format(process_time()-t_cpu, time.time()-t_wall, times[-1]))
+                    print('  CPU time: {:.0f}s, wall time: {:.0f}s, perf_time_load: {:.2f}s, perf_time: {:.2f}s'.format(process_time()-t_cpu, time.time()-t_wall, times[-1], t_end-t_begin_load))
 
                 # Summaries for TensorBoard.
                 summary = tf.Summary()
