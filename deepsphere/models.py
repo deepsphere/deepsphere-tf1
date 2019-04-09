@@ -70,21 +70,40 @@ class base_model(object):
 
     # High-level interface which runs the constructed computational graph.
 
-    def predict(self, data, labels=None, sess=None):
+    def predict(self, data, labels=None, sess=None, cache=False):
         loss = 0
-        size = data.shape[0]
+        if cache:
+            size = data.N
+        else:
+            size = data.shape[0]
         predictions = np.empty(size)
         sess = self._get_session(sess)
+        if cache:
+            if cache is 'TF':
+                dataset = data.get_tf_dataset(self.batch_size)
+                data_iter = dataset.make_one_shot_iterator()
+                label = np.empty(size)
+            else:
+                data_iter = data.iter(self.batch_size)
         for begin in range(0, size, self.batch_size):
             end = begin + self.batch_size
             end = min([end, size])
-
-            batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
-            tmp_data = data[begin:end, :, :]
-            if type(tmp_data) is not np.ndarray:
-                tmp_data = tmp_data.toarray()  # convert sparse matrices
-            batch_data[:end-begin] = tmp_data
-            feed_dict = {self.ph_data: batch_data, self.ph_training: False}
+            if cache:
+                if cache is 'TF':
+                    batch_data, batch_labels = data_iter.get_next()
+                    label[begin:end] = np.asarray(batch_labels)
+                else:
+                    batch_data, batch_labels = next(data_iter)
+                if type(batch_data) is not np.ndarray:
+                    batch_data = batch_data.toarray()  # convert sparse matrices
+                feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: False}
+            else:
+                batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
+                tmp_data = data[begin:end, :, :]
+                if type(tmp_data) is not np.ndarray:
+                    tmp_data = tmp_data.toarray()  # convert sparse matrices
+                batch_data[:end-begin] = tmp_data
+                feed_dict = {self.ph_data: batch_data, self.ph_training: False}
 
             # Compute loss if labels are given.
             if labels is not None:
@@ -93,31 +112,55 @@ class base_model(object):
                 feed_dict[self.ph_labels] = batch_labels
                 batch_pred, batch_loss = sess.run([self.op_prediction, self.op_loss], feed_dict)
                 loss += batch_loss
+            elif cache and batch_labels is not None:
+                batch_pred, batch_loss = sess.run([self.op_prediction, self.op_loss], feed_dict)
+                loss += batch_loss
             else:
                 batch_pred = sess.run(self.op_prediction, feed_dict)
 
             predictions[begin:end] = batch_pred[:end-begin]
 
-        if labels is not None:
-            return predictions, loss * self.batch_size / size
+        if labels is not None or (cache and batch_labels is not None):
+            if cache is 'TF':
+                return predictions, labels, loss * self.batch_size / size
+            else:
+                return predictions, loss * self.batch_size / size
         else:
             return predictions
         
-    def probs(self, data, nb_class, labels=None, sess=None):
+    def probs(self, data, nb_class, labels=None, sess=None, cache=False):
         loss = 0
-        size = data.shape[0]
+        if cache:
+            size = data.N
+        else:
+            size = data.shape[0]
         probabilities = np.empty((size, nb_class))
         sess = self._get_session(sess)
+        if cache:
+            if cache is 'TF':
+                dataset = data.get_tf_dataset(self.batch_size)
+                data_iter = dataset.make_one_shot_iterator()
+            else:
+                data_iter = data.iter(self.batch_size)
         for begin in range(0, size, self.batch_size):
             end = begin + self.batch_size
             end = min([end, size])
 
-            batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
-            tmp_data = data[begin:end, :, :]
-            if type(tmp_data) is not np.ndarray:
-                tmp_data = tmp_data.toarray()  # convert sparse matrices
-            batch_data[:end-begin] = tmp_data
-            feed_dict = {self.ph_data: batch_data, self.ph_training: False}
+            if cache:
+                if cache is 'TF':
+                    batch_data, batch_labels = data_iter.get_next()
+                else:
+                    batch_data, batch_labels = next(data_iter)
+                if type(batch_data) is not np.ndarray:
+                    batch_data = batch_data.toarray()  # convert sparse matrices
+                feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: False}
+            else:
+                batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
+                tmp_data = data[begin:end, :, :]
+                if type(tmp_data) is not np.ndarray:
+                    tmp_data = tmp_data.toarray()  # convert sparse matrices
+                batch_data[:end-begin] = tmp_data
+                feed_dict = {self.ph_data: batch_data, self.ph_training: False}
 
             # Compute loss if labels are given.
             if labels is not None:
@@ -126,17 +169,20 @@ class base_model(object):
                 feed_dict[self.ph_labels] = batch_labels
                 batch_prob, batch_loss = sess.run([self.op_probabilities, self.op_loss], feed_dict)
                 loss += batch_loss
+            elif cache and batch_labels is not None:
+                batch_prob, batch_loss = sess.run([self.op_probabilities, self.op_loss], feed_dict)
+                loss += batch_loss
             else:
                 batch_prob = sess.run(self.op_probabilities, feed_dict)
 
             probabilities[begin:end] = batch_prob[:end-begin]
 
-        if labels is not None:
+        if labels is not None or (cache and batch_labels is not None):
             return probabilities, loss * self.batch_size / size
         else:
             return probabilities
 
-    def evaluate(self, data, labels, sess=None):
+    def evaluate(self, data, labels, sess=None, cache=False):
         """
         Runs one evaluation against the full epoch of data.
         Return the precision and the number of correct predictions.
@@ -151,7 +197,12 @@ class base_model(object):
             N: number of signals (samples)
         """
         t_cpu, t_wall = process_time(), time.time()
-        predictions, loss = self.predict(data, labels, sess)
+        if cache is 'TF':
+            predictions, labels, loss = self.predict(data, labels, sess, cache=cache)
+        else:
+            predictions, loss = self.predict(data, labels, sess, cache=cache)
+            if cache:
+                labels = data.get_labels()
         ncorrects = sum(predictions == labels)
         accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
         f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
@@ -161,11 +212,11 @@ class base_model(object):
             string += '\nCPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall)
         return string, accuracy, f1, loss
 
-    def fit(self, train_dataset, val_dataset, use_tf_dataset=False, verbose=True):
+    def fit(self, train_dataset, val_dataset, use_tf_dataset=False, verbose=True, cache=False):
         
         # Load the dataset
-        if use_tf_dataset:
-            self.loadable_generator.load(train_dataset.iter(self.batch_size))
+#         if use_tf_dataset:
+#             self.loadable_generator.load(train_dataset.iter(self.batch_size))
 
         t_cpu, t_wall = process_time(), time.time()
         config = tf.ConfigProto()
@@ -191,11 +242,13 @@ class base_model(object):
         if not use_tf_dataset:
             train_iter = train_dataset.iter(self.batch_size)
         else:
-            sess.run(self.tf_data_iterator.initializer)
+            pass
+            #sess.run(self.tf_data_iterator.initializer)
 
-        val_data, val_labels = val_dataset.get_all_data()
-        if len(val_data.shape) is 2:
-            val_data = np.expand_dims(val_data, axis=2)
+        if not cache:
+            val_data, val_labels = val_dataset.get_all_data()
+            if len(val_data.shape) is 2:
+                val_data = np.expand_dims(val_data, axis=2)
             
         times = []
         for step in range(1, num_steps+1):
@@ -231,7 +284,10 @@ class base_model(object):
                     print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
                     print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
                 losses_training.append(loss)
-                string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
+                if cache:
+                    string, accuracy, f1, loss = self.evaluate(val_dataset, None, sess, cache=cache)
+                else:
+                    string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
                 accuracies_validation.append(accuracy)
                 losses_validation.append(loss)
                 if verbose:
@@ -287,7 +343,7 @@ class base_model(object):
 
     # Methods to construct the computational graph.
 
-    def build_graph(self, M_0, nfeature=1):
+    def build_graph(self, M_0, nfeature=1, tf_dataset=None):
         """Build the computational graph of the model."""
 
         self.loadable_generator = LoadableGenerator()
@@ -298,6 +354,8 @@ class base_model(object):
             # Make the dataset
             self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32))
             self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
+            if tf_dataset is not None:
+                self.tf_data_iterator = tf_dataset.make_one_shot_iterator()
             ph_data, ph_labels = self.tf_data_iterator.get_next()
 
 
@@ -479,7 +537,7 @@ class cgcnn(base_model):
     """
 
     def __init__(self, L, F, K, p, batch_norm, M,
-                num_epochs, scheduler, optimizer, num_feat_in=1,
+                num_epochs, scheduler, optimizer, num_feat_in=1, tf_dataset=None,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200,
                 dir_name='', profile=False, debug=False):
@@ -568,7 +626,7 @@ class cgcnn(base_model):
         self.profile, self.debug = profile, debug
 
         # Build the computational graph.
-        self.build_graph(M_0, num_feat_in)
+        self.build_graph(M_0, num_feat_in, tf_dataset)
 
         # show_all_variables()
 

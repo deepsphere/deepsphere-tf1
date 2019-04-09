@@ -209,41 +209,15 @@ TODO: revoir les résultats
 * test on val_perturbed dataset: P@N 0.675, R@N 0.667, F1@N 0.674, mAP 0.654, NDCG 0.677  //  0.694, 0.703, 0.691, 0.663, 0.694
 * test on test_perturbed dataset: P@N 0.664, R@N 0.656, F1@N 0.650, mAP 0.618, NDCG 0.702  //  0.666, 0.659, 0.655, 0.624, 0.710
 * time per batch: 0.59 s
-* Remarks: num_epochs too big, validation loss is increasing, but f1 score keeps increasing, 2415 MiB, 18 // 61 hours
+* Remarks: num_epochs too big, validation loss is increasing, but f1 score keeps increasing, 2415 MiB, 18 // 61 hours 
 
 ## experiment 5.3
-* git commit: 
-* similar parameters as Cohen simple:
-** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
-** params['F'] = [100, 100]
-** params['batch_norm'] = [True] * 2
-** params['num_epochs'] = 100
-** params['batch_size'] = 32
-** params['activation'] = 'relu'
-** params['regularization'] = 0.08
-** params['dropout'] = 1
-** params['scheduler'] = lambda step: 5e-1
-** params['K'] = [5] * 2  
-** optimizer: SGD
-** average pooling before fully-connected
-** params['M'] = [55] Fully connected
-* nparams = weights + bias = ~60k
-* train on perturbed dataset, no augmentation, random translation and rotation (object not on the center of the sphere)
-* accuracy, F1, loss of training part: (, , )
-* accuracy, F1, loss of validation part: (, , )
-* accuracy, F1, loss of test part: (, , )
-* test on val_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
-* test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
-* time per batch: 0.12 s
-* Remarks: 
-
-## experiment 5.5
 * git commit: b8f4ff3507cd4dc691eac7aaaabe13dfeb46d47e
 * similar parameters as Cohen simple:
 ** nsides = [Nside, Nside//4, Nside//8] ==> npixel [12'228, 768, 192]
 ** params['F'] = [100, 100]
 ** params['batch_norm'] = [True] * 2
-** params['num_epochs'] = 25
+** params['num_epochs'] = 25  //  300
 ** params['batch_size'] = 32
 ** params['activation'] = 'relu'
 ** params['regularization'] = 0
@@ -255,13 +229,13 @@ TODO: revoir les résultats
 ** params['M'] = [55] Fully connected
 * nparams = weights + bias = ~60k
 * train on perturbed dataset, augmentation=3, random translation and rotation (object not on the center of the sphere)
-* accuracy, F1, loss of training part: (87.16, 87.11, 0.87)
-* accuracy, F1, loss of validation part: (78.75, 78.28, 0.873)
-* accuracy, F1, loss of test part: (75.87, 75.83, 0.996)
-* test on val_perturbed dataset: P@N 0.690, R@N 0.701, F1@N 0.686, mAP 0.662, NDCG 0.688
-* test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.
+* accuracy, F1, loss of training part: (87.16, 87.11, 0.87)  //  
+* accuracy, F1, loss of validation part: (78.75, 78.28, 0.873)  //  (79.99, 79.70, 1.07)
+* accuracy, F1, loss of test part: (75.87, 75.83, 0.996)  //  (76.37, 76.46, 1.29)
+* test on val_perturbed dataset: P@N 0.690, R@N 0.701, F1@N 0.686, mAP 0.662, NDCG 0.688  //  0.692 0.700 0.688 0.662 0.692
+* test on test_perturbed dataset: P@N 0., R@N 0., F1@N 0., mAP 0., NDCG 0.  //  0.674 0.669 0.664 0.631 0.714
 * time per batch: 0.12 s
-* Remarks: 2419 MiB on GPU, 
+* Remarks: 2419 MiB on GPU, // 1 jour 22h
 
 ## experiment 6 equiangular
 * git commit: c2b14ccd96be7e5f4810a949ba8ae3cc822565fb
@@ -290,7 +264,7 @@ TODO: revoir les résultats
 * Remarks: 4419 MiB on GPU, 
 
 ## experiment 7.1 best
-* git commit: 
+* git commit: xxxx
 ** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//16]
 ** params['F'] = [32, 32, 64, 64, n_classes]
 ** params['batch_norm'] = [True] * 5
@@ -311,8 +285,8 @@ TODO: revoir les résultats
 * time per batch: 0.12 s
 * Remarks: 883 MiB on GPU, 11h to train
 
-## experiment 7.1 best
-* git commit: 
+## experiment 7.2 best
+* git commit: 36c03cef0b262575aa9d0d9b85bd6ff2ae1ffaa6
 ** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
 ** params['F'] = [32, 32, 64, 64, 128, n_classes]
 ** params['batch_norm'] = [True] * 6
@@ -330,8 +304,79 @@ TODO: revoir les résultats
 * accuracy, F1, loss of training part: (91.18, 90.99, 0.61)
 * accuracy, F1, loss of validation part: (79.52, 78.65, 1.25)
 * accuracy, F1, loss of test part: (74.76, 74.48, 1.40)
+* test on val_perturbed dataset: P@N 0.680, R@N 0.703, F1@N 0.682, mAP 0.662, NDCG 0.690
+* test on test_perturbed dataset: P@N 0.648, R@N 0.656, F1@N 0.643, mAP 0.619, NDCG 0.705
 * time per batch: 0.14 s
 * Remarks: 1395 MiB on GPU, 4h to train
+
+## experiment 8 128Nsides
+* git commit: 
+** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
+** params['F'] = [16, 32, 64, 128, 256, n_classes]
+** params['batch_norm'] = [True] * 6
+** params['num_epochs'] = 100
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0.5
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: 1e-3
+** params['K'] = [5] * 6  
+** optimizer: Adam
+** average pooling at the end
+* nparams = weights + bias = ~233k
+* train on perturbed dataset, augmentation=1, random translation (object not on the center of the sphere)
+* accuracy, F1, loss of validation part: (79.45, 78.31, 0.92)
+* accuracy, F1, loss of test part: (75.94, 75.09, 1.04)
+* test on val_perturbed dataset: P@N 0.682, R@N 0.715, F1@N 0.687, mAP 0.670, NDCG 0.691
+* test on test_perturbed dataset: P@N 0.670, R@N 0.672, F1@N 0.661, mAP 0.630, NDCG 0.715
+* time per batch: 1.15 s
+* Remarks: 8623 MiB on GPU (4491 MiB on notebook), 1j 20h to train
+
+## experiment 9 64 Nsides
+* git commit: 
+** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
+** params['F'] = [16, 32, 64, 128, 256, n_classes]
+** params['batch_norm'] = [True] * 6
+** params['num_epochs'] = 100 (30 is sufficient)
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0.5
+** params['dropout'] = 0.7
+** params['scheduler'] = lambda step: 1e-2
+** params['K'] = [5] * 6  
+** optimizer: Adam
+** average pooling at the end
+* nparams = weights + bias = ~233k
+* train on perturbed dataset, augmentation=1, random translation (object not on the center of the sphere)
+* accuracy, F1, loss of validation part: (80.69, 80.12, 1.07)
+* accuracy, F1, loss of test part: (75.99, 76.07, 1.24)
+* test on val_perturbed dataset: P@N 0.699, R@N 0.716, F1@N 0.700, mAP 0.678, NDCG 0.702
+* test on test_perturbed dataset: P@N 0.661, R@N 0.665, F1@N 0.654, mAP 0.626, NDCG 0.706
+* time per batch: 0.26 s
+* Remarks: 2443 MiB on GPU (1395 MiB on notebook), 9h34m to train
+
+## experiment 9.2 64 Nsides
+* git commit: 
+** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
+** params['F'] = [16, 32, 64, 128, 256, n_classes]
+** params['batch_norm'] = [True] * 6
+** params['num_epochs'] = 100 (30 is sufficient)
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0.5
+** params['dropout'] = 0.7
+** params['scheduler'] = lambda step: 1e-2
+** params['K'] = [2] * 6  
+** optimizer: Adam
+** average pooling at the end
+* nparams = weights + bias = ~102k
+* train on perturbed dataset, augmentation=1, random translation (object not on the center of the sphere)
+* accuracy, F1, loss of validation part: (79.84, 78.69, 1.00)
+* accuracy, F1, loss of test part: (75.23, 74.41, 1.16)
+* test on val_perturbed dataset: P@N 0.680, R@N 0.712, F1@N 0.685, mAP 0.670, NDCG 0.689
+* test on test_perturbed dataset: P@N 0.667, R@N 0.673, F1@N 0.661, mAP 0.631, NDCG 0.709
+* time per batch: 0.11 s
+* Remarks: xxx MiB on GPU (891 MiB on notebook), 5h09m to train
 
 # Cohen model
 ## paper experiment

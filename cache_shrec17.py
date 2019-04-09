@@ -2,7 +2,8 @@
 # coding: utf-8
 
 import sys
-from SHREC17.load_shrec import fix_dataset, Shrec17DatasetCache
+from SHREC17.load_shrec import fix_dataset, Shrec17Dataset
+from tqdm import tqdm
 
 data_path = '../data/shrec17/'
 
@@ -17,16 +18,22 @@ else:
     augmentation = 3
     data_path = '../data/shrec17/'
     experiment = 'deepsphere_norot'
-    verbose = False
+    verbose = True
 
-train = Shrec17DatasetCache(data_path, 'train', nside=nside, augmentation=augmentation, experiment = experiment, nfile=None, verbose=verbose)
-for elem in train.iter(1):
-    pass
+Shrec17Dataset(data_path, 'train', nside=nside, augmentation=augmentation, 
+                            experiment = experiment, nfile=None, verbose=verbose, load=False)
+# _iter=train.iter(32)
+# for i in tqdm(range((train.N*augmentation)//32+1)):
+#     next(_iter)
+#     pass
+# exit()
 #fix_dataset(data_path+'val_perturbed')
-val = Shrec17DatasetCache(data_path, 'val', nside=nside, augmentation=augmentation, experiment = experiment, nfile=None, verbose=verbose)
-for elem in val.iter(1):
-    pass
+Shrec17Dataset(data_path, 'val', nside=nside, augmentation=augmentation, 
+                     experiment = experiment, nfile=None, verbose=verbose, load=False)
+# for elem in val.iter(32):
+#     pass
 #fix_dataset(data_path+'test_perturbed')
-test = Shrec17DatasetCache(data_path, 'test', nside=nside, augmentation=augmentation, experiment = experiment, nfile=None, verbose=verbose)
-for elem in test.iter(1):
-    pass
+Shrec17Dataset(data_path, 'test', nside=nside, augmentation=augmentation, 
+                      experiment = experiment, nfile=None, verbose=verbose,load=False)
+# for elem in test.iter(32):
+#     pass
