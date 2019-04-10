@@ -312,9 +312,9 @@ class base_model(object):
         writer.close()
         sess.close()
         if verbose:
-            print('time per batch: mean = {:.2f}, var = {:.2f}%'.format(np.mean(times), 100*np.var(times))) 
+            print('time per batch: mean = {:.2f}, var = {:.5f}'.format(np.mean(times), np.var(times))) 
         t_step = (time.time() - t_wall) / num_steps
-        return accuracies_validation, losses_validation, losses_training, t_step
+        return accuracies_validation, losses_validation, losses_training, t_step, np.mean(times)
 
     def get_var(self, name):
         sess = self._get_session()
@@ -922,9 +922,9 @@ class deepsphere(cgcnn):
         dir_name: Name for directories (summaries and model parameters).
     """
 
-    def __init__(self, nsides, indexes=None, use_4=False, sampling='healpix', **kwargs):
+    def __init__(self, nsides, indexes=None, use_4=False, sampling='healpix', std=None, **kwargs):
         # nsides is bandwidth if sampling is equiangular (SOFT)
-        L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4, sampling=sampling)
+        L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4, sampling=sampling, std=None)
         self.sampling = sampling
         self.nsides = nsides
         self.pygsp_graphs = [None] * len(nsides)

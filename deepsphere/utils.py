@@ -20,7 +20,7 @@ else:
     from urllib import urlretrieve
 
 
-def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
+def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32, std=None):
     """Return an unnormalized weight matrix for a graph using the HEALPIX sampling.
 
     Parameters
@@ -99,7 +99,10 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32):
     # slower: np.linalg.norm(coords[row_index] - coords[col_index], axis=1)**2
 
     # Compute similarities / edge weights.
-    kernel_width = np.mean(distances)
+    if std is None:
+        kernel_width = np.mean(distances)
+    else:
+        kernel_width = std
     weights = np.exp(-distances / (2 * kernel_width))
 
     # Similarity proposed by Renata & Pascal, ICCV 2017.
@@ -293,13 +296,14 @@ def healpix_laplacian(nside=16,
                       lap_type='normalized',
                       indexes=None,
                       dtype=np.float32,
-                      use_4=False):
+                      use_4=False, 
+                      std=None):
     """Build a Healpix Laplacian."""
     if use_4:
         W = build_matrix_4_neighboors(nside, indexes, nest=nest, dtype=dtype)
     else:
         W = healpix_weightmatrix(
-            nside=nside, nest=nest, indexes=indexes, dtype=dtype)
+            nside=nside, nest=nest, indexes=indexes, dtype=dtype, std=std)
     L = build_laplacian(W, lap_type=lap_type)
     return L
 
@@ -327,7 +331,7 @@ def rescale_L(L, lmax=2, scale=1):
     return L*scale
 
 
-def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix'):
+def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix', std=None):
     """Build a list of Laplacians (and down-sampling factors) from a list of nsides."""
     L = []
     p = []
@@ -339,7 +343,7 @@ def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix'):
         nside_last = nside
         if i < len(nsides) - 1:  # Last does not need a Laplacian.
             if sampling is 'healpix':
-                laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4)
+                laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4, std=std)
             elif sampling is 'equiangular':
                 laplacian = equiangular_laplacian(bw=nside, indexes=index, use_4=use_4)
             else:

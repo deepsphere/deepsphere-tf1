@@ -59,7 +59,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.
-    params['num_epochs'] = 20  # Number of passes through the training data.
+    params['num_epochs'] = 100  # Number of passes through the training data.
     params['batch_size'] = 32  # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.
@@ -68,7 +68,7 @@ def get_params_shrec17(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architect
     params['optimizer'] = lambda lr: tf.train.GradientDescentOptimizer(lr)
 
     # Number of model evaluations during training (influence training time).
-    n_evaluations = 40
+    n_evaluations = 200
     params['eval_frequency'] = int(params['num_epochs'] * ntrain / params['batch_size'] / n_evaluations)
 
     if verbose:
@@ -137,11 +137,11 @@ def get_params_shrec17_optim(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, arc
         raise ValueError('Unknown architecture {}.'.format(architecture))
 
     # Regularization (to prevent over-fitting).
-    params['regularization'] = 0.5  # Amount of L2 regularization over the weights (will be divided by the number of weights).
-    params['dropout'] = 0.7  # Percentage of neurons to keep.
+    params['regularization'] = 0  # Amount of L2 regularization over the weights (will be divided by the number of weights).
+    params['dropout'] = 1  # Percentage of neurons to keep.
 
     # Training.
-    params['num_epochs'] = 100 #30  # Number of passes through the training data.
+    params['num_epochs'] = 50 #30  # Number of passes through the training data.
     params['batch_size'] = 32  # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.

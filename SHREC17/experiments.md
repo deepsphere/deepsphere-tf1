@@ -333,7 +333,7 @@ TODO: revoir les résultats
 * Remarks: 8623 MiB on GPU (4491 MiB on notebook), 1j 20h to train
 
 ## experiment 9 64 Nsides
-* git commit: 
+* git commit: 20f5aa17a40cafa6e846628cb51598122be5cdeb
 ** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
 ** params['F'] = [16, 32, 64, 128, 256, n_classes]
 ** params['batch_norm'] = [True] * 6
@@ -356,7 +356,7 @@ TODO: revoir les résultats
 * Remarks: 2443 MiB on GPU (1395 MiB on notebook), 9h34m to train
 
 ## experiment 9.2 64 Nsides
-* git commit: 
+* git commit: 20f5aa17a40cafa6e846628cb51598122be5cdeb
 ** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
 ** params['F'] = [16, 32, 64, 128, 256, n_classes]
 ** params['batch_norm'] = [True] * 6
@@ -377,6 +377,30 @@ TODO: revoir les résultats
 * test on test_perturbed dataset: P@N 0.667, R@N 0.673, F1@N 0.661, mAP 0.631, NDCG 0.709
 * time per batch: 0.11 s
 * Remarks: xxx MiB on GPU (891 MiB on notebook), 5h09m to train
+
+## experiment 10 better graph
+* git commit: 20f5aa17a40cafa6e846628cb51598122be5cdeb
+** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
+** params['F'] = [16, 32, 64, 128, 256, n_classes]
+** params['batch_norm'] = [True] * 6
+** params['num_epochs'] = 50
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: 1e-2
+** params['K'] = [4] * 6  
+** optimizer: Adam
+** average pooling at the end
+* nparams = weights + bias = ~189k
+* train on perturbed dataset, augmentation=1, random translation (object not on the center of the sphere)
+* training set loss: 9.28e-3
+* accuracy, F1, loss of validation part: (81.86, 81.47, 0.97)
+* accuracy, F1, loss of test part: (78.81, 78.83, 1.19)
+* test on val_perturbed dataset: P@N 0.715, R@N 0.728, F1@N 0.715, mAP 0.690, NDCG 0.716
+* test on test_perturbed dataset: P@N 0.699, R@N 0.695, F1@N 0.690, mAP 0.662, NDCG 0.743
+* time per batch: 0.05 s
+* Remarks: 875 MiB on GPU, 1h18m to train (40 min would have been sufficient)
 
 # Cohen model
 ## paper experiment

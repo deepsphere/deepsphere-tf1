@@ -23,11 +23,10 @@ experiment_type = 'CNN'
 ename = '_'+experiment_type
 datapath = '../data/shrec17/' # localisation of the .obj files
 
-#augmentation = 1        # number of element per file (1 = no augmentation of dataset)
-augmentation = 1
+augmentation = 3        # number of element per file (1 = no augmentation of dataset)
 
 # EXP_NAME = 'shrec17_Cohen_simple_SGD_max_nsides_300epoch_reg_{}sides{}'.format(Nside, ename)
-EXP_NAME = 'shrec17_best_5K_cache_{}aug_{}sides{}'.format(augmentation, Nside, ename)
+EXP_NAME = 'shrec17_best_4K_cache_{}aug_{}sides{}'.format(augmentation, Nside, ename)
 
 train_dataset = Shrec17DatasetTF(datapath, 'train', nside=Nside, augmentation=augmentation, nfile=None, verbose=False)
 val_dataset = Shrec17DatasetCache(datapath, 'val', nside=Nside, augmentation=1, nfile=None, verbose=False)
@@ -49,5 +48,8 @@ model = models.deepsphere(**params)
 shutil.rmtree('summaries/{}/'.format(EXP_NAME), ignore_errors=True)
 shutil.rmtree('checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
 
-accuracy_validation, loss_validation, loss_training, t_step = model.fit(train_dataset, val_dataset, 
+accuracy_validation, loss_validation, loss_training, t_step, t_batch = model.fit(train_dataset, val_dataset, 
                                                                         verbose=False, cache=True,use_tf_dataset=True)
+filepath = 'shrec17_results_4K_{}aug_{}sides{}'.format(augmentation, Nside, ename)
+results = [loss_validation, loss_training, t_step, t_batch]
+np.savez(filepath, data=results)

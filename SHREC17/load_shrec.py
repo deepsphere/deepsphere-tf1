@@ -108,12 +108,16 @@ def make_sgrid(nside, alpha, beta, gamma):
 #     return out
 
 
-def render_model(mesh, sgrid):
+def render_model(mesh, sgrid, outside=False):
 
     # Cast rays
     # triangle_indices = mesh.ray.intersects_first(ray_origins=sgrid, ray_directions=-sgrid)
-    index_tri, index_ray, loc = mesh.ray.intersects_id(
-        ray_origins=sgrid, ray_directions=-sgrid, multiple_hits=False, return_locations=True)
+    if outside:
+        index_tri, index_ray, loc = mesh.ray.intersects_id(
+            ray_origins=sgrid, ray_directions=sgrid, multiple_hits=False, return_locations=True)
+    else:
+        index_tri, index_ray, loc = mesh.ray.intersects_id(
+            ray_origins=sgrid, ray_directions=-sgrid, multiple_hits=False, return_locations=True)
     loc = loc.reshape((-1, 3))  # fix bug if loc is empty
 
     # Each ray is in 1-to-1 correspondence with a grid point. Find the position of these points
@@ -153,11 +157,14 @@ def render_model(mesh, sgrid):
     return im
 
 
-def rnd_rot():
-    a = np.random.rand() * 2 * np.pi
-    z = np.random.rand() * 2 - 1
-    c = np.random.rand() * 2 * np.pi
-    rot = rotmat(a, np.arccos(z), c, True)
+def rnd_rot(a=None, z=None, c=None):
+    if a is None:
+        a = np.random.rand() * 2 * np.pi
+    if z is None:
+        z = np.arccos(np.random.rand() * 2 - 1)
+    if c is None:
+        c = np.random.rand() * 2 * np.pi
+    rot = rotmat(a, z, c, True)
     return rot
 
 
@@ -200,14 +207,23 @@ def ToMesh(path, rot=False, tr=0.):
 def ProjectOnSphere(nside, mesh, outside=False):
     ## outside = {'equator', 'pole', 'both'}
     if outside is 'equator':
-        mesh.apply_translation([1., 0, 0])
+#         rot = rnd_rot(-np.random.rand()*np.pi/4+np.pi/8,1,0)
+        rot = rnd_rot(0,np.arccos(1-np.random.rand()*0.3)-np.pi/8,0)
+        #mesh.apply_transform(rot)
+        mesh.apply_translation([2., 0, 0])
+        mesh.apply_transform(rot)
     if outside is 'pole':
-        mesh.apply_translation([0, 0, 1.])
+#         mesh.apply_translation([0, 0, 2.])
+        rot = rnd_rot(np.random.rand()*np.pi/4-np.pi/8,np.pi/2,0)
+        mesh.apply_translation([2., 0, 0])
+        mesh.apply_transform(rot.T)
     if outside is 'both':
-        rnd = np.random.rand()*1.
-        mesh.apply_translation([rnd, 0, np.sqrt(1-rnd**2)])
+#         rnd = np.random.rand()*2.
+#         mesh.apply_translation([rnd, 0, np.sqrt(4-rnd**2)])
+        mesh.apply_translation([2., 0, 0])
+        mesh.apply_transform(rnd_rot(0,-np.random.rand()*np.pi/2,0))
     sgrid = make_sgrid(nside, alpha=0, beta=0, gamma=0)
-    im = render_model(mesh, sgrid)
+    im = render_model(mesh, sgrid, outside=outside)
     npix = sgrid.shape[0]
     im = im.reshape(3, npix)
 
@@ -968,7 +984,9 @@ class Shrec17DatasetTF():
         file_pattern = os.path.join(self.dir, self.experiment, "nside{0}*{1}.npy")
         file_list = []
         for i in range(self.repeat):
-            file_list+=glob.glob(file_pattern.format(self.nside, self.repeat))
+            file_list+=glob.glob(file_pattern.format(self.nside, i))
+        if len(file_list)==0:
+            raise RunTimeError('Files not found')
         dataset = tf.data.Dataset.from_tensor_slices(file_list)
 
         def get_elem(file):
