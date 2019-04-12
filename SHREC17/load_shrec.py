@@ -310,7 +310,7 @@ class Shrec17Dataset(object):
     url_data = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.zip'
     url_label = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.csv'
 
-    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1, 
+    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, augmentation=1, nfeat=6,
                  nfile=2000, experiment = 'deepsphere', verbose=True, load=True):
         # nside is bw in case of equiangular experiment
         if not verbose:
@@ -319,6 +319,7 @@ class Shrec17Dataset(object):
         else:
             fun = tqdm
         self.nside = nside
+        self.nfeat = nfeat
         self.root = os.path.expanduser(root)
         self.repeat = augmentation
 
@@ -360,10 +361,10 @@ class Shrec17Dataset(object):
         if nfile is None or nfile < 0:
             nfile = len(self.files)
         if 'deepsphere' in experiment:
-            self.data = np.zeros((nfile*augmentation, 12*nside**2, 6))       # N x npix x nfeature
+            self.data = np.zeros((nfile*augmentation, 12*nside**2, nfeat))       # N x npix x nfeature
             pass
         elif experiment is 'equiangular':
-            self.data = np.zeros((nfile*augmentation, 4*nside**2, 6))
+            self.data = np.zeros((nfile*augmentation, 4*nside**2, nfeat))
             pass
         for i, file in fun(enumerate(self.files)):
             if load:
@@ -373,7 +374,7 @@ class Shrec17Dataset(object):
             #time1 = time.time()
             # must be smthg like (nbr map x nbr pixels x nbr feature)
             if load:
-                self.data[augmentation*i:augmentation*(i+1)] = data
+                self.data[augmentation*i:augmentation*(i+1)] = data[:,:,:nfeat]
             #time2 = time.time()
             #print("time elapsed for change elem:",(time2-time1)*1000.)
             del data
@@ -387,8 +388,8 @@ class Shrec17Dataset(object):
                     print("file non-existent")
                 info = {}
             try:       
-                self.mean = info[self.nside][dataset]['mean']
-                self.std = info[self.nside][dataset]['std']
+                self.mean = info[self.nside][dataset]['mean'][:nfeat]
+                self.std = info[self.nside][dataset]['std'][:nfeat]
             except:
                 if verbose:
                     print("info non-existent")
@@ -622,7 +623,7 @@ class Shrec17DatasetCache(object):
     url_data = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.zip'
     url_label = 'http://3dvision.princeton.edu/ms/shrec17-data/{}.csv'
 
-    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, 
+    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, nfeat=6,
                  augmentation=1, nfile=2000, experiment = 'deepsphere', verbose=True):
         self.experiment = experiment
         self.dataset = dataset
@@ -640,8 +641,8 @@ class Shrec17DatasetCache(object):
         file = root+"/info.pkl"
         try:
             info = pkl.load(open(file,'rb'))
-            self.mean = info[nside][dataset]['mean']
-            self.std = info[nside][dataset]['std']
+            self.mean = info[nside][dataset]['mean'][:nfeat]
+            self.std = info[nside][dataset]['std'][:nfeat]
             self.loaded = True
         except:
             self.mean = 0.
@@ -650,6 +651,7 @@ class Shrec17DatasetCache(object):
             if verbose:
                 print("no information currently available")
         self.nside = nside
+        self.nfeat = nfeat
         self.root = os.path.expanduser(root)
         self.repeat = augmentation
 
@@ -760,7 +762,7 @@ class Shrec17DatasetCache(object):
 #                 continue
             file = self.files[elem]
             data = self.cache_npy(file, pick_randomly=False, repeat=self.augmentation, experiment=self.experiment)
-            datas.append(data[elem%self.repeat])
+            datas.append(data[elem%self.repeat][:, :self.nfeat])
             #datas.append(self.cache_npy(file, pick_randomly=True, repeat=self.augmentation, experiment=self.experiment))
             labels.append(self.labels[elem])
         return datas, labels
@@ -918,17 +920,18 @@ def grouper(iterable, n, fillvalue=None):
 
 class Shrec17DatasetTF():
     # TODO write TFrecords and read them for performance reasons
-    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, 
+    def __init__(self, root, dataset, perturbed=True, download=False, nside=1024, nfeat = 6,
                  augmentation=1, nfile=2000, experiment = 'deepsphere', verbose=True):
         self.experiment = experiment
         self.nside = nside
+        self.nfeat = nfeat
         self.root = os.path.expanduser(root)
         self.repeat = augmentation
         file = root+"/info.pkl"
         try:
             info = pkl.load(open(file,'rb'))
-            self.mean = info[nside][dataset]['mean']
-            self.std = info[nside][dataset]['std']
+            self.mean = info[nside][dataset]['mean'][:nfeat]
+            self.std = info[nside][dataset]['std'][:nfeat]
             self.loaded = True
         except:
             self.mean = 0.
@@ -980,34 +983,68 @@ class Shrec17DatasetTF():
 #         for i, file in enumerate(self.files):
 #             self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
 
-    def get_tf_dataset(self, batch_size):
+    def get_tf_dataset(self, batch_size, transform=None):
         file_pattern = os.path.join(self.dir, self.experiment, "nside{0}*{1}.npy")
         file_list = []
         for i in range(self.repeat):
-            file_list+=glob.glob(file_pattern.format(self.nside, i))
+            if transform:
+                for j in range(5):
+                    file_list+=glob.glob(file_pattern.format(self.nside, i))
+            else:
+                file_list+=glob.glob(file_pattern.format(self.nside, i))
         if len(file_list)==0:
             raise RunTimeError('Files not found')
         dataset = tf.data.Dataset.from_tensor_slices(file_list)
+        
+        self.noise = [None]*32
+        
+        def add_noise(data, label):
+            size = data.shape
+            if any(elem is None for elem in self.noise):
+                index = 10 - sum(elem is None for elem in self.noise)#self.noise.index(None)
+                self.noise[index] = np.random.normal(size=size, scale=0.1).astype(np.float32)
+                data=data + self.noise[index].astype(np.float32)
+            else:
+                data = data + self.noise[int(np.random.rand()*10)].astype(np.float32)
+            return data, label
 
-        def get_elem(file):
+        if transform is True:
+            self.N = len(file_list)
+            transform = add_noise
+        
+        def get_elem(file, transform=transform):
             batch_data = []
             batch_labels = []
             #for file in files:
             data = np.load(file.decode()).astype(np.float32)
+            data = data[:, :self.nfeat]
             data = data - self.mean
             data = data / self.std
             file = os.path.splitext(os.path.basename(file.decode()))[0].split("_")[1]
             label = self.labels_dict[file]
+            data = data.astype(np.float32)
+            if transform:
+                data, label = transform(data, label)
 #             batch_data.append(data.astype(np.float32))
 #             batch_labels.append(label)
-            return data.astype(np.float32), label
+            return data, label
         
 #         dataset = dataset.shuffle(buffer_size=self.N)
 #         dataset = dataset.repeat()    # optional
+#         if transform is None:
         dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(self.N))
-        parse_fn = lambda file: tf.py_func(get_elem, [file], [tf.float32, tf.int64])
         #dataset = dataset.batch(batch_size).map(parse_fn, num_parallel_calls=4)  # change to py_function in future
+        parse_fn = lambda file: tf.py_func(get_elem, [file], [tf.float32, tf.int64])
         dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=parse_fn, batch_size=batch_size, drop_remainder = True))
+#         else:
+#             # must shuffle after the data augmentation
+# #             dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(self.N*5))
+#             parse_fn = lambda file: tf.py_func(get_elem, [file], [tf.float32, tf.int64])
+# #             dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=parse_fn, batch_size=batch_size, drop_remainder = True))
+#             dataset = dataset.map(parse_fn, num_parallel_calls=8)
+#             dataset = dataset.shuffle(buffer_size=self.N*5)
+#             dataset = dataset.repeat()
+#             dataset = dataset.batch(batch_size)
         self.dataset = dataset.prefetch(buffer_size=2)
         return self.dataset
         

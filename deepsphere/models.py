@@ -16,6 +16,8 @@ from scipy import sparse
 import sklearn
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
+from tensorflow.contrib.losses.python.metric_learning import triplet_semihard_loss
+from tensorflow.nn import l2_normalize
 
 from . import utils
 
@@ -218,6 +220,8 @@ class base_model(object):
 #         if use_tf_dataset:
 #             self.loadable_generator.load(train_dataset.iter(self.batch_size))
 
+        total_acc = 0
+        acc = 0
         t_cpu, t_wall = process_time(), time.time()
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -262,7 +266,6 @@ class base_model(object):
                 feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: True}
             else:
                 feed_dict = {self.ph_training: True}
-            t_begin_load = perf_counter()
 
             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
             evaluate = (step % self.eval_frequency == 0) or (step == num_steps)
@@ -273,7 +276,16 @@ class base_model(object):
                 run_options = None
                 run_metadata = None
 
-            learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict, run_options, run_metadata)
+            learning_rate, y_pred, loss, labels = sess.run([self.op_train, self.op_prediction, self.op_loss, self.op_labels], 
+                                                   feed_dict, run_options, run_metadata)
+            t_begin_load = perf_counter()
+            if use_tf_dataset:
+                batch_labels = labels
+            batch_acc = 100 * sklearn.metrics.accuracy_score(batch_labels, y_pred)
+            total_acc += batch_acc
+            if step%(train_dataset.N//self.batch_size)==0:
+                acc = 0
+            acc += batch_acc
             t_end = perf_counter()
             times.append(t_end-t_begin)
             # Periodical evaluation of the model.
@@ -282,7 +294,7 @@ class base_model(object):
                 epoch = step * self.batch_size / train_dataset.N
                 if verbose:
                     print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
-                    print('  learning_rate = {:.2e}, training loss = {:.2e}'.format(learning_rate, loss))
+                    print('  learning_rate = {:.2e}, training accuracy = {:.2f}, training loss = {:.2e}'.format(learning_rate, batch_acc, loss))
                 losses_training.append(loss)
                 if cache:
                     string, accuracy, f1, loss = self.evaluate(val_dataset, None, sess, cache=cache)
@@ -300,6 +312,9 @@ class base_model(object):
                 summary.value.add(tag='validation/accuracy', simple_value=accuracy)
                 summary.value.add(tag='validation/f1', simple_value=f1)
                 summary.value.add(tag='validation/loss', simple_value=loss)
+                summary.value.add(tag='training/batch_accuracy', simple_value=batch_acc)
+                summary.value.add(tag='training/epoch_accuracy', simple_value=acc/(step%(train_dataset.N//self.batch_size)+1))
+                summary.value.add(tag='training/total_accuracy', simple_value=total_acc/step)
                 writer.add_summary(summary, step)
                 if self.profile:
                     writer.add_run_metadata(run_metadata, 'step{}'.format(step))
@@ -366,11 +381,12 @@ class base_model(object):
                 self.ph_training = tf.placeholder(tf.bool, (), 'training')
 
             # Model.
-            op_logits = self.inference(self.ph_data, self.ph_training)
-            self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization)
+            op_logits, self.op_descriptor = self.inference(self.ph_data, self.ph_training)
+            self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization, extra_loss=self.extra_loss)
             self.op_train = self.training(self.op_loss)
             self.op_prediction = self.prediction(op_logits)
             self.op_probabilities = self.probabilities(op_logits)
+            self.op_labels = ph_labels
 
             # Initialize variables, i.e. weights and biases.
             self.op_init = tf.global_variables_initializer()
@@ -396,8 +412,8 @@ class base_model(object):
             False: the model is run for evaluation.
         """
         # TODO: optimizations for sparse data
-        logits = self._inference(data, training)
-        return logits
+        logits, descriptors = self._inference(data, training)
+        return logits, descriptors
 
     def probabilities(self, logits):
         """Return the probability of a sample to belong to each class."""
@@ -410,8 +426,20 @@ class base_model(object):
         with tf.name_scope('prediction'):
             prediction = tf.argmax(logits, axis=1)
             return prediction
+        
+    ## add triplet_loss
+    def triplet_loss(self, descriptor, labels):
+        with tf.name_scope('triplet_loss'):
+            norm = l2_normalize(descriptor, axis=-1)
+            triplet_loss = triplet_semihard_loss(labels, norm)
+            triplet_loss = tf.where(tf.is_nan(triplet_loss),
+                            tf.zeros_like(triplet_loss),
+                            triplet_loss)
 
-    def loss(self, logits, labels, regularization):
+        tf.summary.scalar('loss/triplet_loss', triplet_loss)
+        return triplet_loss
+
+    def loss(self, logits, labels, regularization, extra_loss=False):
         """Adds to the inference model the layers required to generate loss."""
         with tf.name_scope('loss'):
             with tf.name_scope('cross_entropy'):
@@ -422,6 +450,8 @@ class base_model(object):
                 n_weights = np.sum(self.regularizers_size)
                 regularization *= tf.add_n(self.regularizers) / n_weights
             loss = cross_entropy + regularization
+            if extra_loss:
+                loss += self.triplet_loss(self.op_descriptor, labels)
 
             # Summaries for TensorBoard.
             tf.summary.scalar('loss/cross_entropy', cross_entropy)
@@ -540,7 +570,7 @@ class cgcnn(base_model):
                 num_epochs, scheduler, optimizer, num_feat_in=1, tf_dataset=None,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200,
-                dir_name='', profile=False, debug=False):
+                extra_loss=False, drop=0, dir_name='', profile=False, debug=False):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
@@ -624,13 +654,15 @@ class cgcnn(base_model):
         self.activation = getattr(tf.nn, activation)
         self.statistics = statistics
         self.profile, self.debug = profile, debug
+        self.drop = drop
+        self.extra_loss = extra_loss
 
         # Build the computational graph.
         self.build_graph(M_0, num_feat_in, tf_dataset)
 
         # show_all_variables()
 
-    def chebyshev5(self, x, L, Fout, K):
+    def chebyshev5(self, x, L, Fout, K, training=False):
         N, M, Fin = x.get_shape()
         N, M, Fin = int(N), int(M), int(Fin)
         # Rescale Laplacian and store as a TF sparse tensor. Copy to not modify the shared L.
@@ -661,6 +693,16 @@ class cgcnn(base_model):
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
         # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
         W = self._weight_variable_cheby(K, Fin, Fout, regularization=True)
+        if self.drop<1:
+            W = tf.reshape(W, [Fin, K, Fout])
+            W = tf.transpose(W, perm=[1,0,2])
+            mask = tf.ones((Fin, Fout))
+            #mask = tf.get_variable('mask', (Fin, Fout), tf.float32, initializer=tf.ones_initializer(tf.float32))
+            dropout = tf.cond(training, lambda: float(self.drop), lambda: 1.0)
+            mask = tf.nn.dropout(mask, dropout) * (dropout)
+            W = tf.multiply(W, mask)
+            W = tf.transpose(W, perm=[1,0,2])
+            W = tf.reshape(W, [Fin*K, Fout])
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
 
@@ -669,7 +711,7 @@ class cgcnn(base_model):
         stddev = 1 / np.sqrt(Fin * (K + 0.5) / 2)
         return self._weight_variable([Fin*K, Fout], stddev=stddev, regularization=regularization)
 
-    def monomials(self, x, L, Fout, K):
+    def monomials(self, x, L, Fout, K, training=False):
         r"""Convolution on graph with monomials."""
         N, M, Fin = x.get_shape()
         N, M, Fin = int(N), int(M), int(Fin)
@@ -785,7 +827,7 @@ class cgcnn(base_model):
         for i in range(len(self.p)):
             with tf.variable_scope('conv{}'.format(i+1)):
                 with tf.name_scope('filter'):
-                    x = self.filter(x, self.L[i], self.F[i], self.K[i])
+                    x = self.filter(x, self.L[i], self.F[i], self.K[i], training)
                 if i == len(self.p)-1 and len(self.M) == 0:
                     break  # That is a linear layer before the softmax.
                 if self.batch_norm[i]:
@@ -817,6 +859,8 @@ class cgcnn(base_model):
             #    x = x
             else:
                 raise ValueError('Unknown statistical layer {}'.format(self.statistics))
+        
+        descriptor = x
 
         # Fully connected hidden layers.
         for i, M in enumerate(self.M[:-1]):
@@ -831,7 +875,7 @@ class cgcnn(base_model):
             with tf.variable_scope('logits'):
                 x = self.fc(x, self.M[-1], bias=False)
 
-        return x
+        return x, descriptor
 
     def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):
         """Return the Chebyshev filter coefficients of a layer.

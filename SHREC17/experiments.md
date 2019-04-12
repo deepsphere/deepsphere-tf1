@@ -479,4 +479,5 @@ TODO: revoir les résultats
 * testing part: accuracy 78.09, f1 78.45
 * test on val_perturbed dataset: P@N 0.733, R@N 0.740, F1@N 0.730, mAP 0.702, NDCG 0.725
 * test on test_perturbed dataset: P@N 0.699, R@N 0.693, F1@N 0.690, mAP 0.657, NDCG 0.740
-* time per batch: 0.46 s
+* time per batch: 0.46 s  //  0.38 s
+* time to run: 32 hours

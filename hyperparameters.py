@@ -99,7 +99,7 @@ def get_params_shrec17_optim(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, arc
     :param verbose: bool, print info
     :return: parameters needed to create a deepsphere model
     """
-
+    
     params = dict()
     params['dir_name'] = EXP_NAME
     params['num_feat_in'] = nfeat_in
@@ -112,7 +112,7 @@ def get_params_shrec17_optim(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, arc
 
     # Architecture.
     params['F'] = [16, 32, 64, 128, 256, n_classes]  # Graph convolutional layers: number of feature maps.
-    params['K'] = [5] * 6  # Polynomial orders.
+    params['K'] = [4] * 6  # Polynomial orders.
 #     params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int), 
 #                    np.ceil(np.sqrt(3)*Nside//4).astype(int), 
 #                    np.ceil(np.sqrt(3)*Nside//8).astype(int)]
@@ -139,13 +139,14 @@ def get_params_shrec17_optim(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, arc
     # Regularization (to prevent over-fitting).
     params['regularization'] = 0  # Amount of L2 regularization over the weights (will be divided by the number of weights).
     params['dropout'] = 1  # Percentage of neurons to keep.
+    params['drop'] = 1 # percentage of filter to keep in each layer
 
     # Training.
     params['num_epochs'] = 50 #30  # Number of passes through the training data.
     params['batch_size'] = 32  # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.
-    params['scheduler'] = lambda step: tf.train.exponential_decay(1e-2, step, decay_steps=5, decay_rate=1)#0.999)
+    params['scheduler'] = lambda step: tf.train.exponential_decay(2e-2, step, decay_steps=5, decay_rate=1)#0.999)
     params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=0.1)
     #params['optimizer'] = lambda lr: tf.train.GradientDescentOptimizer(lr)
 
