@@ -487,7 +487,24 @@ TODO: revoir les résultats
 * time per batch: 0.05 s
 * Remarks: 881 MiB on GPU, 2h43m to train
 ###### no rot
-
+* train on perturbed dataset, 3 random translations (object not on the center of the sphere)
+* training set loss: 5.04e-3
+** rotated dataset
+* accuracy, F1, loss of validation part: (83.71, 83.30, 1.04)
+* accuracy, F1, loss of test part: (79.82, 80.10, 1.32)
+* test on val_perturbed dataset: P@N 0.737, R@N 0.749, F1@N 0.737, mAP 0.716, NDCG 0.737
+                           macro: P@N 0.514, R@N 0.544, F1@N 0.511, mAP 0.475, NDCG 0.532
+* test on test_perturbed dataset: P@N 0.715, R@N 0.707, F1@N 0.705, mAP 0.675, NDCG 0.755
+                           macro: P@N 0.448, R@N 0.495, F1@N 0.448, mAP 0.412, NDCG 0.474
+** non-rotated dataset
+* accuracy, F1, loss of validation part: (84.06, 83.78, 1.02)
+* accuracy, F1, loss of test part: (79.57, 79.76, 1.33)
+* test on val_perturbed dataset: P@N 0.745, R@N 0.754, F1@N 0.744, mAP 0.723, NDCG 0.745
+                           macro: P@N 0.520, R@N 0.552, F1@N 0.518, mAP 0.484, NDCG 0.540
+* test on test_perturbed dataset: P@N 0.709, R@N 0.704, F1@N 0.700, mAP 0.671, NDCG 0.751
+                           macro: P@N 0.448, R@N 0.492, F1@N 0.447, mAP 0.411, NDCG 0.471
+* time per batch: 0.05 s
+* Remarks: 881 MiB on GPU, 2h58m to train
 ###### add triplet loss and better graph
 
 ###### change learning rate over time
