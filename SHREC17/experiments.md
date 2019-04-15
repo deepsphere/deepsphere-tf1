@@ -402,6 +402,102 @@ TODO: revoir les résultats
 * time per batch: 0.05 s
 * Remarks: 875 MiB on GPU, 1h18m to train (40 min would have been sufficient)
 
+## try to get rid of overfitting
+* parameters
+** L2 regularization: training loss worsens, validation loss worsens, validation accuracy drops 1 point
+** drop filters in convolution layers: training loss worsens, validation loss same, validation accuracy same
+** dropout in fully connected layer: training loss same, validation loss same, validation accuracy increases 1 point
+** reduce number of features: training loss same, validation loss same, validation accuracy drops 1 point
+** add triplet_loss (see Esteved paper): training loss same, validation loss same, validation accuracy increases 1 point
+** augmentation with noise: training loss same, validation loss same, validation accuracy same
+** augmentation with noise and translation: 
+* best_val (triplet_loss)
+** accuracy, F1, loss of validation part: (82.21, 81.80, 0.92)
+** accuracy, F1, loss of test part: (78.66, 78.81, 1.46)
+** test on val_perturbed dataset: P@N 0.737, R@N 0.742, F1@N 0.734, mAP 0.708, NDCG 0.733
+** test on test_perturbed dataset: P@N 0.703, R@N 0.703, F1@N 0.697, mAP 0.668, NDCG 0.748
+
+## True better graph
+### first layer full
+* accuracy, F1, loss of validation part: (82.19, 81.76, 0.92)
+* accuracy, F1, loss of test part: (77.80, 77.98, 1.17)
+* Remarks: overfit sooner and at a greater pace
+* 27 epochs, 54 min
+### all layers full
+* accuracy, F1, loss of validation part: (82.12, 81.66, 0.90)
+* accuracy, F1, loss of test part: (78.39, 78.37, 1.14)
+* Remarks: overfit sooner and at a greater pace, even slower
+### no layer full
+* accuracy, F1, loss of validation part: (82.45, 82.03, 0.98)
+* accuracy, F1, loss of test part: (78.13, 78.15, 1.26)
+### no better graph
+* accuracy, F1, loss of validation part: (82.45, 82.01, 1.02)
+* accuracy, F1, loss of test part: (78.26, 78.50, 1.25)
+
+## Augmentation test
+** nsides = [Nside, Nside//2, Nside//4, Nside//8, Nside//16, Nside//32, Nside//32]
+** params['F'] = [16, 32, 64, 128, 256, n_classes]
+** params['batch_norm'] = [True] * 6
+** params['num_epochs'] = 50
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: 2e-2
+** params['K'] = [4] * 6  
+** optimizer: Adam
+** average pooling at the end
+* nparams = weights + bias = ~189k
+###### all perturbations
+* train on perturbed dataset, 3 random rotations + 3 random translations (object not on the center of the sphere)
+* training set loss: 6.3e-3
+** rotated dataset
+* accuracy, F1, loss of validation part: (84.08, 83.80, 1.08)
+* accuracy, F1, loss of test part: (79.61, 79.91, 1.45)
+* test on val_perturbed dataset: P@N 0.745, R@N 0.755, F1@N 0.745, mAP 0.723, NDCG 0.747
+                           macro: P@N 0.522, R@N 0.553, F1@N 0.520, mAP 0.480, NDCG 0.536
+* test on test_perturbed dataset: P@N 0.719, R@N 0.710, F1@N 0.708, mAP 0.680, NDCG 0.758
+                           macro: P@N 0.457, R@N 0.490, F1@N 0.449, mAP 0.410, NDCG 0.470
+** non-rotated dataset
+* accuracy, F1, loss of validation part: (84.53, 84.18, 1.08)
+* accuracy, F1, loss of test part: (80.42, 80.65, 1.40)
+* test on val_perturbed dataset: P@N 0.750, R@N 0.760, F1@N 0.749, mAP 0.728, NDCG 0.750
+                           macro: P@N 0.530, R@N 0.557, F1@N 0.525, mAP 0.486, NDCG 0.543
+* test on test_perturbed dataset: P@N 0.725, R@N 0.717, F1@N 0.715, mAP 0.686, NDCG 0.764
+                           macro: P@N 0.475, R@N 0.508, F1@N 0.468, mAP 0.428, NDCG 0.486
+* time per batch: 0.05 s
+* Remarks: 881 MiB on GPU, 5h04m to train
+###### only rot
+* train on perturbed dataset, 3 random rotations (object not on the center of the sphere)
+* training set loss: 3.9e-3
+** rotated dataset
+* accuracy, F1, loss of validation part: (83.85, 83.35, 1.06)
+* accuracy, F1, loss of test part: (79.25, 79.26, 1.39)
+* test on val_perturbed dataset: P@N 0.742, R@N 0.754, F1@N 0.742, mAP 0.720, NDCG 0.741
+                           macro: P@N 0.500, R@N 0.540, F1@N 0.502, mAP 0.463, NDCG 0.517
+* test on test_perturbed dataset: P@N 0.709, R@N 0.706, F1@N 0.701, mAP 0.674, NDCG 0.753
+                           macro: P@N 0.454, R@N 0.502, F1@N 0.453, mAP 0.420, NDCG 0.479
+** non-rotated dataset
+* accuracy, F1, loss of validation part: (83.81, 83.39, 1.05)
+* accuracy, F1, loss of test part: (79.26, 79.30, 1.38)
+* test on val_perturbed dataset: P@N 0.740, R@N 0.751, F1@N 0.740, mAP 0.717, NDCG 0.740
+                           macro: P@N 0.508, R@N 0.544, F1@N 0.507, mAP 0.466, NDCG 0.521
+* test on test_perturbed dataset: P@N 0.712, R@N 0.538, F1@N 0.591, mAP 0.503, NDCG 0.594
+                           macro: P@N 0.416, R@N 0.512, F1@N 0.427, mAP 0.415, NDCG 0.466
+* time per batch: 0.05 s
+* Remarks: 881 MiB on GPU, 2h43m to train
+###### no rot
+
+###### add triplet loss and better graph
+
+###### change learning rate over time
+
+## Augmented Dataset no rotation / on rotated dataset
+* accuracy, F1, loss of validation part: (81.86, 81.47, 0.97)
+* accuracy, F1, loss of test part: (77.78, 77.98, 1.17)
+* test on val_perturbed dataset: P@N 0.723, R@N 0.736, F1@N 0.723, mAP 0.699, NDCG 0.726
+* test on test_perturbed dataset: P@N 0.704, R@N 0.695, F1@N 0.693, mAP 0.663, NDCG 0.747
+
 # Cohen model
 ## paper experiment
 * parameters:
@@ -481,3 +577,21 @@ TODO: revoir les résultats
 * test on test_perturbed dataset: P@N 0.699, R@N 0.693, F1@N 0.690, mAP 0.657, NDCG 0.740
 * time per batch: 0.46 s  //  0.38 s
 * time to run: 32 hours
+
+# Esteves model
+## paper experiment
+* parameters:
+** bandwidth = [64, 64, 64, 32, 32, 16, 16, 8, 8]
+** features (main branche) = [16, 16, 32 (x2), 32, 64 (x2), 64, 128 (x2), 128, n_classes]
+** batch norm 3D = yes
+** num epoch = 32
+** batch_size = 32
+** activation = prelu
+** no regularization
+** gap and next a fully connected to nclasses
+** learning rate = {0: 0.001, 16: 0.0002, 24: 0.00004}
+** localized filter with 8 parameters in frequential space
+* nparams = ~500k
+* augmented with random SO3 rotations
+* P@N 0.717, R@N 0.737, mAP 0.685
+* macro P@N 0.450, R@N 0.550, mAP 0.444

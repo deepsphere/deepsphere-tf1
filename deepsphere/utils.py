@@ -9,7 +9,7 @@ import hashlib
 import zipfile
 
 import numpy as np
-from scipy import sparse
+from scipy import sparse, spatial
 import matplotlib.pyplot as plt
 import healpy as hp
 
@@ -20,7 +20,7 @@ else:
     from urllib import urlretrieve
 
 
-def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32, std=None):
+def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32, std=None, full=False):
     """Return an unnormalized weight matrix for a graph using the HEALPIX sampling.
 
     Parameters
@@ -55,47 +55,50 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32, st
     coords = np.vstack([x, y, z]).transpose()
     coords = np.asarray(coords, dtype=dtype)
     # Get the 7-8 neighbors.
-    neighbors = hp.pixelfunc.get_all_neighbours(nside, indexes, nest=nest)
-    # if use_4:
-    #     print('Use 4')
-    #     col_index = []
-    #     row_index = []
-    #     for el,neighbor in zip(indexes,neighbors.T):
-    #         x, y, z = hp.pix2vec(nside, [el], nest=nest)
-    #         coords_1 = np.vstack([x, y, z]).transpose()
-    #         coords_1 = np.array(coords_1)
-
-    #         x, y, z = hp.pix2vec(nside, neighbor, nest=nest)
-    #         coords_2 = np.vstack([x, y, z]).transpose()
-    #         coords_2 = np.asarray(coords_2)
-    #         ind = np.argsort(np.sum((coords_2-coords_1)**2,axis=1),)[:4]
-    #         col_index = col_index + neighbor[ind].tolist()
-    #         row_index = row_index +[el]*4
-    #     col_index = np.array(col_index)
-    #     row_index = np.array(row_index)
-    # else:
-    # Indices of non-zero values in the adjacency matrix.
-    col_index = neighbors.T.reshape((npix * 8))
-    row_index = np.repeat(indexes, 8)
-
-    # Remove pixels that are out of our indexes of interest (part of sphere).
-    if usefast:
-        keep = (col_index < npix)
-        # Remove fake neighbors (some pixels have less than 8).
-        keep &= (col_index >= 0)
-        col_index = col_index[keep]
-        row_index = row_index[keep]
+    if full:
+        distances = spatial.distance.cdist(coords, coords)**2
     else:
-        col_index_set = set(indexes)
-        keep = [c in col_index_set for c in col_index]
-        inverse_map = [np.nan] * (nside**2 * 12)
-        for i, index in enumerate(indexes):
-            inverse_map[index] = i
-        col_index = [inverse_map[el] for el in col_index[keep]]
-        row_index = [inverse_map[el] for el in row_index[keep]]
+        neighbors = hp.pixelfunc.get_all_neighbours(nside, indexes, nest=nest)
+        # if use_4:
+        #     print('Use 4')
+        #     col_index = []
+        #     row_index = []
+        #     for el,neighbor in zip(indexes,neighbors.T):
+        #         x, y, z = hp.pix2vec(nside, [el], nest=nest)
+        #         coords_1 = np.vstack([x, y, z]).transpose()
+        #         coords_1 = np.array(coords_1)
 
-    # Compute Euclidean distances between neighbors.
-    distances = np.sum((coords[row_index] - coords[col_index])**2, axis=1)
+        #         x, y, z = hp.pix2vec(nside, neighbor, nest=nest)
+        #         coords_2 = np.vstack([x, y, z]).transpose()
+        #         coords_2 = np.asarray(coords_2)
+        #         ind = np.argsort(np.sum((coords_2-coords_1)**2,axis=1),)[:4]
+        #         col_index = col_index + neighbor[ind].tolist()
+        #         row_index = row_index +[el]*4
+        #     col_index = np.array(col_index)
+        #     row_index = np.array(row_index)
+        # else:
+        # Indices of non-zero values in the adjacency matrix.
+        col_index = neighbors.T.reshape((npix * 8))
+        row_index = np.repeat(indexes, 8)
+
+        # Remove pixels that are out of our indexes of interest (part of sphere).
+        if usefast:
+            keep = (col_index < npix)
+            # Remove fake neighbors (some pixels have less than 8).
+            keep &= (col_index >= 0)
+            col_index = col_index[keep]
+            row_index = row_index[keep]
+        else:
+            col_index_set = set(indexes)
+            keep = [c in col_index_set for c in col_index]
+            inverse_map = [np.nan] * (nside**2 * 12)
+            for i, index in enumerate(indexes):
+                inverse_map[index] = i
+            col_index = [inverse_map[el] for el in col_index[keep]]
+            row_index = [inverse_map[el] for el in row_index[keep]]
+
+        # Compute Euclidean distances between neighbors.
+        distances = np.sum((coords[row_index] - coords[col_index])**2, axis=1)
     # slower: np.linalg.norm(coords[row_index] - coords[col_index], axis=1)**2
 
     # Compute similarities / edge weights.
@@ -109,9 +112,17 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32, st
     # weights = 1 / distances
 
     # Build the sparse matrix.
-    W = sparse.csr_matrix(
-        (weights, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
-
+    if full:
+        W = weights
+        for i in range(np.alen(W)):
+            W[i, i] = 0.
+        k = 0.01#np.exp(-5)
+        W[W < k] = 0
+        W = sparse.csr_matrix(W, dtype=dtype)
+    else:
+        W = sparse.csr_matrix(
+            (weights, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
+    
     # if use_4:
     #     W = (W+W.T)/2
 
@@ -297,13 +308,14 @@ def healpix_laplacian(nside=16,
                       indexes=None,
                       dtype=np.float32,
                       use_4=False, 
-                      std=None):
+                      std=None,
+                      full=False):
     """Build a Healpix Laplacian."""
     if use_4:
         W = build_matrix_4_neighboors(nside, indexes, nest=nest, dtype=dtype)
     else:
         W = healpix_weightmatrix(
-            nside=nside, nest=nest, indexes=indexes, dtype=dtype, std=std)
+            nside=nside, nest=nest, indexes=indexes, dtype=dtype, std=std, full=full)
     L = build_laplacian(W, lap_type=lap_type)
     return L
 
@@ -331,19 +343,23 @@ def rescale_L(L, lmax=2, scale=1):
     return L*scale
 
 
-def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix', std=None):
+def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix', std=None, full=False):
     """Build a list of Laplacians (and down-sampling factors) from a list of nsides."""
     L = []
     p = []
     if indexes is None:
         indexes = [None] * len(nsides)
-    for i, (nside, index) in enumerate(zip(nsides, indexes)):
+    if not isinstance(std, list):
+        std = [std] * len(nsides)
+    if not isinstance(full, list):
+        full = [full] * len(nsides)
+    for i, (nside, index, sigma, mat) in enumerate(zip(nsides, indexes, std, full)):
         if i > 0:  # First is input dimension.
             p.append((nside_last // nside)**2)
         nside_last = nside
         if i < len(nsides) - 1:  # Last does not need a Laplacian.
             if sampling is 'healpix':
-                laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4, std=std)
+                laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4, std=sigma, full=mat)
             elif sampling is 'equiangular':
                 laplacian = equiangular_laplacian(bw=nside, indexes=index, use_4=use_4)
             else:

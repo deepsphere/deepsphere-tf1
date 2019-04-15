@@ -29,10 +29,10 @@ except:
 
 from scipy.spatial.distance import pdist, squareform
     
-def shrec_output(probabilities, ids, datapath, savedir='results_deep/test_perturbed'):
+def shrec_output(descriptors, ids, probabilities, datapath, savedir='results_deep/test_perturbed'):
     # TODO: descriptors are not probabilities, but the step before the fully connected layer
     os.makedirs(os.path.join(datapath, savedir), exist_ok=True)
-    dist_mat = squareform(pdist(probabilities, 'cosine'))
+    dist_mat = squareform(pdist(descriptors, 'cosine'))
     predictions = np.argmax(probabilities, axis=1)
     for dist, name, score in zip(dist_mat, ids, probabilities):
         most_feat = np.argsort(score)[::-1][0]  # equal to prediction in actual configuration
@@ -967,7 +967,7 @@ class Shrec17DatasetTF():
 #         self.labels = np.asarray(self.labels, dtype=int)
             
         head, _ = os.path.split(self.files[0])
-        os.makedirs(head+'/'+experiment, exist_ok=True)
+        # os.makedirs(head+'/'+experiment, exist_ok=True)
         if nfile is not None:
             self.files = self.files[:nfile]
 #             if self.labels is not None:
@@ -978,6 +978,9 @@ class Shrec17DatasetTF():
             nfile = len(self.files)
         self.nfile = nfile
         self.N = nfile * augmentation
+        if self.experiment == 'all':
+            self.experiment = 'deepsphere*'
+            self.N *= 2
 #         self.files = np.asarray(self.files).repeat(augmentation)
             
 #         for i, file in enumerate(self.files):

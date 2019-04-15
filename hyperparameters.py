@@ -146,7 +146,7 @@ def get_params_shrec17_optim(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, arc
     params['batch_size'] = 32  # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.
-    params['scheduler'] = lambda step: tf.train.exponential_decay(2e-2, step, decay_steps=5, decay_rate=1)#0.999)
+    params['scheduler'] = lambda step: tf.train.exponential_decay(2e-2, step, decay_steps=5, decay_rate=1)#decay_steps=7000, decay_rate=0.1, staircase=True)#0.999)
     params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=0.1)
     #params['optimizer'] = lambda lr: tf.train.GradientDescentOptimizer(lr)
 

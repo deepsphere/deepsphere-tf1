@@ -71,6 +71,31 @@ class base_model(object):
         self.regularizers_size = []
 
     # High-level interface which runs the constructed computational graph.
+    
+    def get_descriptor(self, data, sess=None, cache=True):
+        sess = self._get_session(sess)
+        size = data.N
+        descriptors = np.empty((size, self.op_descriptor.shape[-1]))
+        if cache is 'TF':
+            dataset = data.get_tf_dataset(self.batch_size)
+            data_iter = dataset.make_one_shot_iterator()
+        else:
+            data_iter = data.iter(self.batch_size)
+        for begin in range(0, size, self.batch_size):
+            end = begin + self.batch_size
+            end = min([end, size])
+            if cache is 'TF':
+                batch_data, _ = data_iter.get_next()
+            else:
+                batch_data, _ = next(data_iter)
+            if type(batch_data) is not np.ndarray:
+                batch_data = batch_data.toarray()
+            feed_dict = {self.ph_data: batch_data, self.ph_training: False}    
+            batch_des = sess.run(self.op_descriptor, feed_dict)
+            
+            descriptors[begin:end] = batch_des[:end-begin]
+            
+        return descriptors
 
     def predict(self, data, labels=None, sess=None, cache=False):
         loss = 0
@@ -570,7 +595,7 @@ class cgcnn(base_model):
                 num_epochs, scheduler, optimizer, num_feat_in=1, tf_dataset=None,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200,
-                extra_loss=False, drop=0, dir_name='', profile=False, debug=False):
+                extra_loss=False, drop=1, dir_name='', profile=False, debug=False):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
@@ -966,9 +991,9 @@ class deepsphere(cgcnn):
         dir_name: Name for directories (summaries and model parameters).
     """
 
-    def __init__(self, nsides, indexes=None, use_4=False, sampling='healpix', std=None, **kwargs):
+    def __init__(self, nsides, indexes=None, use_4=False, sampling='healpix', std=None, full=False, **kwargs):
         # nsides is bandwidth if sampling is equiangular (SOFT)
-        L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4, sampling=sampling, std=None)
+        L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4, sampling=sampling, std=std, full=full)
         self.sampling = sampling
         self.nsides = nsides
         self.pygsp_graphs = [None] * len(nsides)
