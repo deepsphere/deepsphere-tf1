@@ -1,0 +1,501 @@
+
+@article{bruna_spectral_2013,
+	title = {Spectral Networks and Locally Connected Networks on Graphs},
+	url = {http://arxiv.org/abs/1312.6203},
+	abstract = {Convolutional Neural Networks are extremely efficient architectures in image and audio recognition tasks, thanks to their ability to exploit the local translational invariance of signal classes over their domain. In this paper we consider possible generalizations of {CNNs} to signals defined on more general domains without the action of a translation group. In particular, we propose two constructions, one based upon a hierarchical clustering of the domain, and another based on the spectrum of the graph Laplacian. We show through experiments that for low-dimensional graphs it is possible to learn convolutional layers with a number of parameters independent of the input size, resulting in efficient deep architectures.},
+	journaltitle = {{arXiv}:1312.6203 [cs]},
+	author = {Bruna, Joan and Zaremba, Wojciech and Szlam, Arthur and {LeCun}, Yann},
+	urldate = {2019-04-16},
+	date = {2013-12-20},
+	eprinttype = {arxiv},
+	eprint = {1312.6203},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning, Computer Science - Neural and Evolutionary Computing}
+}
+
+@online{noauthor_matterport3d:_nodate,
+	title = {Matterport3D: Learning from {RGB}-D Data in Indoor Environments},
+	url = {https://niessner.github.io/Matterport/},
+	urldate = {2019-04-16}
+}
+
+@online{noauthor_geometric_nodate,
+	title = {Geometric Deep Learning},
+	url = {http://geometricdeeplearning.com/},
+	urldate = {2019-04-16},
+	langid = {english}
+}
+
+@article{cohen_convolutional_2017,
+	title = {Convolutional Networks for Spherical Signals},
+	url = {http://arxiv.org/abs/1709.04893},
+	abstract = {The success of convolutional networks in learning problems involving planar signals such as images is due to their ability to exploit the translation symmetry of the data distribution through weight sharing. Many areas of science and egineering deal with signals with other symmetries, such as rotation invariant data on the sphere. Examples include climate and weather science, astrophysics, and chemistry. In this paper we present spherical convolutional networks. These networks use convolutions on the sphere and rotation group, which results in rotational weight sharing and rotation equivariance. Using a synthetic spherical {MNIST} dataset, we show that spherical convolutional networks are very effective at dealing with rotationally invariant classification problems.},
+	journaltitle = {{arXiv}:1709.04893 [cs]},
+	author = {Cohen, Taco and Geiger, Mario and Köhler, Jonas and Welling, Max},
+	urldate = {2019-04-12},
+	date = {2017-09-14},
+	eprinttype = {arxiv},
+	eprint = {1709.04893},
+	keywords = {Computer Science - Machine Learning}
+}
+
+@article{ran_convolutional_2017,
+	title = {Convolutional Neural Network-Based Robot Navigation Using Uncalibrated Spherical Images},
+	volume = {17},
+	rights = {http://creativecommons.org/licenses/by/3.0/},
+	url = {https://www.mdpi.com/1424-8220/17/6/1341},
+	doi = {10.3390/s17061341},
+	abstract = {Vision-based mobile robot navigation is a vibrant area of research with numerous algorithms having been developed, the vast majority of which either belong to the scene-oriented simultaneous localization and mapping ({SLAM}) or fall into the category of robot-oriented lane-detection/trajectory tracking. These methods suffer from high computational cost and require stringent labelling and calibration efforts. To address these challenges, this paper proposes a lightweight robot navigation framework based purely on uncalibrated spherical images. To simplify the orientation estimation, path prediction and improve computational efficiency, the navigation problem is decomposed into a series of classification tasks. To mitigate the adverse effects of insufficient negative samples in the “navigation via classification” task, we introduce the spherical camera for scene capturing, which enables 360° fisheye panorama as training samples and generation of sufficient positive and negative heading directions. The classification is implemented as an end-to-end Convolutional Neural Network ({CNN}), trained on our proposed Spherical-Navi image dataset, whose category labels can be efficiently collected. This {CNN} is capable of predicting potential path directions with high confidence levels based on a single, uncalibrated spherical image. Experimental results demonstrate that the proposed framework outperforms competing ones in realistic applications.},
+	pages = {1341},
+	number = {6},
+	journaltitle = {Sensors},
+	author = {Ran, Lingyan and Zhang, Yanning and Zhang, Qilin and Yang, Tao},
+	urldate = {2019-04-12},
+	date = {2017-06},
+	langid = {english},
+	keywords = {convolutional neural networks, navigation via learning, spherical camera, vision-based robot navigation}
+}
+
+@incollection{su_learning_2017,
+	title = {Learning Spherical Convolution for Fast Features from 360° Imagery},
+	url = {http://papers.nips.cc/paper/6656-learning-spherical-convolution-for-fast-features-from-360-imagery.pdf},
+	pages = {529--539},
+	booktitle = {Advances in Neural Information Processing Systems 30},
+	publisher = {Curran Associates, Inc.},
+	author = {Su, Yu-Chuan and Grauman, Kristen},
+	editor = {Guyon, I. and Luxburg, U. V. and Bengio, S. and Wallach, H. and Fergus, R. and Vishwanathan, S. and Garnett, R.},
+	urldate = {2019-04-12},
+	date = {2017}
+}
+
+@inproceedings{sinha_deep_2016,
+	title = {Deep Learning 3D Shape Surfaces Using Geometry Images},
+	isbn = {978-3-319-46466-4},
+	series = {Lecture Notes in Computer Science},
+	abstract = {Surfaces serve as a natural parametrization to 3D shapes. Learning surfaces using convolutional neural networks ({CNNs}) is a challenging task. Current paradigms to tackle this challenge are to either adapt the convolutional filters to operate on surfaces, learn spectral descriptors defined by the Laplace-Beltrami operator, or to drop surfaces altogether in lieu of voxelized inputs. Here we adopt an approach of converting the 3D shape into a ‘geometry image’ so that standard {CNNs} can directly be used to learn 3D shapes. We qualitatively and quantitatively validate that creating geometry images using authalic parametrization on a spherical domain is suitable for robust learning of 3D shape surfaces. This spherically parameterized shape is then projected and cut to convert the original 3D shape into a flat and regular geometry image. We propose a way to implicitly learn the topology and structure of 3D shapes using geometry images encoded with suitable features. We show the efficacy of our approach to learn 3D shape surfaces for classification and retrieval tasks on non-rigid and rigid shape datasets.},
+	pages = {223--240},
+	booktitle = {Computer Vision – {ECCV} 2016},
+	publisher = {Springer International Publishing},
+	author = {Sinha, Ayan and Bai, Jing and Ramani, Karthik},
+	editor = {Leibe, Bastian and Matas, Jiri and Sebe, Nicu and Welling, Max},
+	date = {2016},
+	langid = {english},
+	keywords = {3D Shape, {CNN}, Deep learning, Geometry images, Surfaces}
+}
+
+@article{ronchi_cubed_1996,
+	title = {The “Cubed Sphere”},
+	volume = {124},
+	issn = {0021-9991},
+	url = {http://dx.doi.org/10.1006/jcph.1996.0047},
+	doi = {10.1006/jcph.1996.0047},
+	abstract = {A new gridding technique for the solution of partial differential equations in spherical geometry is presented. The method is based on a decomposition of the sphere into six identical regions, obtained by projecting the sides of a circumscribed cube onto a spherical surface. By choosing the coordinate lines on each region to be arcs of great circles, one obtains six coordinate systems which are free of any singularity and define the same metric. Taking full advantage of the symmetry properties of the decomposition, a variation of the composite mesh finite difference method can be applied to couple the six grids and obtain, with a high degree of efficiency, very accurate numerical solutions of partial differential equations on the sphere. The advantages of this new technique over both spectral and uniform longitude¿latitude grid point methods are discussed in the context of applications on serial and parallel architectures. We present results of two test cases for numerical approximations to the shallow water equations in spherical geometry: the linear advection of a cosine bell and the nonlinear evolution of a Rossby¿Haurwitz wave. Performance analysis for this latter case indicates that the new method can provide, with substantial savings in execution times, numerical solutions which are as accurate as those obtainable with the spectral transform method.},
+	pages = {93--114},
+	number = {1},
+	journaltitle = {J. Comput. Phys.},
+	author = {Ronchi, C. and Iacono, R. and Paolucci, P.S.},
+	urldate = {2019-04-12},
+	date = {1996-03}
+}
+
+@incollection{boomsma_spherical_2017,
+	title = {Spherical convolutions and their application in molecular modelling},
+	url = {http://papers.nips.cc/paper/6935-spherical-convolutions-and-their-application-in-molecular-modelling.pdf},
+	pages = {3433--3443},
+	booktitle = {Advances in Neural Information Processing Systems 30},
+	publisher = {Curran Associates, Inc.},
+	author = {Boomsma, Wouter and Frellsen, Jes},
+	editor = {Guyon, I. and Luxburg, U. V. and Bengio, S. and Wallach, H. and Fergus, R. and Vishwanathan, S. and Garnett, R.},
+	urldate = {2019-04-12},
+	date = {2017}
+}
+
+@inproceedings{frossard_graph-based_2017,
+	location = {Venice, Italy},
+	title = {Graph-Based Classification of Omnidirectional Images},
+	isbn = {978-1-5386-1034-3},
+	url = {http://ieeexplore.ieee.org/document/8265315/},
+	doi = {10.1109/ICCVW.2017.106},
+	abstract = {Omnidirectional cameras are widely used in such areas as robotics and virtual reality as they provide a wide ﬁeld of view. Their images are often processed with classical methods, which might unfortunately lead to non-optimal solutions as these methods are designed for planar images that have different geometrical properties than omnidirectional ones. In this paper we study image classiﬁcation task by taking into account the speciﬁc geometry of omnidirectional cameras with graph-based representations. In particular, we extend deep learning architectures to data on graphs; we propose a principled way of graph construction such that convolutional ﬁlters respond similarly for the same pattern on different positions of the image regardless of lens distortions. Our experiments show that the proposed method outperforms current techniques for the omnidirectional image classiﬁcation problem.},
+	eventtitle = {2017 {IEEE} International Conference on Computer Vision Workshop ({ICCVW})},
+	pages = {860--869},
+	booktitle = {2017 {IEEE} International Conference on Computer Vision Workshops ({ICCVW})},
+	publisher = {{IEEE}},
+	author = {Frossard, Pascal and Khasanova, Renata},
+	urldate = {2019-04-12},
+	date = {2017-10},
+	langid = {english}
+}
+
+@online{ramasinghe_spherical_2018,
+	title = {Spherical Convolution — A Theoretical Walk-Through.},
+	url = {https://medium.com/@samramasinghe/spherical-convolution-a-theoretical-walk-through-98e98ee64655},
+	abstract = {Convolution is an extremely effective technique that can capture useful features from data distributions. Specifically, convolution based…},
+	titleaddon = {Medium},
+	author = {Ramasinghe, Sameera},
+	urldate = {2019-04-12},
+	date = {2018-12-14}
+}
+
+@book{noauthor_proceedings_2014,
+	location = {New York, {NY}},
+	title = {Proceedings of {ELM}-2014 volume 1: algorithms and theories},
+	isbn = {978-3-319-14062-9},
+	series = {Proceedings in adaptation, learning and optimization},
+	shorttitle = {Proceedings of {ELM}-2014 volume 1},
+	number = {3},
+	publisher = {Springer Berlin Heidelberg},
+	date = {2014},
+	langid = {english}
+}
+
+@online{noauthor_data_nodate,
+	title = {Data Input Pipeline Performance {\textbar} {TensorFlow} Core},
+	url = {https://www.tensorflow.org/guide/performance/datasets},
+	titleaddon = {{TensorFlow}},
+	urldate = {2019-04-10},
+	langid = {english}
+}
+
+@online{noauthor_importing_nodate,
+	title = {Importing Data {\textbar} {TensorFlow} Core},
+	url = {https://www.tensorflow.org/guide/datasets},
+	titleaddon = {{TensorFlow}},
+	urldate = {2019-04-10},
+	langid = {english}
+}
+
+@inproceedings{su_multi-view_2015,
+	location = {Santiago, Chile},
+	title = {Multi-view Convolutional Neural Networks for 3D Shape Recognition},
+	isbn = {978-1-4673-8391-2},
+	url = {http://ieeexplore.ieee.org/document/7410471/},
+	doi = {10.1109/ICCV.2015.114},
+	abstract = {A longstanding question in computer vision concerns the representation of 3D shapes for recognition: should 3D shapes be represented with descriptors operating on their native 3D formats, such as voxel grid or polygon mesh, or can they be effectively represented with view-based descriptors? We address this question in the context of learning to recognize 3D shapes from a collection of their rendered views on 2D images. We ﬁrst present a standard {CNN} architecture trained to recognize the shapes’ rendered views independently of each other, and show that a 3D shape can be recognized even from a single view at an accuracy far higher than using state-of-the-art 3D shape descriptors. Recognition rates further increase when multiple views of the shapes are provided. In addition, we present a novel {CNN} architecture that combines information from multiple views of a 3D shape into a single and compact shape descriptor offering even better recognition performance. The same architecture can be applied to accurately recognize human hand-drawn sketches of shapes. We conclude that a collection of 2D views can be highly informative for 3D shape recognition and is amenable to emerging {CNN} architectures and their derivatives.},
+	eventtitle = {2015 {IEEE} International Conference on Computer Vision ({ICCV})},
+	pages = {945--953},
+	booktitle = {2015 {IEEE} International Conference on Computer Vision ({ICCV})},
+	publisher = {{IEEE}},
+	author = {Su, Hang and Maji, Subhransu and Kalogerakis, Evangelos and Learned-Miller, Erik},
+	urldate = {2019-04-09},
+	date = {2015-12},
+	langid = {english}
+}
+
+@online{noauthor_classification_nodate,
+	title = {Classification of finite subgroups of {SO}(3,R) - Groupprops},
+	url = {https://groupprops.subwiki.org/wiki/Classification_of_finite_subgroups_of_SO(3,R)},
+	urldate = {2019-04-05}
+}
+
+@inreference{noauthor_symmetry_2019,
+	title = {Symmetry group},
+	rights = {Creative Commons Attribution-{ShareAlike} License},
+	url = {https://en.wikipedia.org/w/index.php?title=Symmetry_group&oldid=888198642},
+	abstract = {In group theory, the symmetry group of a geometric object is the group of all transformations under which the object is invariant, endowed with the group operation of composition. Such a transformation is an invertible mapping of the ambient space which takes the object to itself, and which preserves all the relevant structure of the object. A frequent notation for the symmetry group of an object X is G = Sym(X).
+For an object in a metric space, its symmetries form a subgroup of the isometry group of the ambient space. This article mainly considers symmetry groups in Euclidean geometry, but the concept may also be studied for more general types of geometric structure.},
+	booktitle = {Wikipedia},
+	urldate = {2019-04-03},
+	date = {2019-03-17},
+	langid = {english},
+	note = {Page Version {ID}: 888198642}
+}
+
+@inreference{noauthor_lie_2019,
+	title = {Lie group},
+	rights = {Creative Commons Attribution-{ShareAlike} License},
+	url = {https://en.wikipedia.org/w/index.php?title=Lie_group&oldid=888309204},
+	abstract = {In mathematics, a Lie group (pronounced  "Lee") is a group that is also a differentiable manifold, with the property that the group operations are smooth. Lie groups are named after Norwegian mathematician Sophus Lie, who laid the foundations of the theory of continuous transformation groups.
+In rough terms, a Lie group is a continuous group, that is, one whose elements are described by several real parameters. As such, Lie groups provide a natural model for the concept of continuous symmetry, such as rotational symmetry in three dimensions. Lie groups are widely used in many parts of modern mathematics and physics. Lie's original motivation for introducing Lie groups was to model the continuous symmetries of differential equations, in much the same way that finite groups are used in Galois theory to model the discrete symmetries of algebraic equations.},
+	booktitle = {Wikipedia},
+	urldate = {2019-04-03},
+	date = {2019-03-18},
+	langid = {english},
+	note = {Page Version {ID}: 888309204}
+}
+
+@inreference{noauthor_gauge_2019,
+	title = {Gauge theory},
+	rights = {Creative Commons Attribution-{ShareAlike} License},
+	url = {https://en.wikipedia.org/w/index.php?title=Gauge_theory&oldid=887279263},
+	abstract = {In physics, a gauge theory is a type of field theory in which the Lagrangian is invariant under certain Lie groups of local transformations.
+The term gauge refers to any specific mathematical formalism to regulate redundant degrees of freedom in the Lagrangian. The transformations between possible gauges, called gauge transformations, form a Lie group—referred to as the symmetry group or the gauge group of the theory. Associated with any Lie group is the Lie algebra of group generators. For each group generator there necessarily arises a corresponding field (usually a vector field) called the gauge field. Gauge fields are included in the Lagrangian to ensure its invariance under the local group transformations (called gauge invariance). When such a theory is quantized, the quanta of the gauge fields are called gauge bosons. If the symmetry group is non-commutative, then the gauge theory is referred to as non-abelian gauge theory, the usual example being the Yang–Mills theory.
+Many powerful theories in physics are described by Lagrangians that are invariant under some symmetry transformation groups. When they are invariant under a transformation identically performed at every point in the spacetime in which the physical processes occur, they are said to have a global symmetry. Local symmetry, the cornerstone of gauge theories, is a stronger constraint. In fact, a global symmetry is just a local symmetry whose group's parameters are fixed in spacetime (the same way a constant value can be understood as a function of a certain parameter, the output of which is always the same).
+Gauge theories are important as the successful field theories explaining the dynamics of elementary particles.  Quantum electrodynamics is an abelian gauge theory with the symmetry group U(1) and has one gauge field, the electromagnetic four-potential, with the photon being the gauge boson. The Standard Model is a non-abelian gauge theory with the symmetry group U(1) × {SU}(2) × {SU}(3) and has a total of twelve gauge bosons: the photon, three weak bosons and eight gluons.
+Gauge theories are also important in explaining gravitation in the theory of general relativity.  Its case is somewhat unusual in that the gauge field is a tensor, the Lanczos tensor.  Theories of quantum gravity, beginning with gauge gravitation theory, also postulate the existence of a gauge boson known as the graviton.  Gauge symmetries can be viewed as analogues of the principle of general covariance of general relativity in which the coordinate system can be chosen freely under arbitrary diffeomorphisms of spacetime.  Both gauge invariance and diffeomorphism invariance reflect a redundancy in the description of the system.  An alternative theory of gravitation, gauge theory gravity, replaces the principle of general covariance with a true gauge principle with new gauge fields.
+Historically, these ideas were first stated in the context of classical electromagnetism and later in general relativity.  However, the modern importance of gauge symmetries appeared first in the relativistic quantum mechanics of electrons – quantum electrodynamics, elaborated on below. Today, gauge theories are useful in condensed matter, nuclear and high energy physics among other subfields.},
+	booktitle = {Wikipedia},
+	urldate = {2019-04-03},
+	date = {2019-03-11},
+	langid = {english},
+	note = {Page Version {ID}: 887279263}
+}
+
+@article{cohen_gauge_2019,
+	title = {Gauge Equivariant Convolutional Networks and the Icosahedral {CNN}},
+	url = {http://arxiv.org/abs/1902.04615},
+	abstract = {The idea of equivariance to symmetry transformations provides one of the first theoretically grounded principles for neural network architecture design. Equivariant networks have shown excellent performance and data efficiency on vision and medical imaging problems that exhibit symmetries. Here we show how this principle can be extended beyond global symmetries to local gauge transformations, thereby enabling the development of equivariant convolutional networks on general manifolds. We implement gauge equivariant {CNNs} for signals defined on the icosahedron, which provides a reasonable approximation of spherical signals. By choosing to work with this very regular manifold, we are able to implement the gauge equivariant convolution using a single conv2d call, making it a highly scalable and practical alternative to Spherical {CNNs}. We evaluate the Icosahedral {CNN} on omnidirectional image segmentation and climate pattern segmentation, and find that it outperforms previous methods.},
+	journaltitle = {{arXiv}:1902.04615 [cs, stat]},
+	author = {Cohen, Taco S. and Weiler, Maurice and Kicanaoglu, Berkay and Welling, Max},
+	urldate = {2019-04-03},
+	date = {2019-02-11},
+	eprinttype = {arxiv},
+	eprint = {1902.04615},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning, Computer Science - Neural and Evolutionary Computing, Statistics - Machine Learning}
+}
+
+@article{esteves_equivariant_2019,
+	title = {Equivariant Multi-View Networks},
+	url = {http://arxiv.org/abs/1904.00993},
+	abstract = {Several approaches to 3D vision tasks process multiple views of the input independently with deep neural networks pre-trained on natural images, achieving view permutation invariance through a single round of pooling over all views. We argue that this operation discards important information and leads to subpar global descriptors. In this paper, we propose a group convolutional approach to multiple view aggregation where convolutions are performed over a discrete subgroup of the rotation group, enabling, thus, joint reasoning over all views in an equivariant (instead of invariant) fashion, up to the very last layer. We further develop this idea to operate on smaller discrete homogeneous spaces of the rotation group, where a polar view representation is used to maintain equivariance with only a fraction of the number of input views. We set the new state of the art in several large scale 3D shape retrieval tasks, and show additional applications to panoramic scene classification.},
+	journaltitle = {{arXiv}:1904.00993 [cs]},
+	author = {Esteves, Carlos and Xu, Yinshuang and Allen-Blanchette, Christine and Daniilidis, Kostas},
+	urldate = {2019-04-03},
+	date = {2019-04-01},
+	eprinttype = {arxiv},
+	eprint = {1904.00993},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition}
+}
+
+@article{healy_ffts_2003,
+	title = {{FFTs} for the 2-Sphere-Improvements and Variations},
+	volume = {9},
+	issn = {1069-5869, 1531-5851},
+	url = {http://link.springer.com/10.1007/s00041-003-0018-9},
+	doi = {10.1007/s00041-003-0018-9},
+	abstract = {Earlier work by Driscoll and Healy [18] has produced an efﬁcient algorithm for computing the Fourier transform of band-limited functions on the 2-sphere. In this article we present a reformulation and variation of the original algorithm which results in a greatly improved inverse transform, and consequent improved convolution algorithm for such functions. All require at most O(N log2 N ) operations where N is the number of sample points. We also address implementation considerations and give heuristics for allowing reliable and computationally efﬁcient ﬂoating point implementations of slightly modiﬁed algorithms. These claims are supported by extensive numerical experiments from our implementation in C on {DEC}, {HP}, {SGI} and Linux Pentium platforms. These results indicate that variations of the algorithm are both reliable and efﬁcient for a large range of useful problem sizes. Performance appears to be architecture-dependent. The article concludes with a brief discussion of a few potential applications.},
+	pages = {341--385},
+	number = {4},
+	journaltitle = {Journal of Fourier Analysis and Applications},
+	author = {Healy, D.M. and Rockmore, D.N. and Kostelec, P.J. and Moore, S.},
+	urldate = {2019-03-27},
+	date = {2003-07-01},
+	langid = {english}
+}
+
+@article{kostelec_soft:_nodate,
+	title = {{SOFT}: {SO}(3) Fourier Transforms},
+	pages = {21},
+	author = {Kostelec, Peter J},
+	langid = {english}
+}
+
+@article{zhu_negative_2018,
+	title = {Negative Log Likelihood Ratio Loss for Deep Neural Network Classification},
+	url = {http://arxiv.org/abs/1804.10690},
+	abstract = {In deep neural network, the cross-entropy loss function is commonly used for classification. Minimizing cross-entropy is equivalent to maximizing likelihood under assumptions of uniform feature and class distributions. It belongs to generative training criteria which does not directly discriminate correct class from competing classes. We propose a discriminative loss function with negative log likelihood ratio between correct and competing classes. It significantly outperforms the cross-entropy loss on the {CIFAR}-10 image classification task.},
+	journaltitle = {{arXiv}:1804.10690 [cs, stat]},
+	author = {Zhu, Donglai and Yao, Hengshuai and Jiang, Bei and Yu, Peng},
+	urldate = {2019-03-13},
+	date = {2018-04-27},
+	eprinttype = {arxiv},
+	eprint = {1804.10690},
+	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning}
+}
+
+@article{janocha_loss_2017,
+	title = {On Loss Functions for Deep Neural Networks in Classification},
+	url = {http://arxiv.org/abs/1702.05659},
+	abstract = {Deep neural networks are currently among the most commonly used classifiers. Despite easily achieving very good performance, one of the best selling points of these models is their modular design - one can conveniently adapt their architecture to specific needs, change connectivity patterns, attach specialised layers, experiment with a large amount of activation functions, normalisation schemes and many others. While one can find impressively wide spread of various configurations of almost every aspect of the deep nets, one element is, in authors' opinion, underrepresented - while solving classification problems, vast majority of papers and applications simply use log loss. In this paper we try to investigate how particular choices of loss functions affect deep models and their learning dynamics, as well as resulting classifiers robustness to various effects. We perform experiments on classical datasets, as well as provide some additional, theoretical insights into the problem. In particular we show that L1 and L2 losses are, quite surprisingly, justified classification objectives for deep nets, by providing probabilistic interpretation in terms of expected misclassification. We also introduce two losses which are not typically used as deep nets objectives and show that they are viable alternatives to the existing ones.},
+	journaltitle = {{arXiv}:1702.05659 [cs]},
+	author = {Janocha, Katarzyna and Czarnecki, Wojciech Marian},
+	urldate = {2019-03-13},
+	date = {2017-02-18},
+	eprinttype = {arxiv},
+	eprint = {1702.05659},
+	keywords = {Computer Science - Machine Learning}
+}
+
+@article{weiler_3d_2018,
+	title = {3D Steerable {CNNs}: Learning Rotationally Equivariant Features in Volumetric Data},
+	url = {http://arxiv.org/abs/1807.02547},
+	shorttitle = {3D Steerable {CNNs}},
+	abstract = {We present a convolutional network that is equivariant to rigid body motions. The model uses scalar-, vector-, and tensor fields over 3D Euclidean space to represent data, and equivariant convolutions to map between such representations. These {SE}(3)-equivariant convolutions utilize kernels which are parameterized as a linear combination of a complete steerable kernel basis, which is derived analytically in this paper. We prove that equivariant convolutions are the most general equivariant linear maps between fields over R{\textasciicircum}3. Our experimental results confirm the effectiveness of 3D Steerable {CNNs} for the problem of amino acid propensity prediction and protein structure classification, both of which have inherent {SE}(3) symmetry.},
+	journaltitle = {{arXiv}:1807.02547 [cs, stat]},
+	author = {Weiler, Maurice and Geiger, Mario and Welling, Max and Boomsma, Wouter and Cohen, Taco},
+	urldate = {2019-02-25},
+	date = {2018-07-06},
+	eprinttype = {arxiv},
+	eprint = {1807.02547},
+	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning}
+}
+
+@inreference{noauthor_list_2019,
+	title = {List of map projections},
+	rights = {Creative Commons Attribution-{ShareAlike} License},
+	url = {https://en.wikipedia.org/w/index.php?title=List_of_map_projections&oldid=883860417},
+	abstract = {This list provides an overview of some of the significant or common map projections. Because there is no limit to the number of possible map projections, there is no definitive list that includes all of them.},
+	booktitle = {Wikipedia},
+	urldate = {2019-02-22},
+	date = {2019-02-18},
+	langid = {english},
+	note = {Page Version {ID}: 883860417}
+}
+
+@inproceedings{elahi_comparative_2016,
+	title = {Comparative analysis of geometrical properties of sampling schemes on the sphere},
+	doi = {10.1109/ICSPCS.2016.7843316},
+	abstract = {In this work, we carry out the comparative analysis of the geometrical properties of the sampling schemes on the sphere. Among the sampling schemes devised on the sphere, we focus on equiangular sampling, Gauss-Legendre ({GL}) quadrature based sampling, optimal-dimensionality sampling, sampling points of extremal systems and spherical design as these schemes support the accurate representation of the band-limited signals. We analyse sampling efficiency, minimum geodesic distance, mesh norm, mesh ratio and Riesz s-energy for these sampling schemes. Since these sampling schemes require different number of samples for the accurate representation of a band-limited signal and therefore have different sampling efficiency, we formulate these geometrical properties to take into account the sampling efficiency for a meaningful comparison. We illustrate that the optimal dimensionality, extremal system and spherical design sampling schemes exhibit desirable geometrical properties. Among these schemes, extremal system sampling scheme has superior geometrical properties. However, the accuracy of the representation of a band-limited signal degrades with the increase in band-limit for extremal system sampling scheme, due to which we propose to use extremal point sampling scheme for small band-limits. We also propose to use optimal dimensional sampling scheme for moderate to large band-limits as it exhibits desirable geometrical properties and has the capability to accurately represent the band-limited signal.},
+	eventtitle = {2016 10th International Conference on Signal Processing and Communication Systems ({ICSPCS})},
+	pages = {1--7},
+	booktitle = {2016 10th International Conference on Signal Processing and Communication Systems ({ICSPCS})},
+	author = {Elahi, U. and Khalid, Z. and Kennedy, R. A.},
+	date = {2016-12},
+	keywords = {2-sphere (unit sphere), Australia, Computer science, Electronic mail, Gauss-Legendre quadrature based sampling, Geodesy, Harmonic analysis, Indexes, Riesz s-energy, Sampling, Transforms, band-limited signal, band-limited signals, bandlimited signals, comparative analysis, equiangular sampling, extremal systems sampling point, geometrical properties, mesh norm, mesh ratio, minimum geodesic distance, optimal dimensionality, optimal-dimensionality sampling, sampling efficiency, sampling scheme, signal sampling, spherical design sampling scheme, spherical harmonic transform, spherical harmonics}
+}
+
+@online{noauthor_pdf_nodate,
+	title = {({PDF}) Fast evaluation of quadrature formulae on the sphere},
+	url = {https://www.researchgate.net/publication/220577103_Fast_evaluation_of_quadrature_formulae_on_the_sphere},
+	abstract = {{PDF} {\textbar} Recently, a fast approximate algorithm for the evaluation of expansions in terms of standard L2 (double-struck S sign2 )-orthonormal spherical harmonics at arbitrary nodes on the sphere double-struck S sign 2 has been proposed in [S. Kunis and D. Potts. Fast spherical Fourier...},
+	titleaddon = {{ResearchGate}},
+	urldate = {2019-02-19},
+	langid = {english},
+	doi = {http://dx.doi.org/10.1090/S0025-5718-07-02029-7}
+}
+
+@software{noauthor_computations_2019,
+	title = {Computations involving Lie groups and harmonic analysis: {AMLab}-Amsterdam/lie\_learn},
+	url = {https://github.com/AMLab-Amsterdam/lie_learn},
+	shorttitle = {Computations involving Lie groups and harmonic analysis},
+	publisher = {{AMLAB}},
+	urldate = {2019-02-19},
+	date = {2019-01-06},
+	note = {original-date: 2017-03-13T13:20:21Z},
+	keywords = {{DiffTypeGrid}}
+}
+
+@article{cohen_intertwiners_2018,
+	title = {Intertwiners between Induced Representations (with Applications to the Theory of Equivariant Neural Networks)},
+	url = {http://arxiv.org/abs/1803.10743},
+	abstract = {Group equivariant and steerable convolutional neural networks (regular and steerable G-{CNNs}) have recently emerged as a very effective model class for learning from signal data such as 2D and 3D images, video, and other data where symmetries are present. In geometrical terms, regular G-{CNNs} represent data in terms of scalar fields ("feature channels"), whereas the steerable G-{CNN} can also use vector or tensor fields ("capsules") to represent data. In algebraic terms, the feature spaces in regular G-{CNNs} transform according to a regular representation of the group G, whereas the feature spaces in Steerable G-{CNNs} transform according to the more general induced representations of G. In order to make the network equivariant, each layer in a G-{CNN} is required to intertwine between the induced representations associated with its input and output space. In this paper we present a general mathematical framework for G-{CNNs} on homogeneous spaces like Euclidean space or the sphere. We show, using elementary methods, that the layers of an equivariant network are convolutional if and only if the input and output feature spaces transform according to an induced representation. This result, which follows from G.W. Mackey's abstract theory on induced representations, establishes G-{CNNs} as a universal class of equivariant network architectures, and generalizes the important recent work of Kondor \& Trivedi on the intertwiners between regular representations.},
+	journaltitle = {{arXiv}:1803.10743 [cs, stat]},
+	author = {Cohen, Taco S. and Geiger, Mario and Weiler, Maurice},
+	urldate = {2019-02-19},
+	date = {2018-03-28},
+	eprinttype = {arxiv},
+	eprint = {1803.10743},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning, Statistics - Machine Learning}
+}
+
+@article{cohen_convolutional_2017-1,
+	title = {Convolutional Networks for Spherical Signals},
+	url = {http://arxiv.org/abs/1709.04893},
+	abstract = {The success of convolutional networks in learning problems involving planar signals such as images is due to their ability to exploit the translation symmetry of the data distribution through weight sharing. Many areas of science and egineering deal with signals with other symmetries, such as rotation invariant data on the sphere. Examples include climate and weather science, astrophysics, and chemistry. In this paper we present spherical convolutional networks. These networks use convolutions on the sphere and rotation group, which results in rotational weight sharing and rotation equivariance. Using a synthetic spherical {MNIST} dataset, we show that spherical convolutional networks are very effective at dealing with rotationally invariant classification problems.},
+	journaltitle = {{arXiv}:1709.04893 [cs]},
+	author = {Cohen, Taco and Geiger, Mario and Köhler, Jonas and Welling, Max},
+	urldate = {2019-02-19},
+	date = {2017-09-14},
+	eprinttype = {arxiv},
+	eprint = {1709.04893},
+	keywords = {Computer Science - Machine Learning}
+}
+
+@article{esteves_learning_2017,
+	title = {Learning {SO}(3) Equivariant Representations with Spherical {CNNs}},
+	url = {http://arxiv.org/abs/1711.06721},
+	abstract = {We address the problem of 3D rotation equivariance in convolutional neural networks. 3D rotations have been a challenging nuisance in 3D classification tasks requiring higher capacity and extended data augmentation in order to tackle it. We model 3D data with multi-valued spherical functions and we propose a novel spherical convolutional network that implements exact convolutions on the sphere by realizing them in the spherical harmonic domain. Resulting filters have local symmetry and are localized by enforcing smooth spectra. We apply a novel pooling on the spectral domain and our operations are independent of the underlying spherical resolution throughout the network. We show that networks with much lower capacity and without requiring data augmentation can exhibit performance comparable to the state of the art in standard retrieval and classification benchmarks.},
+	journaltitle = {{arXiv}:1711.06721 [cs]},
+	author = {Esteves, Carlos and Allen-Blanchette, Christine and Makadia, Ameesh and Daniilidis, Kostas},
+	urldate = {2019-02-19},
+	date = {2017-11-17},
+	eprinttype = {arxiv},
+	eprint = {1711.06721},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition}
+}
+
+@article{defferrard_convolutional_2016,
+	title = {Convolutional Neural Networks on Graphs with Fast Localized Spectral Filtering},
+	url = {http://arxiv.org/abs/1606.09375},
+	abstract = {In this work, we are interested in generalizing convolutional neural networks ({CNNs}) from low-dimensional regular grids, where image, video and speech are represented, to high-dimensional irregular domains, such as social networks, brain connectomes or words' embedding, represented by graphs. We present a formulation of {CNNs} in the context of spectral graph theory, which provides the necessary mathematical background and efficient numerical schemes to design fast localized convolutional filters on graphs. Importantly, the proposed technique offers the same linear computational complexity and constant learning complexity as classical {CNNs}, while being universal to any graph structure. Experiments on {MNIST} and 20NEWS demonstrate the ability of this novel deep learning system to learn local, stationary, and compositional features on graphs.},
+	journaltitle = {{arXiv}:1606.09375 [cs, stat]},
+	author = {Defferrard, Michaël and Bresson, Xavier and Vandergheynst, Pierre},
+	urldate = {2019-02-19},
+	date = {2016-06-30},
+	eprinttype = {arxiv},
+	eprint = {1606.09375},
+	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning}
+}
+
+@article{shuman_emerging_2013,
+	title = {The Emerging Field of Signal Processing on Graphs: Extending High-Dimensional Data Analysis to Networks and Other Irregular Domains},
+	volume = {30},
+	issn = {1053-5888},
+	url = {http://arxiv.org/abs/1211.0053},
+	doi = {10.1109/MSP.2012.2235192},
+	shorttitle = {The Emerging Field of Signal Processing on Graphs},
+	abstract = {In applications such as social, energy, transportation, sensor, and neuronal networks, high-dimensional data naturally reside on the vertices of weighted graphs. The emerging field of signal processing on graphs merges algebraic and spectral graph theoretic concepts with computational harmonic analysis to process such signals on graphs. In this tutorial overview, we outline the main challenges of the area, discuss different ways to define graph spectral domains, which are the analogues to the classical frequency domain, and highlight the importance of incorporating the irregular structures of graph data domains when processing signals on graphs. We then review methods to generalize fundamental operations such as filtering, translation, modulation, dilation, and downsampling to the graph setting, and survey the localized, multiscale transforms that have been proposed to efficiently extract information from high-dimensional data on graphs. We conclude with a brief discussion of open issues and possible extensions.},
+	pages = {83--98},
+	number = {3},
+	journaltitle = {{IEEE} Signal Processing Magazine},
+	author = {Shuman, David I. and Narang, Sunil K. and Frossard, Pascal and Ortega, Antonio and Vandergheynst, Pierre},
+	urldate = {2019-02-19},
+	date = {2013-05},
+	eprinttype = {arxiv},
+	eprint = {1211.0053},
+	keywords = {Computer Science - Discrete Mathematics, Computer Science - Machine Learning, Computer Science - Social and Information Networks}
+}
+
+@online{noauthor_princeton_nodate,
+	title = {Princeton {ModelNet}},
+	url = {http://modelnet.cs.princeton.edu/},
+	urldate = {2019-02-13}
+}
+
+@software{noauthor_demo_2019,
+	title = {Demo code for the paper "Learning {SO}(3) Equivariant Representations with Spherical {CNNs}": daniilidis-group/spherical-cnn},
+	rights = {{MIT}},
+	url = {https://github.com/daniilidis-group/spherical-cnn},
+	shorttitle = {Demo code for the paper "Learning {SO}(3) Equivariant Representations with Spherical {CNNs}"},
+	publisher = {Daniilidis Group University of Pennsylvania},
+	urldate = {2019-02-13},
+	date = {2019-02-02},
+	note = {original-date: 2017-11-17T20:10:00Z}
+}
+
+@software{kohler_spherical_2019,
+	title = {Spherical {CNNs}. Contribute to jonas-koehler/s2cnn development by creating an account on {GitHub}},
+	rights = {{MIT}},
+	url = {https://github.com/jonas-koehler/s2cnn},
+	author = {Köhler, Jonas},
+	urldate = {2019-02-13},
+	date = {2019-02-07},
+	note = {original-date: 2017-09-23T16:49:11Z}
+}
+
+@article{cohen_spherical_2018,
+	title = {Spherical {CNNs}},
+	url = {http://arxiv.org/abs/1801.10130},
+	abstract = {Convolutional Neural Networks ({CNNs}) have become the method of choice for learning problems involving 2D planar images. However, a number of problems of recent interest have created a demand for models that can analyze spherical images. Examples include omnidirectional vision for drones, robots, and autonomous cars, molecular regression problems, and global weather and climate modelling. A naive application of convolutional networks to a planar projection of the spherical signal is destined to fail, because the space-varying distortions introduced by such a projection will make translational weight sharing ineffective. In this paper we introduce the building blocks for constructing spherical {CNNs}. We propose a definition for the spherical cross-correlation that is both expressive and rotation-equivariant. The spherical correlation satisfies a generalized Fourier theorem, which allows us to compute it efficiently using a generalized (non-commutative) Fast Fourier Transform ({FFT}) algorithm. We demonstrate the computational efficiency, numerical accuracy, and effectiveness of spherical {CNNs} applied to 3D model recognition and atomization energy regression.},
+	journaltitle = {{arXiv}:1801.10130 [cs, stat]},
+	author = {Cohen, Taco S. and Geiger, Mario and Koehler, Jonas and Welling, Max},
+	urldate = {2019-02-13},
+	date = {2018-01-30},
+	eprinttype = {arxiv},
+	eprint = {1801.10130},
+	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning}
+}
+
+@software{noauthor_spherical_2019,
+	title = {A spherical convolutional neural network (for cosmological applications): {SwissDataScienceCenter}/{DeepSphere}},
+	rights = {{MIT}},
+	url = {https://github.com/SwissDataScienceCenter/DeepSphere},
+	shorttitle = {A spherical convolutional neural network (for cosmological applications)},
+	publisher = {Swiss Data Science Center},
+	urldate = {2019-02-13},
+	date = {2019-01-30},
+	note = {original-date: 2017-12-18T16:42:24Z}
+}
+
+@article{perraudin_deepsphere:_2018,
+	title = {{DeepSphere}: Efficient spherical Convolutional Neural Network with {HEALPix} sampling for cosmological applications},
+	url = {http://arxiv.org/abs/1810.12186},
+	shorttitle = {{DeepSphere}},
+	abstract = {Convolutional Neural Networks ({CNNs}) are a cornerstone of the Deep Learning toolbox and have led to many breakthroughs in Artificial Intelligence. These networks have mostly been developed for regular Euclidean domains such as those supporting images, audio, or video. Because of their success, {CNN}-based methods are becoming increasingly popular in Cosmology. Cosmological data often comes as spherical maps, which make the use of the traditional {CNNs} more complicated. The commonly used pixelization scheme for spherical maps is the Hierarchical Equal Area {isoLatitude} Pixelisation ({HEALPix}). We present a spherical {CNN} for analysis of full and partial {HEALPix} maps, which we call {DeepSphere}. The spherical {CNN} is constructed by representing the sphere as a graph. Graphs are versatile data structures that can act as a discrete representation of a continuous manifold. Using the graph-based representation, we define many of the standard {CNN} operations, such as convolution and pooling. With filters restricted to being radial, our convolutions are equivariant to rotation on the sphere, and {DeepSphere} can be made invariant or equivariant to rotation. This way, {DeepSphere} is a special case of a graph {CNN}, tailored to the {HEALPix} sampling of the sphere. This approach is computationally more efficient than using spherical harmonics to perform convolutions. We demonstrate the method on a classification problem of weak lensing mass maps from two cosmological models and compare the performance of the {CNN} with that of two baseline classifiers. The results show that the performance of {DeepSphere} is always superior or equal to both of these baselines. For high noise levels and for data covering only a smaller fraction of the sphere, {DeepSphere} achieves typically 10\% better classification accuracy than those baselines. Finally, we show how learned filters can be visualized to introspect the neural network.},
+	journaltitle = {{arXiv}:1810.12186 [astro-ph]},
+	author = {Perraudin, Nathanaël and Defferrard, Michaël and Kacprzak, Tomasz and Sgier, Raphael},
+	urldate = {2019-02-13},
+	date = {2018-10-29},
+	eprinttype = {arxiv},
+	eprint = {1810.12186},
+	keywords = {Astrophysics - Cosmology and Nongalactic Astrophysics, Astrophysics - Instrumentation and Methods for Astrophysics, Computer Science - Artificial Intelligence, Computer Science - Computer Vision and Pattern Recognition, Computer Science - Machine Learning}
+}

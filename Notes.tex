@@ -1,0 +1,230 @@
+\documentclass[11pt]{report}
+\usepackage{inputenc} 
+\usepackage[backend=bibtex, maxnames=6]{biblatex}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}  
+\usepackage[pdftex]{graphicx}
+\usepackage[titles]{tocloft}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathrsfs} 
+\usepackage{enumitem}
+\usepackage[babel=true]{csquotes}
+\usepackage{wrapfig}
+\usepackage{soul}
+\usepackage[right=1.25in,left=1.25in,top=1.in,bottom=1.in]{geometry}  %% right=0.75in,left=0.75in,top=0.75in,bottom=0.75in
+\usepackage{etoolbox}
+\usepackage[toc,page]{appendix}
+\usepackage{caption}
+%\usepackage{captionof}
+\usepackage{subfig}
+\usepackage{pdfpages}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+%\usepackage[nottoc]{tocbibind}
+\usepackage{fancyhdr,lastpage}
+\usepackage{array}
+\usepackage{eurosym}
+\usepackage[hidelinks]{hyperref}
+\usepackage{todonotes}
+\usepackage{lipsum}
+
+%\bibliography{biblio}
+
+\graphicspath{{./figures/}}
+\titleformat{\chapter}[hang]{\normalfont\huge\bfseries}{\thechapter.}{20pt}{\huge}
+
+\title{Spherical Convolutional Neural Networks}
+\author{Frédérick Matthieu Gusset}
+
+\makeatletter
+\let\thetitle\@title
+\let\theauthor\@author
+\makeatother
+
+\DeclareMathSizes{10}{11}{8}{8}   % Pour un texte de taille 10 
+\titlespacing*{\chapter} {0pt}{15pt}{15pt}
+%\makeatletter
+%\patchcmd{\printbibliography}{%
+%  \chapter*{\bibname}\@mkboth{\MakeUppercase\bibname}{\MakeUppercase\bibname}}{%
+%  \chapter{References}}{}{}
+%\makeatother
+
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\headheight 14pt
+\fancypagestyle{plain}
+{
+  \fancyfoot[L]{F. Gusset}% Left footer
+	\fancyfoot[C]{}
+  \fancyfoot[R]{\thepage}% Right footer
+  \fancyhead[L]{}
+}
+\pagestyle{plain}% Set page style to plain.
+
+%\setlength{\cftbeforechapskip}{0pt}  %enlève espace entre chapitre dans sommaire
+\newcolumntype{C}[1]{>{\centering\arraybackslash }b{#1}}
+
+\setlength{\parindent}{1em}
+
+\begin{document}
+\nocite{*}
+\thispagestyle{empty}
+\begin{center}
+    \vspace*{0.5 cm}
+    %\includegraphics[scale = 0.8]{EPFL-Logo-RVB-55.jpg}\\[0.5 cm]	% University Logo
+    %
+	%\textsc{MICRO-498}\\[0.5 cm]
+    
+	\rule{\linewidth}{0.2 mm} \\[0.4 cm]
+    \vspace{10pt}
+	{\huge \bfseries \thetitle}\\
+    \vspace{10pt}
+    { \large \bfseries Empirical analysis of Spherical Convolutional Neural Network }
+    \vspace{10pt}%\\
+    
+	\rule{\linewidth}{0.2 mm} \\[1 cm]
+	
+	{\large % Course Code
+	\textsc{Master Thesis\\[1 cm] LTS2}\\[1 cm]				% Course Name 
+    }
+    %\\[1 cm]
+    \textsc{\bfseries Fr\'ed\'erick Matthieu Gusset}
+	\\[1.7 cm]
+	\textsc{Spring 2019} \\[2 cm]
+\end{center}
+
+\begin{abstract}
+    CNNs are powerful tools in deep learning mainly due to their ability to exploit the translational symmetry present in images, as they are equivariant to translations.\\
+Nowadays, more and more data present different types of symmetries (e.g. rotations), and lie on the sphere $S^2$ (e.g. cosmological maps, omni-directional imaging, 3D models, ...). It is therefore of interest to design architectures that exploit the structure of the data and are equivariant to the rotation group SO(3).
+Different architectures were designed to exploit these symmetries, such as 2D convolutions on planar projections, convolutions on the SO(3) group, or convolutions on graphs. The DeepSphere model approximates the sphere with a graph and performs graph convolutions.\\
+In this study, DeepSphere is evaluated against other spherical CNNs on different tasks to compare their speeds and their performances. The graph convolution is roughly 3 times faster than the SO(3) convolution with the same amount of learnable parameter. It can be up to 10 times faster with less parameters and still give similar results. While the SO(3) convolution is equivariant to all rotations in SO(3), the graph convolution is only equivariant to the rotations in $S^2$ and invariant to the third rotation. Our comparison on SHREC-17 (a 3D object retrieval task) shows that DeepSphere achieves similar results (2 points of difference on F1 score) to spherical CNNs using SO(3) convolution, thus that equivariance to the third rotation is not necessary for this task. Moreover, DeepSphere is more flexible as it can work with any sampling or partial observations of the sphere.
+
+% CNNs are powerful tools in deep learning mainly due to their ability to exploit the translational symmetry present in images, as they are equivariant to translations. Other datasets present different types of symmetries (e.g. rotations), or lie on the sphere S^2 (e.g. cosmological maps, omni-directional images, 3D models, ...). It is therefore of interest to design architectures that exploit the structure of the data and are equivariant to the 3D rotation group SO(3). Different architectures were designed to exploit these symmetries, such as 2D convolutions on planar projections, convolutions on the SO(3) group, or convolutions on graphs. The DeepSphere model approximates the sphere with a graph and performs graph convolutions. In this study, DeepSphere is evaluated against other spherical CNNs on different tasks. While the SO(3) convolution is equivariant to all rotations in SO(3), the graph convolution is only equivariant to the rotations in S^2 and invariant to the third rotation. Our experiments on SHREC-17 (a 3D object retrieval task) shows that DeepSphere achieves the same performance while being 40 times faster to train than Cohen et al. and 4 times faster than Esteves et al. Equivariance to the third rotation is an unnecessary price to pay. Moreover, DeepSphere is more flexible as it can work with any sampling and partial spheres.
+\end{abstract}
+\chapter{Introduction}
+\section{Motivation}
+
+\chapter{State of the Art}
+\section{sphere}
+\subsection{sampling}
+\begin{itemize}
+    \item equiangular %\cite lie-learn git
+    \begin{itemize}
+        \item Driscroll-Healy (pole) %\cite paper
+        \item SOFT (Using SO3 features) (without poles) %\cite paper
+        \item Gauss-Legendre Quadrature
+        \item Clenshaw-Curtis
+        \item equidistribution
+    \end{itemize}
+    \item HEALpix
+\end{itemize}
+\subsection{band-limited signal} %cite soft fourier
+\subsection{Fourier and Spherical harmonics}
+\section{invariance and equivariance to rotation}
+\section{learning}
+\subsection{spherical CNN}
+\begin{itemize}
+    \item Cohen
+    \item Esteves
+    \item Deepsphere
+    \item ...
+\end{itemize}
+\chapter{Benchmark}
+\section{SHREC17 task}
+Task is to develop a 3D shape retrieval method
+\subsection{Cohen Model}
+Use an equiangular grid (SOFT) to project the data on the sphere of resXres with res=2*bandwidth
+
+\subsubsection{comparison}
+Without regularization, our model tend to overfit, and the validation loss increase steadily. But results still seems to become better as the number of epochs become greater (accuracy, f1 score and shrec17 script)
+
+augmentation slightly better result but more stable, robust evolution. Prevent overfitting on the dataset
+\subsection{Esteves Model}
+Use the same resXres grid as Cohen, but only keep two features
+
+pooling in spectral space
+\subsection{Trying to beat them}
+\subsection{Tweaking our system}
+Using an imperfect sampling (equiangular) to be more versatile and 
+\subsection{Conclusion}
+
+\subsubsection{Results}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{l|l l|l l l}
+        Method & Accuracy & F1-score & params & sample time & training time \\ \hline
+        Cohen\_s2cnn & - & - & 1.4M & 19ms & 50h\\
+        Cohen\_s2cnn\_simple & 78.09 & 78.45 & 400k & 12ms & 32h\\
+        Esteves\_sphericalcnn & 79.18 & 79.36 & 500k & 9.8ms & 2h52\\ \hline
+        Deepsphere (Cohen-like) & 77.86 & 77.90 & 170k & 17.5ms & 9h43\\
+        Deepsphere (Cohen-light) & 76.83 & 76.66 & 60k & 2.8ms & 1h37\\
+        %Deepsphere Equiangular & & & & \\
+        Deepsphere Best & 80.42 & 80.65 & 190k & 1.6ms & 43m
+    \end{tabular}
+    \caption{SHREC17 as classification task}
+    \label{tab:SHREC17_class}
+\end{table}
+
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{l|c c c c|c c c c}
+         & \multicolumn{4}{c|}{micro (label average)} & \multicolumn{4}{c}{macro (instance average)} \\
+        Method & P@N & R@N & F1@N & mAP & P@N & R@N & F1@N & mAP \\ \hline
+        Furuya\_DLAN & 0.814 & 0.683 & 0.706 & 0.656 & 0.607 & 0.539 & 0.503 & 0.476 \\
+        Tatsuma\_ReVGG & 0.705 & 0.769 & 0.719 & 0.696 & 0.424 & 0.563 & 0.434 & 0.418\\ \hline
+        Cohen\_s2cnn & 0.701 & 0.711 & 0.699 & 0.676 & - & - & - & - \\
+        Cohen\_s2cnn\_simple & 0.699 & 0.693 & 0.690 & 0.657 & 0.473 & 0.522 & 0.476 & 0.426\\
+        Esteves\_sphericalcnn & 0.717 & 0.737 & - & 0.685 & 0.450 & 0.550 & - & 0.444\\ \hline
+        Deepsphere (Cohen-like) & 0.695 & 0.688 & 0.684 & 0.654 & 0.424 & 0.478 & 0.423 & 0.389\\
+        Deepsphere (Cohen-light) & 0.684 & 0.682 & 0.676 & 0.643 & 0.410 & 0.452 & 0.398 & 0.354 \\
+        %Deepsphere Equiangular & & & & \\
+        Deepsphere Best & 0.725 & 0.717 & 0.715 & 0.686 & 0.475 & 0.508 & 0.468 & 0.428
+    \end{tabular}
+    \caption{SHREC17 perturbed dataset results}
+    \label{tab:SHREC17_retriev}
+\end{table}
+
+\subsection{Misc}
+Performance tested on Cohen similar architecture, with 20 epochs and 40 evaluation done on RAM.\\
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+~ & Time per batch & CPU time & Wall time & GPU memory & Load average  \\ \hline
+\begin{tabular}{c}
+Dataset loaded\\
+on RAM
+\end{tabular}
+ & 0.12 s & 1598 s & 2693 s & 1395 MiB & 80\% \\ \hline
+\begin{tabular}{c}
+Dataset loaded\\
+on the fly
+\end{tabular}
+ & 
+\begin{tabular}{c}
+0.11 +   \\
+0.06 s\\(loading time)
+\end{tabular}
+& 2541 s & 3667 s & 1395 MiB & 50\% \\ \hline
+TF Dataset pipeline & 0.09 s & 2400 s & 2046 s & 1395 MiB & 90\% \\ \hline
+\begin{tabular}{c}
+TF Dataset\\
+pipeline w/ TFRecords
+\end{tabular}
+ & 
+\multicolumn{5}{c|}{TODO in the future to further improve performance} \\ \hline
+\end{tabular}
+
+batch time for different parameters:\\
+nsides = [32, 64, 128], t = [0.07, 0.26, 1.15] linear in function of number of pixels\\
+size of filter (number of hops) K = [5, 4, 2], time = [0.26, 0.19, 0.11] linear in function of number of parameters
+\section{Influence of sampling}
+\subsection{dataset}
+Projection of images, 3D objects on different parts of sphere
+Dataset1: projected on equator
+Dataset2: project on pole
+Dataset3: combination of D1 and D2
+Train on D1, D2 and D3 and see how they react on each dataset
+\section{weather data}
+\end{document}
