@@ -506,6 +506,24 @@ TODO: revoir les résultats
 * time per batch: 0.05 s
 * Remarks: 881 MiB on GPU, 2h58m to train
 ###### add triplet loss and better graph
+* train on perturbed dataset, 3 random translations (object not on the center of the sphere)
+* training set loss: 0.03 + 0.02
+** rotated dataset
+* accuracy, F1, loss of validation part: (84.28, 84.10, 1.12)
+* accuracy, F1, loss of test part: (80.12, 80.52, 1.48)
+* test on val_perturbed dataset: P@N 0.749, R@N 0.753, F1@N 0.746, mAP 0.719, NDCG 0.743
+                           macro: P@N 0.529, R@N 0.556, F1@N 0.524, mAP 0.486, NDCG 0.544
+* test on test_perturbed dataset: P@N 0.723, R@N 0.707, F1@N 0.705, mAP 0.675, NDCG 0.755
+                           macro: P@N 0.465, R@N 0.505, F1@N 0.460, mAP 0.422, NDCG 0.482
+** non-rotated dataset
+* accuracy, F1, loss of validation part: (84.06, 83.89, 1.11)
+* accuracy, F1, loss of test part: (79.88, 80.28, 1.48)
+* test on val_perturbed dataset: P@N 0.748, R@N 0.753, F1@N 0.746, mAP 0.722, NDCG 0.746
+                           macro: P@N 0.518, R@N 0.542, F1@N 0.513, mAP 0.473, NDCG 0.531
+* test on test_perturbed dataset: P@N 0.719, R@N 0.713, F1@N 0.710, mAP 0.679, NDCG 0.755
+                           macro: P@N 0.468, R@N 0.509, F1@N 0.464, mAP 0.426, NDCG 0.486
+* time per batch: 0.16 s
+* Remarks: xxxx MiB on GPU, 7h52m to train
 
 ###### change learning rate over time
 
@@ -529,7 +547,7 @@ TODO: revoir les résultats
 ** learning rate = 0.5
 ** kernel in spatial space, grid is a ring around equator of size (2 * bandwidth, 1) ==> whole space?
 * nparams = ~1.4M
-* augmented with fixed translation
+* augmented with 6 fixed translation
 * P@N 0.701, R@N 0.711, F1@N 0.699, mAP 0.676, NDCG 0.756
 
 ## experiment simple 0
@@ -609,6 +627,9 @@ TODO: revoir les résultats
 ** learning rate = {0: 0.001, 16: 0.0002, 24: 0.00004}
 ** localized filter with 8 parameters in frequential space
 * nparams = ~500k
-* augmented with random SO3 rotations
+* augmented with 16 random SO3 rotations
 * P@N 0.717, R@N 0.737, mAP 0.685
 * macro P@N 0.450, R@N 0.550, mAP 0.444
+* train time: wall time: 10319.81s, per epoch: 309.79, per epoch process: 382
+* train acc = 0.9122, val acc = 0.9122, test acc = 0.7918, test F1 = 0.7936
+* 2449 MiB on GPU

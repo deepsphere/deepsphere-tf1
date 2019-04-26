@@ -28,7 +28,12 @@ except:
     from itertools import izip_longest as zip_longest
 
 from scipy.spatial.distance import pdist, squareform
-    
+
+def search_tresh(descriptors, labels):
+    dist_mat = squareform(pdist(descriptors, 'cosine'))
+    thresh = {i: [] for i in range(max(labels)+1)}
+    dists /= dists.max()
+
 def shrec_output(descriptors, ids, probabilities, datapath, savedir='results_deep/test_perturbed'):
     # TODO: descriptors are not probabilities, but the step before the fully connected layer
     os.makedirs(os.path.join(datapath, savedir), exist_ok=True)
@@ -114,7 +119,7 @@ def render_model(mesh, sgrid, outside=False):
     # triangle_indices = mesh.ray.intersects_first(ray_origins=sgrid, ray_directions=-sgrid)
     if outside:
         index_tri, index_ray, loc = mesh.ray.intersects_id(
-            ray_origins=sgrid, ray_directions=sgrid, multiple_hits=False, return_locations=True)
+            ray_origins=(sgrid-sgrid), ray_directions=sgrid, multiple_hits=False, return_locations=True)
     else:
         index_tri, index_ray, loc = mesh.ray.intersects_id(
             ray_origins=sgrid, ray_directions=-sgrid, multiple_hits=False, return_locations=True)
@@ -125,7 +130,10 @@ def render_model(mesh, sgrid, outside=False):
     grid_hits_normalized = grid_hits / np.linalg.norm(grid_hits, axis=1, keepdims=True)
 
     # Compute the distance from the grid points to the intersection pionts
-    dist = np.linalg.norm(grid_hits - loc, axis=-1)
+    if outside:
+        dist = np.linalg.norm(loc, axis=-1)
+    else:
+        dist = np.linalg.norm(grid_hits - loc, axis=-1)
 
     # For each intersection, look up the normal of the triangle that was hit
     normals = mesh.face_normals[index_tri]
@@ -210,17 +218,17 @@ def ProjectOnSphere(nside, mesh, outside=False):
 #         rot = rnd_rot(-np.random.rand()*np.pi/4+np.pi/8,1,0)
         rot = rnd_rot(0,np.arccos(1-np.random.rand()*0.3)-np.pi/8,0)
         #mesh.apply_transform(rot)
-        mesh.apply_translation([2., 0, 0])
+        mesh.apply_translation([1.5, 0, 0])
         mesh.apply_transform(rot)
     if outside is 'pole':
 #         mesh.apply_translation([0, 0, 2.])
         rot = rnd_rot(np.random.rand()*np.pi/4-np.pi/8,np.pi/2,0)
-        mesh.apply_translation([2., 0, 0])
+        mesh.apply_translation([1.5, 0, 0])
         mesh.apply_transform(rot.T)
     if outside is 'both':
 #         rnd = np.random.rand()*2.
 #         mesh.apply_translation([rnd, 0, np.sqrt(4-rnd**2)])
-        mesh.apply_translation([2., 0, 0])
+        mesh.apply_translation([1.5, 0, 0])
         mesh.apply_transform(rnd_rot(0,-np.random.rand()*np.pi/2,0))
     sgrid = make_sgrid(nside, alpha=0, beta=0, gamma=0)
     im = render_model(mesh, sgrid, outside=outside)
@@ -296,6 +304,38 @@ def plot_healpix_projection(file, nside, outside=False, rot=True):
     hp.orthview(im1, title=id_im, nest=True, cmap=cm, min=cmin, max=cmax)
     plt.plot()
     return im1
+
+def cache_healpix_projection(root, dataset, nside, repeat=1, outside=False, rot=False):
+    experiment = 'outside' if outside else 'inside'
+    _dir = os.path.join(root, dataset + "_perturbed")
+    files = sorted(glob.glob(os.path.join(_dir, '*.obj')))
+    
+    head, _ = os.path.split(files[0])
+    os.makedirs(head+'/'+experiment, exist_ok=True)
+    from tqdm import tqdm
+    for file in tqdm(files):
+        prefix = "nside{}_".format(nside)
+        head, tail = os.path.split(file)
+        _id, _ = os.path.splitext(tail)
+        if outside:
+            npy_path = os.path.join(head, experiment, prefix + _id + '_' + outside + '_{0}.npy')
+        else:
+            npy_path = os.path.join(head, experiment, prefix + _id + '_{0}.npy')
+        for i in range(repeat):
+            try:
+                np.load(npy_path.format(i))
+            except:
+                try:
+                    mesh = ToMesh(file, rot=rot, tr=0.)
+                    data = ProjectOnSphere(nside, mesh, outside)
+                except:
+                    print("Exception during transform of {}".format(file))
+                    raise
+                if outside:
+                    img = data[:,0]
+                else:
+                    img = data
+                np.save(npy_path.format(i), img)
 
 
 class Shrec17Dataset(object):

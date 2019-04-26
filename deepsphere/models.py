@@ -346,6 +346,7 @@ class base_model(object):
 
                 # Save model parameters (for evaluation).
                 self.op_saver.save(sess, path, global_step=step)
+                # save if best in ckpt form
 
         if verbose:
             print('validation accuracy: best = {:.2f}, mean = {:.2f}'.format(max(accuracies_validation), np.mean(accuracies_validation[-10:])))
