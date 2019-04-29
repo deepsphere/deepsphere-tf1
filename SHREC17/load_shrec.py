@@ -113,21 +113,45 @@ def make_sgrid(nside, alpha, beta, gamma):
 #     return out
 
 
-def render_model(mesh, sgrid, outside=False):
+def render_model(mesh, sgrid, outside=False, multiple=False):
 
     # Cast rays
     # triangle_indices = mesh.ray.intersects_first(ray_origins=sgrid, ray_directions=-sgrid)
     if outside:
         index_tri, index_ray, loc = mesh.ray.intersects_id(
-            ray_origins=(sgrid-sgrid), ray_directions=sgrid, multiple_hits=False, return_locations=True)
+            ray_origins=(sgrid-sgrid), ray_directions=sgrid, multiple_hits=multiple, return_locations=True)
     else:
         index_tri, index_ray, loc = mesh.ray.intersects_id(
-            ray_origins=sgrid, ray_directions=-sgrid, multiple_hits=False, return_locations=True)
+            ray_origins=sgrid, ray_directions=-sgrid, multiple_hits=multiple, return_locations=True)
     loc = loc.reshape((-1, 3))  # fix bug if loc is empty
 
+    if multiple:
+        grid_hits = sgrid[index_ray]
+        if outside:
+            dist = np.linalg.norm(loc, axis=-1)
+        else:
+            dist = np.linalg.norm(grid_hits - loc, axis=-1)
+        dist_im = np.ones((sgrid.shape[0],3))*-1
+        for index in range(np.max(index_ray)+1):
+            for i, ind in enumerate(np.where(index_ray==index)[0]):
+                if dist[ind] > 1:
+                    continue
+                try:
+                    dist_im[index, i] = dist[ind]
+                except:
+                    pass
+        return dist_im
+                
+#         max_index = np.argsort(index_ray)[1]
+#         s=np.sort(index_ray)
+#         print(s[:-1][s[1:] == s[:-1]])
+#         index_tri_mult, index_mult, loc_mult = index_tri[max_index:], index_ray[max_index:], loc[max_index:]
+#         index_tri, index_ray, loc = index_tri[:max_index], index_ray[:max_index], loc[:max_index]
+    
     # Each ray is in 1-to-1 correspondence with a grid point. Find the position of these points
     grid_hits = sgrid[index_ray]
     grid_hits_normalized = grid_hits / np.linalg.norm(grid_hits, axis=1, keepdims=True)
+    
 
     # Compute the distance from the grid points to the intersection pionts
     if outside:
@@ -144,12 +168,7 @@ def render_model(mesh, sgrid, outside=False):
     dist_im[index_ray] = dist
     # dist_im = dist_im.reshape(theta.shape)
 
-    # shaded_im = np.zeros(sgrid.shape[0])
-    # shaded_im[index_ray] = normals.dot(light_dir)
-    # shaded_im = shaded_im.reshape(theta.shape) + 0.4
-
     n_dot_ray_im = np.zeros(sgrid.shape[0])
-    # n_dot_ray_im[index_ray] = np.abs(np.einsum("ij,ij->i", normals, grid_hits_normalized))
     n_dot_ray_im[index_ray] = np.einsum("ij,ij->i", normalized_normals, grid_hits_normalized)   # sum(A*B,axis=1)
 
     nx, ny, nz = normalized_normals[:, 0], normalized_normals[:, 1], normalized_normals[:, 2]
@@ -159,7 +178,6 @@ def render_model(mesh, sgrid, outside=False):
     n_wedge_ray_im[index_ray] = wedge_norm
 
     # Combine channels to construct final image
-    # im = dist_im.reshape((1,) + dist_im.shape)
     im = np.stack((dist_im, n_dot_ray_im, n_wedge_ray_im), axis=0)
 
     return im
@@ -212,7 +230,7 @@ def ToMesh(path, rot=False, tr=0.):
     return mesh
 
 
-def ProjectOnSphere(nside, mesh, outside=False):
+def ProjectOnSphere(nside, mesh, outside=False, multiple=False):
     ## outside = {'equator', 'pole', 'both'}
     if outside is 'equator':
 #         rot = rnd_rot(-np.random.rand()*np.pi/4+np.pi/8,1,0)
@@ -231,7 +249,9 @@ def ProjectOnSphere(nside, mesh, outside=False):
         mesh.apply_translation([1.5, 0, 0])
         mesh.apply_transform(rnd_rot(0,-np.random.rand()*np.pi/2,0))
     sgrid = make_sgrid(nside, alpha=0, beta=0, gamma=0)
-    im = render_model(mesh, sgrid, outside=outside)
+    im = render_model(mesh, sgrid, outside=outside, multiple=multiple)
+    if multiple:
+        return im.astype(np.float32)
     npix = sgrid.shape[0]
     im = im.reshape(3, npix)
 
@@ -241,7 +261,7 @@ def ProjectOnSphere(nside, mesh, outside=False):
     except QhullError:
         convex_hull = mesh
 
-    hull_im = render_model(convex_hull, sgrid)
+    hull_im = render_model(convex_hull, sgrid, outside=outside, multiple=multiple)
     # hull_im = hull_im.reshape(3, 2 * self.bandwidth, 2 * self.bandwidth)
     hull_im = hull_im.reshape(3, npix)
 
@@ -287,11 +307,12 @@ def fix_dataset(dir):
                     x.write(yy)
         print("{}/{}  {} fixed    ".format(i + 1, len(files), c), end="\r")
 
-def plot_healpix_projection(file, nside, outside=False, rot=True):
+def plot_healpix_projection(file, nside, outside=False, rot=True, multiple=False):
     import matplotlib.pyplot as plt
+    import matplotlib.colors as colors
     try:
         mesh = ToMesh(file, rot=rot, tr=0.)
-        data = ProjectOnSphere(nside, mesh, outside)
+        data = ProjectOnSphere(nside, mesh, outside, multiple)
     except:
         print("Exception during transform of {}".format(file))
         raise
@@ -301,8 +322,13 @@ def plot_healpix_projection(file, nside, outside=False, rot=True):
     cm.set_under('w')
     cmin = np.min(im1)
     cmax = np.max(im1)
-    hp.orthview(im1, title=id_im, nest=True, cmap=cm, min=cmin, max=cmax)
+    #norm = colors.LogNorm(vmin=cmin, vmax=cmax)
+    norm = colors.PowerNorm(gamma=4)
+    hp.orthview(im1, title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, norm=norm)
     plt.plot()
+    hp.orthview(data[:,1], title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, norm=norm)
+    plt.plot()
+    hp.orthview(data[:,2], title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, norm=norm)
     return im1
 
 def cache_healpix_projection(root, dataset, nside, repeat=1, outside=False, rot=False):
