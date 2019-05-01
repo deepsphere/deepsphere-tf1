@@ -307,11 +307,11 @@ def fix_dataset(dir):
                     x.write(yy)
         print("{}/{}  {} fixed    ".format(i + 1, len(files), c), end="\r")
 
-def plot_healpix_projection(file, nside, outside=False, rot=True, multiple=False):
+def plot_healpix_projection(file, nside, outside=False, rotp=True, multiple=False, **kwargs):
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
     try:
-        mesh = ToMesh(file, rot=rot, tr=0.)
+        mesh = ToMesh(file, rot=rotp, tr=0.)
         data = ProjectOnSphere(nside, mesh, outside, multiple)
     except:
         print("Exception during transform of {}".format(file))
@@ -323,12 +323,13 @@ def plot_healpix_projection(file, nside, outside=False, rot=True, multiple=False
     cmin = np.min(im1)
     cmax = np.max(im1)
     #norm = colors.LogNorm(vmin=cmin, vmax=cmax)
-    norm = colors.PowerNorm(gamma=4)
-    hp.orthview(im1, title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, norm=norm)
+    #norm = colors.PowerNorm(gamma=4)
+    hp.orthview(im1, title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, **kwargs)
     plt.plot()
-    hp.orthview(data[:,1], title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, norm=norm)
-    plt.plot()
-    hp.orthview(data[:,2], title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, norm=norm)
+    if multiple:
+        hp.orthview(data[:,1], title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, norm=norm)
+        plt.plot()
+        hp.orthview(data[:,2], title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, norm=norm)
     return im1
 
 def cache_healpix_projection(root, dataset, nside, repeat=1, outside=False, rot=False):
