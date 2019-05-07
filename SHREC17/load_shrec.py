@@ -694,17 +694,6 @@ class Shrec17DatasetCache(object):
                  augmentation=1, nfile=2000, experiment = 'deepsphere', verbose=True):
         self.experiment = experiment
         self.dataset = dataset
-#         if experiment is 'deepsphere':
-#             if nside==32:
-#                 if dataset is 'train':
-#                     self.mean = np.array([ 0.76423665, -0.08207781,  0.58800055,  0.57971995,  0.74730743, 0.58085993])
-#                     self.std = np.array([0.27203578, 0.7116338 , 0.28400871, 0.22612295, 0.2069686, 0.2432338 ])
-#                 elif dataset is 'val':
-#                     self.mean = np.array([ 0.77143387, -0.06222059, 0.58987524, 0.58569188, 0.74413875, 0.5852325])
-#                     self.std = np.array([0.26941943, 0.71316672, 0.28338772, 0.22418983, 0.20745156, 0.24289361])
-#         else:
-#             self.mean = 0.
-#             self.std = 1.
         file = root+"/info.pkl"
         try:
             info = pkl.load(open(file,'rb'))
@@ -765,6 +754,13 @@ class Shrec17DatasetCache(object):
         self.augmentation = augmentation
         self.N = nfile * augmentation
         self.files = np.asarray(self.files).repeat(augmentation)
+        
+        if self.experiment == 'equator' or self.experiment == 'pole':
+            self.outside = '_' + experiment
+            self.experiment = 'outside'
+        elif self.experiment == 'outside':
+            self.N *=2
+            self.outside = '_equator'
         #super(Shrec17DatasetCache, self).__init__()
             
         for i, file in enumerate(self.files):
@@ -812,9 +808,9 @@ class Shrec17DatasetCache(object):
         for p in _iter:
             data, label = self.get_item(p)
             data, label = np.array(data), np.array(label)
-            if not self.loaded:
-                self.std = np.std(data[::1,:,:], axis=(0, 1))
-                self.mean = np.mean(data[::1,:,:], axis=(0, 1))
+            if not self.loaded or self.experiment == 'outside':
+                self.std = np.nanstd(data, axis=(0, 1))
+                self.mean = np.nanmean(data, axis=(0, 1))
             data = data - self.mean
             data = data / self.std
             yield data, label
@@ -829,7 +825,12 @@ class Shrec17DatasetCache(object):
 #                 continue
             file = self.files[elem]
             data = self.cache_npy(file, pick_randomly=False, repeat=self.augmentation, experiment=self.experiment)
-            datas.append(data[elem%self.repeat][:, :self.nfeat])
+            if self.experiment == 'outside':
+                temp = data[elem%self.repeat]
+                temp[np.where(temp==0.)]=np.nan
+                datas.append(temp)
+            else:
+                datas.append(data[elem%self.repeat][:, :self.nfeat])
             #datas.append(self.cache_npy(file, pick_randomly=True, repeat=self.augmentation, experiment=self.experiment))
             labels.append(self.labels[elem])
         return datas, labels
@@ -849,7 +850,10 @@ class Shrec17DatasetCache(object):
 
         head, tail = os.path.split(file_path)
         root, _ = os.path.splitext(tail)
-        npy_path = os.path.join(head, experiment, prefix + root + '_{0}.npy')
+        if experiment == 'outside':
+            npy_path = os.path.join(head, experiment, prefix + root + self.outside + '_{0}.npy')
+        else:
+            npy_path = os.path.join(head, experiment, prefix + root + '_{0}.npy')
         if experiment is 'equiangular':
             prefix = "b{}_".format(self.nside)
             npy_path = os.path.join(head, prefix + root + '_{0}.npy')
@@ -1048,13 +1052,22 @@ class Shrec17DatasetTF():
         if self.experiment == 'all':
             self.experiment = 'deepsphere*'
             self.N *= 2
+        if self.experiment == 'equator' or self.experiment == 'pole':
+            self.outside = experiment
+            self.experiment = 'outside'
+        elif self.experiment == 'outside':
+            self.N *=2
+            self.outside = ''
 #         self.files = np.asarray(self.files).repeat(augmentation)
             
 #         for i, file in enumerate(self.files):
 #             self.ids.append(file.split('/')[-1].split('\\')[-1].split('.')[0])
 
     def get_tf_dataset(self, batch_size, transform=None):
-        file_pattern = os.path.join(self.dir, self.experiment, "nside{0}*{1}.npy")
+        if self.experiment == 'outside':
+            file_pattern = os.path.join(self.dir, self.experiment, "nside{0}*_"+self.outside+"_{1}.npy")
+        else:
+            file_pattern = os.path.join(self.dir, self.experiment, "nside{0}*{1}.npy")
         file_list = []
         for i in range(self.repeat):
             if transform:
@@ -1063,7 +1076,7 @@ class Shrec17DatasetTF():
             else:
                 file_list+=glob.glob(file_pattern.format(self.nside, i))
         if len(file_list)==0:
-            raise RunTimeError('Files not found')
+            raise ValueError('Files not found')
         dataset = tf.data.Dataset.from_tensor_slices(file_list)
         
         self.noise = [None]*32
@@ -1083,18 +1096,23 @@ class Shrec17DatasetTF():
             transform = add_noise
         
         def get_elem(file, transform=transform):
-            batch_data = []
-            batch_labels = []
-            #for file in files:
-            data = np.load(file.decode()).astype(np.float32)
-            data = data[:, :self.nfeat]
-            data = data - self.mean
-            data = data / self.std
-            file = os.path.splitext(os.path.basename(file.decode()))[0].split("_")[1]
-            label = self.labels_dict[file]
-            data = data.astype(np.float32)
-            if transform:
-                data, label = transform(data, label)
+            try:
+                batch_data = []
+                batch_labels = []
+                #for file in files:
+                data = np.load(file.decode()).astype(np.float32)
+                if self.experiment != 'outside':
+                    data = data[:, :self.nfeat]
+                    data = data - self.mean
+                    data = data / self.std
+                file = os.path.splitext(os.path.basename(file.decode()))[0].split("_")[1]
+                label = self.labels_dict[file]
+                data = data.astype(np.float32)
+                if transform:
+                    data, label = transform(data, label)
+            except Exception as e:
+                print(e)
+                raise
 #             batch_data.append(data.astype(np.float32))
 #             batch_labels.append(label)
             return data, label

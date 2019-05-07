@@ -329,7 +329,7 @@ class base_model(object):
                 losses_validation.append(loss)
                 if verbose:
                     print('  validation {}'.format(string))
-                    print('  CPU time: {:.0f}s, wall time: {:.0f}s, perf_time_load: {:.2f}s, perf_time: {:.2f}s'.format(process_time()-t_cpu, time.time()-t_wall, times[-1], t_end-t_begin_load))
+                    print('  CPU time: {:.0f}s, wall time: {:.0f}s, perf_time_load: {:.3f}s, perf_time: {:.3f}s'.format(process_time()-t_cpu, time.time()-t_wall, times[-1], t_end-t_begin_load))
 
                 # Summaries for TensorBoard.
                 summary = tf.Summary()
@@ -384,7 +384,7 @@ class base_model(object):
 
     # Methods to construct the computational graph.
 
-    def build_graph(self, M_0, nfeature=1, tf_dataset=None):
+    def build_graph(self, M_0, nfeature=1, tf_dataset=None, regression=False):
         """Build the computational graph of the model."""
 
         self.loadable_generator = LoadableGenerator()
@@ -393,7 +393,8 @@ class base_model(object):
         with self.graph.as_default():
 
             # Make the dataset
-            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, output_types=(tf.float32, tf.int32))
+            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, 
+                                                                     output_types=(tf.float32, (tf.float32 if regression else tf.int32)))
             self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
             if tf_dataset is not None:
                 self.tf_data_iterator = tf_dataset.make_one_shot_iterator()
@@ -403,12 +404,15 @@ class base_model(object):
             # Inputs.
             with tf.name_scope('inputs'):
                 self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0, nfeature), 'data')
-                self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
+                if regression:
+                    self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size, M_0), 'labels')
+                else:
+                    self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
                 self.ph_training = tf.placeholder(tf.bool, (), 'training')
 
             # Model.
             op_logits, self.op_descriptor = self.inference(self.ph_data, self.ph_training)
-            self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization, extra_loss=self.extra_loss)
+            self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization, extra_loss=self.extra_loss, regression=regression)
             self.op_train = self.training(self.op_loss)
             self.op_prediction = self.prediction(op_logits)
             self.op_probabilities = self.probabilities(op_logits)
@@ -465,22 +469,33 @@ class base_model(object):
         tf.summary.scalar('loss/triplet_loss', triplet_loss)
         return triplet_loss
 
-    def loss(self, logits, labels, regularization, extra_loss=False):
+    def loss(self, logits, labels, regularization, extra_loss=False, regression=False):
         """Adds to the inference model the layers required to generate loss."""
         with tf.name_scope('loss'):
-            with tf.name_scope('cross_entropy'):
-                labels = tf.to_int64(labels)
-                cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
-                cross_entropy = tf.reduce_mean(cross_entropy)
+            if regression:
+                with tf.name_scope('MSE'):
+                    predictions = logits#tf.reduce_mean(logits, axis=1)
+#                     mse = tf.losses.mean_squared_error(labels, predictions)
+                    mse = tf.reduce_mean(tf.square(predictions - labels))
+                    loss = mse
+            else:
+                with tf.name_scope('cross_entropy'):
+                    labels = tf.to_int64(labels)
+                    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
+                    cross_entropy = tf.reduce_mean(cross_entropy)
+                    loss = cross_entropy
             with tf.name_scope('regularization'):
                 n_weights = np.sum(self.regularizers_size)
                 regularization *= tf.add_n(self.regularizers) / n_weights
-            loss = cross_entropy + regularization
+            loss = loss + regularization
             if extra_loss:
                 loss += self.triplet_loss(self.op_descriptor, labels)
 
             # Summaries for TensorBoard.
-            tf.summary.scalar('loss/cross_entropy', cross_entropy)
+            if regression:
+                tf.summary.scalar('loss/mse', mse)
+            else:
+                tf.summary.scalar('loss/cross_entropy', cross_entropy)
             tf.summary.scalar('loss/regularization', regularization)
             tf.summary.scalar('loss/total', loss)
             return loss
@@ -595,7 +610,7 @@ class cgcnn(base_model):
     def __init__(self, L, F, K, p, batch_norm, M,
                 num_epochs, scheduler, optimizer, num_feat_in=1, tf_dataset=None,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None,
-                regularization=0, dropout=1, batch_size=128, eval_frequency=200,
+                regularization=0, dropout=1, batch_size=128, eval_frequency=200, regression=False,
                 extra_loss=False, drop=1, dir_name='', profile=False, debug=False):
         super(cgcnn, self).__init__()
 
@@ -684,7 +699,7 @@ class cgcnn(base_model):
         self.extra_loss = extra_loss
 
         # Build the computational graph.
-        self.build_graph(M_0, num_feat_in, tf_dataset)
+        self.build_graph(M_0, num_feat_in, tf_dataset, regression)
 
         # show_all_variables()
 
