@@ -97,41 +97,80 @@
 \end{center}
 
 \begin{abstract}
-    CNNs are powerful tools in deep learning mainly due to their ability to exploit the translational symmetry present in images, as they are equivariant to translations.\\
-Nowadays, more and more data present different types of symmetries (e.g. rotations), and lie on the sphere $S^2$ (e.g. cosmological maps, omni-directional imaging, 3D models, ...). It is therefore of interest to design architectures that exploit the structure of the data and are equivariant to the rotation group SO(3).
-Different architectures were designed to exploit these symmetries, such as 2D convolutions on planar projections, convolutions on the SO(3) group, or convolutions on graphs. The DeepSphere model approximates the sphere with a graph and performs graph convolutions.\\
-In this study, DeepSphere is evaluated against other spherical CNNs on different tasks to compare their speeds and their performances. The graph convolution is roughly 3 times faster than the SO(3) convolution with the same amount of learnable parameter. It can be up to 10 times faster with less parameters and still give similar results. While the SO(3) convolution is equivariant to all rotations in SO(3), the graph convolution is only equivariant to the rotations in $S^2$ and invariant to the third rotation. Our comparison on SHREC-17 (a 3D object retrieval task) shows that DeepSphere achieves similar results (2 points of difference on F1 score) to spherical CNNs using SO(3) convolution, thus that equivariance to the third rotation is not necessary for this task. Moreover, DeepSphere is more flexible as it can work with any sampling or partial observations of the sphere.
+%     CNNs are powerful tools in deep learning mainly due to their ability to exploit the translational symmetry present in images, as they are equivariant to translations.\\
+% Nowadays, more and more data present different types of symmetries (e.g. rotations), and lie on the sphere $S^2$ (e.g. cosmological maps, omni-directional imaging, 3D models, ...). It is therefore of interest to design architectures that exploit the structure of the data and are equivariant to the rotation group SO(3).
+% Different architectures were designed to exploit these symmetries, such as 2D convolutions on planar projections, convolutions on the SO(3) group, or convolutions on graphs. The DeepSphere model approximates the sphere with a graph and performs graph convolutions.\\
+% In this study, DeepSphere is evaluated against other spherical CNNs on different tasks to compare their speeds and their performances. The graph convolution is roughly 3 times faster than the SO(3) convolution with the same amount of learnable parameter. It can be up to 10 times faster with less parameters and still give similar results. While the SO(3) convolution is equivariant to all rotations in SO(3), the graph convolution is only equivariant to the rotations in $S^2$ and invariant to the third rotation. Our comparison on SHREC-17 (a 3D object retrieval task) shows that DeepSphere achieves similar results (2 points of difference on F1 score) to spherical CNNs using SO(3) convolution, thus that equivariance to the third rotation is not necessary for this task. Moreover, DeepSphere is more flexible as it can work with any sampling or partial observations of the sphere.
 
-% CNNs are powerful tools in deep learning mainly due to their ability to exploit the translational symmetry present in images, as they are equivariant to translations. Other datasets present different types of symmetries (e.g. rotations), or lie on the sphere S^2 (e.g. cosmological maps, omni-directional images, 3D models, ...). It is therefore of interest to design architectures that exploit the structure of the data and are equivariant to the 3D rotation group SO(3). Different architectures were designed to exploit these symmetries, such as 2D convolutions on planar projections, convolutions on the SO(3) group, or convolutions on graphs. The DeepSphere model approximates the sphere with a graph and performs graph convolutions. In this study, DeepSphere is evaluated against other spherical CNNs on different tasks. While the SO(3) convolution is equivariant to all rotations in SO(3), the graph convolution is only equivariant to the rotations in S^2 and invariant to the third rotation. Our experiments on SHREC-17 (a 3D object retrieval task) shows that DeepSphere achieves the same performance while being 40 times faster to train than Cohen et al. and 4 times faster than Esteves et al. Equivariance to the third rotation is an unnecessary price to pay. Moreover, DeepSphere is more flexible as it can work with any sampling and partial spheres.
+CNNs are powerful tools in deep learning mainly due to their ability to exploit the translational symmetry present in images, as they are equivariant to translations. Other datasets present different types of symmetries (e.g. rotations), or lie on the sphere $S^2$ (e.g. cosmological maps, omni-directional images, 3D models, ...). It is therefore of interest to design architectures that exploit the structure of the data and are equivariant to the 3D rotation group SO(3). Different architectures were designed to exploit these symmetries, such as 2D convolutions on planar projections, convolutions on the SO(3) group, or convolutions on graphs. The DeepSphere model approximates the sphere with a graph and performs graph convolutions. \\
+\indent In this study, DeepSphere is evaluated against other spherical CNNs on different tasks. While the SO(3) convolution is equivariant to all rotations in SO(3), the graph convolution is only equivariant to the rotations in $S^2$ and invariant to the third rotation. Our experiments on SHREC-17 (a 3D object retrieval task) shows that DeepSphere achieves the same performance while being 40 times faster to train than Cohen et al. and 4 times faster than Esteves et al. Equivariance to the third rotation is an unnecessary price to pay. Moreover, DeepSphere is more flexible as it can work with any sampling and partial spheres.
 \end{abstract}
 \chapter{Introduction}
 \section{Motivation}
 
-\chapter{State of the Art}
+\chapter{Background}
 \section{sphere}
+Why spherical signal? In order to exploit rotational symmetry. Some data are the same, even under rotation transformation. To represent this, use advantage of sphere $S^2$ properties or rotation group $SO(3)$.
 \subsection{sampling}
+In computer analysis, real life analysis, deep learning, ... not possible to treat continuous signal. Must find a way to discretize the spherical signal. Even if the 2D plane have an optimal discretization (euclidean grid), the sphere $S^2$ cannot have this. % cite smth (cohen, deepshpere and all others)
+Several discretizations have been analyzed, and have different properties.
 \begin{itemize}
     \item equiangular %\cite lie-learn git
     \begin{itemize}
         \item Driscroll-Healy (pole) %\cite paper
+        Worst of all, but the most used because simple
         \item SOFT (Using SO3 features) (without poles) %\cite paper
+        no more problems with the poles
         \item Gauss-Legendre Quadrature
+        Not much improvement
         \item Clenshaw-Curtis
+        Must see 
         \item equidistribution
+        ???
     \end{itemize}
+    \item Optimal Dimensionality
+    point for each spherical harmonics
     \item HEALpix
+    hierarchical, same area representation and iso latitude
+    \item Uniform sampling
+    \item ...
 \end{itemize}
-\subsection{band-limited signal} %cite soft fourier
+iso-latitude is good for fast fourier transform and find easily the spherical harmonics
+hierarchical is good for pooling later
+same area to represent the sphere with the least deformation
 \subsection{Fourier and Spherical harmonics}
+A spherical signal can be represented as a sum of spherical harmonics. These spherical harmonics  works like Fourier mode.
+% image of spherical harmonics
+
+\subsection{band-limited signal} %cite soft fourier
+ 
 \section{invariance and equivariance to rotation}
+what is invariance and equivariance
+
+why is it useful
+
+It is seen that for a spherical graph to keep the rotation equivariance properties, the eigenvectors of its laplacian must approximate the spherical harmonics. Convergence is easily doable if random uniform sampling. %\cite martino
+Possible if as uniform as possible sampling
+equiangular is not one of them
 \section{learning}
 \subsection{spherical CNN}
+\subsubsection{2D CNNs on planar projection}
+* no rotation equivariance as the translation on the plane doesn't translate really well to rotation on the sphere
+* can only do a deformation equivariant model at best
+\subsubsection{2D CNNs on pixels}
+* Cohen
+* Jiang
+* ...
+\subsubsection{SHFT on SO(3) and S2}
 \begin{itemize}
     \item Cohen
     \item Esteves
-    \item Deepsphere
-    \item ...
 \end{itemize}
+Computationnaly expensive
+\subsubsection{Graph CNNs}
+* DeepSphere
+* LTS4
+* ...
 \chapter{Benchmark}
 \section{SHREC17 task}
 Task is to develop a 3D shape retrieval method
@@ -147,8 +186,12 @@ Use the same resXres grid as Cohen, but only keep two features
 
 pooling in spectral space
 \subsection{Trying to beat them}
+As more computationnaly efficient, can do a deeper model.
+
 \subsection{Tweaking our system}
 Using an imperfect sampling (equiangular) to be more versatile and 
+\subsubsection{Construction of equiangular graph}
+In order to approximates at best the first spherical harmonics
 \subsection{Conclusion}
 
 \subsubsection{Results}
@@ -156,7 +199,7 @@ Using an imperfect sampling (equiangular) to be more versatile and
     \centering
     \begin{tabular}{l|l l|l l l}
         Method & Accuracy & F1-score & params & sample time & training time \\ \hline
-        Cohen\_s2cnn & - & - & 1.4M & 19ms & 50h\\
+        Cohen\_s2cnn & - & - & 1.4M & 75ms & 50h (245h)\\
         Cohen\_s2cnn\_simple & 78.09 & 78.45 & 400k & 12ms & 32h\\
         Esteves\_sphericalcnn & 79.18 & 79.36 & 500k & 9.8ms & 2h52\\ \hline
         Deepsphere (Cohen-like) & 77.86 & 77.90 & 170k & 17.5ms & 9h43\\
@@ -226,5 +269,8 @@ Dataset1: projected on equator
 Dataset2: project on pole
 Dataset3: combination of D1 and D2
 Train on D1, D2 and D3 and see how they react on each dataset
-\section{weather data}
+\section{Classification task - ModelNet40}
+More or less similar than SHREC17 but with less instances in total
+\section{weather data - GHCN}
+
 \end{document}
