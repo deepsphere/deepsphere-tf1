@@ -217,7 +217,7 @@ def ProjectOnSphere(nside, mesh, outside=False, multiple=False):
 def check_trans(nside, file_path, rot=False):
         #print("transform {}...".format(file_path))
         try:
-            mesh = ToMesh(file_path, rot=rot, tr=0.1)
+            mesh = ToMesh(file_path, rot=rot, tr=0.)
             data = ProjectOnSphere(nside, mesh)
             return data
         except Exception as e:
@@ -344,6 +344,8 @@ class ModelNet40DatasetCache():
         
         if fix:
             self._fix()
+        
+        self.transform = None
             
             
     def get_labels(self, shuffle=True):
@@ -353,6 +355,9 @@ class ModelNet40DatasetCache():
             p = np.arange(self.N)
         return self.labels[p]
     
+    def set_transform(self, transform):
+        "give a transform function for augmentation purpose"
+        self.transform = transform
 
     def iter(self, batch_size):
         return self.__iter__(batch_size)
@@ -376,6 +381,8 @@ class ModelNet40DatasetCache():
                 self.mean = np.mean(data[::1,:,:], axis=(0, 1))
             data = data - self.mean
             data = data / self.std
+            if self.transform:
+                data = transform(data)
             yield data, label
     
     def get_item(self, p):
@@ -556,6 +563,7 @@ class ModelNet40DatasetTF():
         
         def get_elem(file, transform=transform):
             pattern = "nside{}_{}_".format(self.nside, file.decode())
+            print(pattern)
             file_path = os.path.join(self.proc_dir, self.experiment, pattern)
             file_path += "{}.npy"
             _class = '_'.join(file.decode().split("_")[:-1])

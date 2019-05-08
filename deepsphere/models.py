@@ -103,7 +103,10 @@ class base_model(object):
             size = data.N
         else:
             size = data.shape[0]
-        predictions = np.empty(size)
+        if self.regression:
+            predictions = np.empty(data.shape[0:2])
+        else:
+            predictions = np.empty(size)
         sess = self._get_session(sess)
         if cache:
             if cache is 'TF':
@@ -134,7 +137,10 @@ class base_model(object):
 
             # Compute loss if labels are given.
             if labels is not None:
-                batch_labels = np.zeros(self.batch_size)
+                if self.regression:
+                    batch_labels = np.zeros((self.batch_size, data.shape[1]))
+                else:
+                    batch_labels = np.zeros(self.batch_size)
                 batch_labels[:end-begin] = labels[begin:end]
                 feed_dict[self.ph_labels] = batch_labels
                 batch_pred, batch_loss = sess.run([self.op_prediction, self.op_loss], feed_dict)
@@ -144,7 +150,7 @@ class base_model(object):
                 loss += batch_loss
             else:
                 batch_pred = sess.run(self.op_prediction, feed_dict)
-
+                
             predictions[begin:end] = batch_pred[:end-begin]
 
         if labels is not None or (cache and batch_labels is not None):
@@ -230,11 +236,19 @@ class base_model(object):
             predictions, loss = self.predict(data, labels, sess, cache=cache)
             if cache:
                 labels = data.get_labels()
-        ncorrects = sum(predictions == labels)
-        accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
-        f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
-        string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (weighted): {:.2f}, loss: {:.2e}'.format(
-                accuracy, ncorrects, len(labels), f1, loss)
+        if self.regression:
+            exp_var = sklearn.metrics.explained_variance_score(labels, predictions)
+            r2 = sklearn.metrics.r2_score(labels, predictions)
+            string = 'explained variance: {:.4f}, r2: {:.4f}, loss (MSE): {:.3e}'.format(
+                exp_var, r2, loss)
+            accuracy = exp_var
+            f1 = r2
+        else:
+            ncorrects = sum(predictions == labels)
+            accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
+            f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
+            string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (weighted): {:.2f}, loss: {:.2e}'.format(
+                    accuracy, ncorrects, len(labels), f1, loss)
         if sess is None:
             string += '\nCPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall)
         return string, accuracy, f1, loss
@@ -306,11 +320,17 @@ class base_model(object):
             t_begin_load = perf_counter()
             if use_tf_dataset:
                 batch_labels = labels
-            batch_acc = 100 * sklearn.metrics.accuracy_score(batch_labels, y_pred)
-            total_acc += batch_acc
-            if step%(train_dataset.N//self.batch_size)==0:
-                acc = 0
-            acc += batch_acc
+            if self.regression:
+                batch_acc = np.nan
+#                 batch_var = sklearn.metrics.explained_variance_score(batch_labels, y_pred)
+#                 batch_r2 = sklearn.metrics.r2_score(batch_labels, y_pred)
+                pass
+            else:
+                batch_acc = 100 * sklearn.metrics.accuracy_score(batch_labels, y_pred)
+                total_acc += batch_acc
+                if step%(train_dataset.N//self.batch_size)==0:
+                    acc = 0
+                acc += batch_acc
             t_end = perf_counter()
             times.append(t_end-t_begin)
             # Periodical evaluation of the model.
@@ -321,11 +341,14 @@ class base_model(object):
                     print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
                     print('  learning_rate = {:.2e}, training accuracy = {:.2f}, training loss = {:.2e}'.format(learning_rate, batch_acc, loss))
                 losses_training.append(loss)
-                if cache:
-                    string, accuracy, f1, loss = self.evaluate(val_dataset, None, sess, cache=cache)
+                if self.regression:
+                    string, exp_var, r2, loss = self.evaluate(val_data, val_labels, sess, cache=cache)
                 else:
-                    string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
-                accuracies_validation.append(accuracy)
+                    if cache:
+                        string, accuracy, f1, loss = self.evaluate(val_dataset, None, sess, cache=cache)
+                    else:
+                        string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
+                    accuracies_validation.append(accuracy)
                 losses_validation.append(loss)
                 if verbose:
                     print('  validation {}'.format(string))
@@ -334,12 +357,17 @@ class base_model(object):
                 # Summaries for TensorBoard.
                 summary = tf.Summary()
                 summary.ParseFromString(sess.run(self.op_summary, feed_dict))
-                summary.value.add(tag='validation/accuracy', simple_value=accuracy)
-                summary.value.add(tag='validation/f1', simple_value=f1)
-                summary.value.add(tag='validation/loss', simple_value=loss)
-                summary.value.add(tag='training/batch_accuracy', simple_value=batch_acc)
-                summary.value.add(tag='training/epoch_accuracy', simple_value=acc/(step%(train_dataset.N//self.batch_size)+1))
-                summary.value.add(tag='training/total_accuracy', simple_value=total_acc/step)
+                if self.regression:
+                    summary.value.add(tag='validation/exp_variance', simple_value=exp_var)
+                    summary.value.add(tag='validation/r2', simple_value=r2)
+                    summary.value.add(tag='validation/loss', simple_value=loss)
+                else:
+                    summary.value.add(tag='validation/accuracy', simple_value=accuracy)
+                    summary.value.add(tag='validation/f1', simple_value=f1)
+                    summary.value.add(tag='validation/loss', simple_value=loss)
+                    summary.value.add(tag='training/batch_accuracy', simple_value=batch_acc)
+                    summary.value.add(tag='training/epoch_accuracy', simple_value=acc/(step%(train_dataset.N//self.batch_size)+1))
+                    summary.value.add(tag='training/total_accuracy', simple_value=total_acc/step)
                 writer.add_summary(summary, step)
                 if self.profile:
                     writer.add_run_metadata(run_metadata, 'step{}'.format(step))
@@ -348,7 +376,7 @@ class base_model(object):
                 self.op_saver.save(sess, path, global_step=step)
                 # save if best in ckpt form
 
-        if verbose:
+        if verbose and not self.regression:
             print('validation accuracy: best = {:.2f}, mean = {:.2f}'.format(max(accuracies_validation), np.mean(accuracies_validation[-10:])))
         writer.close()
         sess.close()
@@ -416,7 +444,7 @@ class base_model(object):
             self.op_train = self.training(self.op_loss)
             self.op_prediction = self.prediction(op_logits)
             self.op_probabilities = self.probabilities(op_logits)
-            self.op_labels = ph_labels
+            self.op_labels = self.ph_labels
 
             # Initialize variables, i.e. weights and biases.
             self.op_init = tf.global_variables_initializer()
@@ -454,7 +482,10 @@ class base_model(object):
     def prediction(self, logits):
         """Return the predicted classes."""
         with tf.name_scope('prediction'):
-            prediction = tf.argmax(logits, axis=1)
+            if self.regression:
+                prediction = logits
+            else:
+                prediction = tf.argmax(logits, axis=1)
             return prediction
         
     ## add triplet_loss
@@ -697,6 +728,7 @@ class cgcnn(base_model):
         self.profile, self.debug = profile, debug
         self.drop = drop
         self.extra_loss = extra_loss
+        self.regression = regression
 
         # Build the computational graph.
         self.build_graph(M_0, num_feat_in, tf_dataset, regression)
