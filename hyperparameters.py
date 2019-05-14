@@ -149,6 +149,7 @@ def get_params_shrec17_optim(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, arc
     params['scheduler'] = lambda step: tf.train.exponential_decay(2e-2, step, decay_steps=5, decay_rate=1)#decay_steps=7000, decay_rate=0.1, staircase=True)#0.999)
     params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=0.1)
     #params['optimizer'] = lambda lr: tf.train.GradientDescentOptimizer(lr)
+    #params['optimizer'] = lambda lr: tf.train.RMSPropOptimizer(lr, decay=0.9, momentum=0.)
 
     # Number of model evaluations during training (influence training time).
     n_evaluations = 200

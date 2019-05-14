@@ -150,12 +150,12 @@ def ToMesh(path, rot=False, tr=0.):
     '''
     mesh = trimesh.load_mesh(path)
     mesh.remove_degenerate_faces()
-    mesh.fix_normals()
+    #mesh.fix_normals()
     mesh.fill_holes()
-    mesh.remove_duplicate_faces()
+    #mesh.remove_duplicate_faces()
     mesh.remove_infinite_values()
     mesh.remove_unreferenced_vertices()
-
+    
     mesh.apply_translation(-mesh.centroid)
 
     r = np.max(np.linalg.norm(mesh.vertices, axis=-1))
@@ -171,11 +171,11 @@ def ToMesh(path, rot=False, tr=0.):
             mesh.apply_transform(rotR.T)
 
     if rot:
-        mesh.apply_transform(rnd_rot())
+        mesh.apply_transform(rnd_rot(c=0))
 
     r = np.max(np.linalg.norm(mesh.vertices, axis=-1))
     mesh.apply_scale(0.99 / r)
-
+    
     return mesh
 
 def ProjectOnSphere(nside, mesh, outside=False, multiple=False):
@@ -215,7 +215,7 @@ def ProjectOnSphere(nside, mesh, outside=False, multiple=False):
     return im       # must be npix x nfeature
 
 def check_trans(nside, file_path, rot=False):
-        #print("transform {}...".format(file_path))
+        # print("transform {}...".format(file_path))
         try:
             mesh = ToMesh(file_path, rot=rot, tr=0.)
             data = ProjectOnSphere(nside, mesh)
@@ -273,8 +273,8 @@ def plot_healpix_projection(file, nside, outside=False, rotp=True, multiple=Fals
     cmax = np.max(im1)
     im1[im1>cmax] = np.nan
     #norm = colors.LogNorm(vmin=cmin, vmax=cmax)
-    norm = colors.PowerNorm(gamma=4)
-    hp.orthview(im1, title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, norm=norm, **kwargs)
+    #norm = colors.PowerNorm(gamma=4)
+    hp.orthview(im1, title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, **kwargs)
     plt.plot()
     if multiple:
         hp.orthview(data[:,1], title=id_im, nest=True, cmap=cm, min=cmin, max=cmax, norm=norm)
@@ -340,7 +340,8 @@ class ModelNet40DatasetCache():
         self.labels = np.asarray(self.labels).repeat(augmentation)
         if self.experiment == 'all':
             self.experiment = 'deepsphere*'
-            self.N *= 2
+            self.N *= 3 
+            self.N += nfile
         
         if fix:
             self._fix()
@@ -369,6 +370,8 @@ class ModelNet40DatasetCache():
         else:
             self._p = np.arange(self.N)
         
+        # self.files = self.files[self._p]
+        
         if batch_size>1:
             _iter = grouper(cycle(self._p), batch_size)
         else:
@@ -382,7 +385,7 @@ class ModelNet40DatasetCache():
             data = data - self.mean
             data = data / self.std
             if self.transform:
-                data = transform(data)
+                data = self.transform(data)
             yield data, label
     
     def get_item(self, p):
@@ -398,6 +401,12 @@ class ModelNet40DatasetCache():
             datas.append(data[elem%self.repeat][:, :self.nfeat])
             #datas.append(self.cache_npy(file, pick_randomly=True, repeat=self.augmentation, experiment=self.experiment))
             labels.append(self.labels[elem])
+            if np.std(data[elem%self.repeat][:,0])>2:
+                suffix = os.path.splitext(os.path.split(file)[-1])[0]
+                pattern = "nside{}_{}_{}.npy".format(self.nside, suffix, elem%self.repeat)
+                npy_path = os.path.join(self.proc_dir, self.experiment, pattern)
+                os.remove(npy_path)
+                print(npy_path)
         return datas, labels
             
     def cache_npy(self, file_path, pick_randomly=False, repeat=1, experiment='deepsphere'):    
@@ -433,7 +442,7 @@ class ModelNet40DatasetCache():
                 if experiment is 'equiangular':
                     img = img.reshape((6,-1)).T
             except (OSError, FileNotFoundError):
-                img = check_trans(self.nside, file_path, rot=('rot' in experiment))
+                img = check_trans(self.nside, file_path, rot=True)#('rot' in experiment))
                 np.save(npy_path.format(i), img)
             output.append(img)
 
@@ -522,7 +531,7 @@ class ModelNet40DatasetTF():
         self.N = nfile * augmentation
         if self.experiment == 'all':
             self.experiment = 'deepsphere*'
-            self.N *= 2
+            self.N *= 3
         
         if fix:
             self._fix()
@@ -540,12 +549,15 @@ class ModelNet40DatasetTF():
 #                     file_list+=glob.glob(file_pattern.format(self.nside, i))
 #             else:
 #                 file_list+=glob.glob(file_pattern.format(self.nside, i))
-        file_list = [os.path.splitext(os.path.split(file)[-1])[0] for file in self.files] * (5 if transform else 1)
+        file_list = [os.path.splitext(os.path.split(file)[-1])[0] for file in self.files] * (5 if transform else 1) * (self.repeat) * (3 if '*' in self.experiment else 1)
         if len(file_list)==0:
             raise RunTimeError('Files not found')
         dataset = tf.data.Dataset.from_tensor_slices(file_list)
         
         self.noise = [None]*32
+        if '*' in self.experiment:
+            list_dir = glob.glob(os.path.join(self.proc_dir, self.experiment))
+            self.list_dir = [os.path.split(_dir)[-1] for _dir in list_dir[1:]]
         
         def add_noise(data, label):
             size = data.shape
@@ -562,9 +574,13 @@ class ModelNet40DatasetTF():
             transform = add_noise
         
         def get_elem(file, transform=transform):
+            if '*' in self.experiment:
+                i = np.random.randint(3)
+                experiment = self.list_dir[i]
+            else:
+                experiment = self.experiment
             pattern = "nside{}_{}_".format(self.nside, file.decode())
-            print(pattern)
-            file_path = os.path.join(self.proc_dir, self.experiment, pattern)
+            file_path = os.path.join(self.proc_dir, experiment, pattern)
             file_path += "{}.npy"
             _class = '_'.join(file.decode().split("_")[:-1])
             label = self.classes.index(_class)

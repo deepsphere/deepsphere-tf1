@@ -506,8 +506,8 @@ class base_model(object):
             if regression:
                 with tf.name_scope('MSE'):
                     predictions = logits#tf.reduce_mean(logits, axis=1)
-#                     mse = tf.losses.mean_squared_error(labels, predictions)
-                    mse = tf.reduce_mean(tf.square(predictions - labels))
+                    mse = tf.losses.mean_squared_error(labels, predictions)
+#                     mse = tf.reduce_mean(tf.square(predictions - labels))
                     loss = mse
             else:
                 with tf.name_scope('cross_entropy'):
@@ -839,6 +839,17 @@ class cgcnn(base_model):
             return tf.squeeze(x, [3])  # N x M/p x F
         else:
             return x
+        
+    def pool_part_max(self, x, p):
+        """Max pooling of size p on partial sphere. Sould be a power of 2."""
+        if p > 1:
+            # pool over full range of index instead of matrix
+            # split(np.arange(Nside), p)
+            
+            pass  # use full nan maps?
+        else:
+            return x
+    
 
     def learned_histogram(self, x, bins=20, initial_range=2):
         """A learned histogram layer.
@@ -1121,3 +1132,12 @@ class deepsphere(cgcnn):
         fig = plot.plot_filters_gnomonic(filters, order=self.K[layer-1], **kwargs)
 
         return fig
+    
+class anyGraph(base_model):
+    """
+    try to feed random part of sphere
+    L is then not a constant anymore
+    """
+    def __init__(self):
+        super(cgcnn, self).__init__()
+        

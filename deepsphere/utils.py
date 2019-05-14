@@ -384,6 +384,30 @@ def nside2indexes(nsides, order):
     return indexes
 
 
+def ds_index(index, nsides, nest=True):
+    """Return list of indexes sampled at specific nsides.
+    
+    The given index must be sampled at the first nside given
+    Parameters
+    ----------
+    index : list of pixel position for part of sphere
+    nsides : list of nside for the desired scale
+    """
+    assert isinstance(nsides, list)
+    assert len(nsides) > 1
+    assert nest  # not implemented yet
+    
+    indexes = [index]
+    for nside in nsides[1:]:
+        p = (nsides[0]/nside)**2
+        if p < 1:
+            raise NotImplementedError("upsampling not implemented yet")
+        temp_index = index//p
+        indexes.append(np.unique(temp_index).astype(int))            
+    
+    return indexes
+
+
 def show_all_variables():
     """Show all variable of the curent tensorflow graph."""
     import tensorflow as tf
