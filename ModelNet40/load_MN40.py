@@ -74,7 +74,7 @@ def render_model(mesh, sgrid, outside=False, multiple=False):
         index_tri, index_ray, loc = mesh.ray.intersects_id(
             ray_origins=sgrid, ray_directions=-sgrid, multiple_hits=multiple, return_locations=True)
     loc = loc.reshape((-1, 3))  # fix bug if loc is empty
-
+    
     if multiple:
         grid_hits = sgrid[index_ray]
         if outside:
@@ -150,9 +150,9 @@ def ToMesh(path, rot=False, tr=0.):
     '''
     mesh = trimesh.load_mesh(path)
     mesh.remove_degenerate_faces()
-    #mesh.fix_normals()
+    mesh.fix_normals()
     mesh.fill_holes()
-    #mesh.remove_duplicate_faces()
+    mesh.remove_duplicate_faces()
     mesh.remove_infinite_values()
     mesh.remove_unreferenced_vertices()
     
@@ -171,10 +171,16 @@ def ToMesh(path, rot=False, tr=0.):
             mesh.apply_transform(rotR.T)
 
     if rot:
-        mesh.apply_transform(rnd_rot(c=0))
+        mesh.apply_transform(rnd_rot(z=np.pi, c=0))
 
     r = np.max(np.linalg.norm(mesh.vertices, axis=-1))
     mesh.apply_scale(0.99 / r)
+#     mesh.remove_degenerate_faces()
+    mesh.fix_normals()
+#     mesh.fill_holes()
+#     mesh.remove_duplicate_faces()
+#     mesh.remove_infinite_values()
+#     mesh.remove_unreferenced_vertices()
     
     return mesh
 
@@ -225,7 +231,9 @@ def check_trans(nside, file_path, rot=False):
             print("Exception during transform of {}".format(file_path))
             raise
             
-def compute_mean_std(dataset, name, root, nside):
+def compute_mean_std(dataset, name, root, nside, delete=False):
+    dataset.mean = 0.
+    dataset.std = 1.
     data_iter = dataset.iter(1)
     N = dataset.N
     file = os.path.join(root, 'info.pkl')
@@ -234,8 +242,12 @@ def compute_mean_std(dataset, name, root, nside):
     except:
         print("file non-existent")
         info = {}
-    mean = 0
-    std = 0
+    if delete:
+        if nside in info.keys():
+            info[nside].pop(name, None)
+        return
+    mean = 0.
+    std = 1.
     for i in tqdm(range(N)):
         data, _ = next(data_iter)
         mean += np.mean(data, axis=(0,1))
@@ -252,6 +264,8 @@ def compute_mean_std(dataset, name, root, nside):
     else:
         info[nside] = {name:{"mean":mean,"std":std}}
     pkl.dump(info, open(file, 'wb'))
+    dataset.mean = mean
+    dataset.std = std
     print(mean)
     print(std)
 
@@ -370,7 +384,7 @@ class ModelNet40DatasetCache():
         else:
             self._p = np.arange(self.N)
         
-        # self.files = self.files[self._p]
+        self.ids = self.files[self._p]
         
         if batch_size>1:
             _iter = grouper(cycle(self._p), batch_size)
@@ -384,6 +398,11 @@ class ModelNet40DatasetCache():
                 self.mean = np.mean(data[::1,:,:], axis=(0, 1))
             data = data - self.mean
             data = data / self.std
+#             if np.std(data[0,:,0])>2:
+#                 print(np.std(data[0,:,0]))
+#                 print(self.files[p])
+#                 data *= self.std
+#                 data += self.mean
             if self.transform:
                 data = self.transform(data)
             yield data, label
@@ -401,7 +420,9 @@ class ModelNet40DatasetCache():
             datas.append(data[elem%self.repeat][:, :self.nfeat])
             #datas.append(self.cache_npy(file, pick_randomly=True, repeat=self.augmentation, experiment=self.experiment))
             labels.append(self.labels[elem])
-            if np.std(data[elem%self.repeat][:,0])>2:
+#             if 'car_0229' in file:
+#                 print(np.std(data[elem%self.repeat][:,0]))
+            if np.std(data[elem%self.repeat][:,0])>0.7:
                 suffix = os.path.splitext(os.path.split(file)[-1])[0]
                 pattern = "nside{}_{}_{}.npy".format(self.nside, suffix, elem%self.repeat)
                 npy_path = os.path.join(self.proc_dir, self.experiment, pattern)
