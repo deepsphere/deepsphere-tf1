@@ -133,8 +133,26 @@
 ### Many problems arise
 Seems to have problem with the preprocessing
 
-# Cohen model
+## esperiment 6 only z rotation (reversed)
+* train on perturbed dataset, augmentation=3, random z rotation (equator) (object center of the sphere)
+* accuracy, F1 of training part (Z): 99.39, 99.39 ##
+* accuracy, F1 of training part (rot): 86.43, 86.26 
+* accuracy, F1 of training part (tr):  95.01, 95.02 
+* accuracy, F1 of training part (rot+tr): 82.90, 82.70 
+* accuracy, F1 of training part (): 97.72, 97.73
+* accuracy, F1 of test part (Z): 86.75, 87.08
+* accuracy, F1 of test part (rot): 76.86, 77.81
+* accuracy, F1 of test part (tr): 84.21, 84.65
+* accuracy, F1 of test part (rot+tr): 73.66, 74.82
+* accuracy, F1 of test part (): 85.66, 86.06
+* time per batch: 0.060 s
+* 10 epoch = 10.25 m
 
+## final
+* x/x: 87.2, z/z: 86.8, z/SO3: 76.9
+
+# Cohen model
+* done by jiang, similar experiment
 * results: x/x 85.0
 
 # Esteves model
@@ -144,5 +162,5 @@ Seems to have problem with the preprocessing
 * params: 0.5M
 
 # Jiang model
-
+* no augmentation, no random translation nor rotation
 * results: x/x 90.5

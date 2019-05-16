@@ -374,12 +374,12 @@ class ModelNet40DatasetCache():
         "give a transform function for augmentation purpose"
         self.transform = transform
 
-    def iter(self, batch_size):
-        return self.__iter__(batch_size)
+    def iter(self, batch_size, shuffle=True):
+        return self.__iter__(batch_size, shuffle)
     
-    def __iter__(self, batch_size):
+    def __iter__(self, batch_size, shuffle=True):
         #np.random.seed(42)
-        if self.dataset is 'train':
+        if self.dataset is 'train' and shuffle:
             self._p = np.random.permutation(self.N)
         else:
             self._p = np.arange(self.N)

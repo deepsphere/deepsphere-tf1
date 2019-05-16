@@ -239,11 +239,13 @@ class base_model(object):
         if self.regression:
             exp_var = sklearn.metrics.explained_variance_score(labels, predictions)
             r2 = sklearn.metrics.r2_score(labels, predictions)
-            string = 'explained variance: {:.4f}, r2: {:.4f}, loss (MSE): {:.3e}'.format(
-                exp_var, r2, loss)
+            mae = sklearn.metrics.mean_absolute_error(labels, predictions)
+            string = 'explained variance: {:.4f}, r2: {:.4f}, loss (MSE): {:.3e}, loss (MAE): {:.3e}'.format(
+                exp_var, r2, loss, mae)
             accuracy = exp_var
             f1 = r2
         else:
+            mae = None
             ncorrects = sum(predictions == labels)
             accuracy = 100 * sklearn.metrics.accuracy_score(labels, predictions)
             f1 = 100 * sklearn.metrics.f1_score(labels, predictions, average='weighted')
@@ -251,7 +253,7 @@ class base_model(object):
                     accuracy, ncorrects, len(labels), f1, loss)
         if sess is None:
             string += '\nCPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall)
-        return string, accuracy, f1, loss
+        return string, accuracy, f1, loss, mae
 
     def fit(self, train_dataset, val_dataset, use_tf_dataset=False, verbose=True, cache=False):
         
@@ -342,12 +344,12 @@ class base_model(object):
                     print('  learning_rate = {:.2e}, training accuracy = {:.2f}, training loss = {:.2e}'.format(learning_rate, batch_acc, loss))
                 losses_training.append(loss)
                 if self.regression:
-                    string, exp_var, r2, loss = self.evaluate(val_data, val_labels, sess, cache=cache)
+                    string, exp_var, r2, loss, mae = self.evaluate(val_data, val_labels, sess, cache=cache)
                 else:
                     if cache:
-                        string, accuracy, f1, loss = self.evaluate(val_dataset, None, sess, cache=cache)
+                        string, accuracy, f1, loss, _ = self.evaluate(val_dataset, None, sess, cache=cache)
                     else:
-                        string, accuracy, f1, loss = self.evaluate(val_data, val_labels, sess)
+                        string, accuracy, f1, loss, _ = self.evaluate(val_data, val_labels, sess)
                     accuracies_validation.append(accuracy)
                 losses_validation.append(loss)
                 if verbose:
@@ -361,6 +363,7 @@ class base_model(object):
                     summary.value.add(tag='validation/exp_variance', simple_value=exp_var)
                     summary.value.add(tag='validation/r2', simple_value=r2)
                     summary.value.add(tag='validation/loss', simple_value=loss)
+                    summary.value.add(tag='validation/mae', simple_value=mae)
                 else:
                     summary.value.add(tag='validation/accuracy', simple_value=accuracy)
                     summary.value.add(tag='validation/f1', simple_value=f1)
@@ -381,7 +384,7 @@ class base_model(object):
         writer.close()
         sess.close()
         if verbose:
-            print('time per batch: mean = {:.2f}, var = {:.5f}'.format(np.mean(times), np.var(times))) 
+            print('time per batch: mean = {:.5f}, var = {:.5f}'.format(np.mean(times), np.var(times))) 
         t_step = (time.time() - t_wall) / num_steps
         return accuracies_validation, losses_validation, losses_training, t_step, np.mean(times)
 
