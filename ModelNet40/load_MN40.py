@@ -114,7 +114,7 @@ def render_model(mesh, sgrid, outside=False, multiple=False):
     normalized_normals = normals / np.linalg.norm(normals, axis=1, keepdims=True)
 
     # Construct spherical images
-    dist_im = np.zeros(sgrid.shape[0])
+    dist_im = np.ones(sgrid.shape[0])
     dist_im[index_ray] = dist
     # dist_im = dist_im.reshape(theta.shape)
 
@@ -171,7 +171,7 @@ def ToMesh(path, rot=False, tr=0.):
             mesh.apply_transform(rotR.T)
 
     if rot:
-        mesh.apply_transform(rnd_rot(z=np.pi, c=0))
+        mesh.apply_transform(rnd_rot())  #z=np.pi, c=0
 
     r = np.max(np.linalg.norm(mesh.vertices, axis=-1))
     mesh.apply_scale(0.99 / r)
@@ -221,7 +221,7 @@ def ProjectOnSphere(nside, mesh, outside=False, multiple=False):
     return im       # must be npix x nfeature
 
 def check_trans(nside, file_path, rot=False):
-        # print("transform {}...".format(file_path))
+        print("transform {}...".format(file_path))
         try:
             mesh = ToMesh(file_path, rot=rot, tr=0.)
             data = ProjectOnSphere(nside, mesh)
@@ -234,6 +234,7 @@ def check_trans(nside, file_path, rot=False):
 def compute_mean_std(dataset, name, root, nside, delete=False):
     dataset.mean = 0.
     dataset.std = 1.
+    dataset.loaded = True
     data_iter = dataset.iter(1)
     N = dataset.N
     file = os.path.join(root, 'info.pkl')
@@ -274,7 +275,7 @@ def plot_healpix_projection(file, nside, outside=False, rotp=True, multiple=Fals
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
     try:
-        mesh = ToMesh(file, rot=rotp, tr=0.)
+        mesh = ToMesh(file, rot=rotp, tr=0.1)
         data = ProjectOnSphere(nside, mesh, outside, multiple)
     except:
         print("Exception during transform of {}".format(file))
@@ -361,6 +362,8 @@ class ModelNet40DatasetCache():
             self._fix()
         
         self.transform = None
+        self.limit = None
+        self.old_N = self.N
             
             
     def get_labels(self, shuffle=True):
@@ -373,16 +376,26 @@ class ModelNet40DatasetCache():
     def set_transform(self, transform):
         "give a transform function for augmentation purpose"
         self.transform = transform
+        
+    def reduce_dataset(self, limit):
+        self.limit = limit
+        if limit:
+            self.N = limit
+        else:
+            self.N = self.old_N
 
     def iter(self, batch_size, shuffle=True):
         return self.__iter__(batch_size, shuffle)
     
     def __iter__(self, batch_size, shuffle=True):
-        #np.random.seed(42)
+        np.random.seed(42)
         if self.dataset is 'train' and shuffle:
-            self._p = np.random.permutation(self.N)
+            self._p = np.random.permutation(self.old_N)
         else:
-            self._p = np.arange(self.N)
+            self._p = np.arange(self.old_N)
+        
+        if self.limit:
+            self._p = self._p[:self.limit]
         
         self.ids = self.files[self._p]
         
@@ -396,6 +409,20 @@ class ModelNet40DatasetCache():
             if not self.loaded:
                 self.std = np.std(data[::1,:,:], axis=(0, 1))
                 self.mean = np.mean(data[::1,:,:], axis=(0, 1))
+#                 import warnings
+#                 with warnings.catch_warnings():
+#                     warnings.filterwarnings('error')
+#                     try:
+#                         (data - self.mean)/self.std
+#                     except Warning:
+#                         print(self.mean)
+#                         print(self.std)
+#                         print(self.files[p])
+#                         file = self.files[p]
+#                         suffix = os.path.splitext(os.path.split(file)[-1])[0]
+#                         pattern = "nside{}_{}_{}.npy".format(self.nside, suffix, p%self.repeat)
+#                         npy_path = os.path.join(self.proc_dir, self.experiment, pattern)
+#                         os.remove(npy_path)
             data = data - self.mean
             data = data / self.std
 #             if np.std(data[0,:,0])>2:
@@ -422,7 +449,7 @@ class ModelNet40DatasetCache():
             labels.append(self.labels[elem])
 #             if 'car_0229' in file:
 #                 print(np.std(data[elem%self.repeat][:,0]))
-            if np.std(data[elem%self.repeat][:,0])>0.7:
+            if np.std(data[elem%self.repeat][:,0])>0.7 or data[elem%self.repeat][:,0].max()>2:
                 suffix = os.path.splitext(os.path.split(file)[-1])[0]
                 pattern = "nside{}_{}_{}.npy".format(self.nside, suffix, elem%self.repeat)
                 npy_path = os.path.join(self.proc_dir, self.experiment, pattern)
@@ -463,7 +490,7 @@ class ModelNet40DatasetCache():
                 if experiment is 'equiangular':
                     img = img.reshape((6,-1)).T
             except (OSError, FileNotFoundError):
-                img = check_trans(self.nside, file_path, rot=True)#('rot' in experiment))
+                img = check_trans(self.nside, file_path, rot=('rot' in experiment))
                 np.save(npy_path.format(i), img)
             output.append(img)
 
@@ -552,7 +579,7 @@ class ModelNet40DatasetTF():
         self.N = nfile * augmentation
         if self.experiment == 'all':
             self.experiment = 'deepsphere*'
-            self.N *= 3
+            self.N *= 5
         
         if fix:
             self._fix()
@@ -578,7 +605,8 @@ class ModelNet40DatasetTF():
         self.noise = [None]*32
         if '*' in self.experiment:
             list_dir = glob.glob(os.path.join(self.proc_dir, self.experiment))
-            self.list_dir = [os.path.split(_dir)[-1] for _dir in list_dir[1:]]
+            self.list_dir = [os.path.split(_dir)[-1] for _dir in list_dir]
+            self.list_dir.remove('deepsphere_notr')
         
         def add_noise(data, label):
             size = data.shape
@@ -596,7 +624,7 @@ class ModelNet40DatasetTF():
         
         def get_elem(file, transform=transform):
             if '*' in self.experiment:
-                i = np.random.randint(3)
+                i = np.random.randint(4)
                 experiment = self.list_dir[i]
             else:
                 experiment = self.experiment

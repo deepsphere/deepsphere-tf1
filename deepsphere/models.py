@@ -236,6 +236,9 @@ class base_model(object):
             predictions, loss = self.predict(data, labels, sess, cache=cache)
             if cache:
                 labels = data.get_labels()
+        if hasattr(self, 'val_mask'):
+            predictions = predictions * data[..., -2]
+            labels = labels * data[..., -1]
         if self.regression:
             exp_var = sklearn.metrics.explained_variance_score(labels, predictions)
             r2 = sklearn.metrics.r2_score(labels, predictions)
@@ -274,6 +277,7 @@ class base_model(object):
         shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
         os.makedirs(self._get_path('checkpoints'))
         path = os.path.join(self._get_path('checkpoints'), 'model')
+        path_best = os.path.join(self._get_path('checkpoints'), 'best.ckpt')
         
         # Initialization
         sess.run(self.op_init)
@@ -294,6 +298,8 @@ class base_model(object):
             val_data, val_labels = val_dataset.get_all_data()
             if len(val_data.shape) is 2:
                 val_data = np.expand_dims(val_data, axis=2)
+                
+        best_acc = 0
             
         times = []
         for step in range(1, num_steps+1):
@@ -365,6 +371,9 @@ class base_model(object):
                     summary.value.add(tag='validation/loss', simple_value=loss)
                     summary.value.add(tag='validation/mae', simple_value=mae)
                 else:
+                    if accuracy > best_acc:
+                        best_acc = accuracy
+                        self.op_saver.save(sess, path_best)
                     summary.value.add(tag='validation/accuracy', simple_value=accuracy)
                     summary.value.add(tag='validation/f1', simple_value=f1)
                     summary.value.add(tag='validation/loss', simple_value=loss)
@@ -442,8 +451,9 @@ class base_model(object):
                 self.ph_training = tf.placeholder(tf.bool, (), 'training')
 
             # Model.
-            op_logits, self.op_descriptor = self.inference(self.ph_data, self.ph_training)
-            self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization, extra_loss=self.extra_loss, regression=regression)
+            op_data = self.ph_data
+            op_logits, self.op_descriptor = self.inference(op_data, self.ph_training)
+            self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization, op_data, extra_loss=self.extra_loss, regression=regression)
             self.op_train = self.training(self.op_loss)
             self.op_prediction = self.prediction(op_logits)
             self.op_probabilities = self.probabilities(op_logits)
@@ -503,12 +513,15 @@ class base_model(object):
         tf.summary.scalar('loss/triplet_loss', triplet_loss)
         return triplet_loss
 
-    def loss(self, logits, labels, regularization, extra_loss=False, regression=False):
+    def loss(self, logits, labels, regularization, data ,extra_loss=False, regression=False):
         """Adds to the inference model the layers required to generate loss."""
         with tf.name_scope('loss'):
             if regression:
                 with tf.name_scope('MSE'):
                     predictions = logits#tf.reduce_mean(logits, axis=1)
+                    if hasattr(self, 'train_mask'):
+                        predictions = predictions * data[..., -2]
+                        labels = labels * data[..., -1]
                     mse = tf.losses.mean_squared_error(labels, predictions)
 #                     mse = tf.reduce_mean(tf.square(predictions - labels))
                     loss = mse
@@ -569,7 +582,7 @@ class base_model(object):
             config = tf.ConfigProto()
             config.gpu_options.allow_growth = True
             sess = tf.Session(graph=self.graph, config=config)
-            print(self._get_path('checkpoints'))
+            #print(self._get_path('checkpoints'))
             filename = tf.train.latest_checkpoint(self._get_path('checkpoints'))
             self.op_saver.restore(sess, filename)
         return sess
@@ -645,7 +658,7 @@ class cgcnn(base_model):
                 num_epochs, scheduler, optimizer, num_feat_in=1, tf_dataset=None,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200, regression=False,
-                extra_loss=False, drop=1, dir_name='', profile=False, debug=False):
+                mask=None, extra_loss=False, drop=1, dir_name='', profile=False, debug=False):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
@@ -661,6 +674,8 @@ class cgcnn(base_model):
         if len(M) == 0 and p[-1] != 1:
             raise ValueError('Down-sampling should not be used in the last '
                              'layer if no fully connected layer follows.')
+        if mask and not isinstance(mask, list):
+            raise ValueError('Must provide a list of mask for training and validation.')
 
         # Keep the useful Laplacians only. May be zero.
         M_0 = L[0].shape[0]     # Laplacian size is npix x npix
@@ -732,6 +747,9 @@ class cgcnn(base_model):
         self.drop = drop
         self.extra_loss = extra_loss
         self.regression = regression
+        if mask:
+            self.train_mask = mask[0]
+            self.val_mask = mask[1]
 
         # Build the computational graph.
         self.build_graph(M_0, num_feat_in, tf_dataset, regression)
