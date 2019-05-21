@@ -104,12 +104,18 @@
 
 CNNs are powerful tools in deep learning mainly due to their ability to exploit the translational symmetry present in images, as they are equivariant to translations. Other datasets present different types of symmetries (e.g. rotations), or lie on the sphere $S^2$ (e.g. cosmological maps, omni-directional images, 3D models, ...). It is therefore of interest to design architectures that exploit the structure of the data and are equivariant to the 3D rotation group SO(3). Different architectures were designed to exploit these symmetries, such as 2D convolutions on planar projections, convolutions on the SO(3) group, or convolutions on graphs. The DeepSphere model approximates the sphere with a graph and performs graph convolutions. \\
 \indent In this study, DeepSphere is evaluated against other spherical CNNs on different tasks. While the SO(3) convolution is equivariant to all rotations in SO(3), the graph convolution is only equivariant to the rotations in $S^2$ and invariant to the third rotation. Our experiments on SHREC-17 (a 3D object retrieval task) shows that DeepSphere achieves the same performance while being 40 times faster to train than Cohen et al. and 4 times faster than Esteves et al. Equivariance to the third rotation is an unnecessary price to pay. Moreover, DeepSphere is more flexible as it can work with any sampling and partial spheres.
+
+Further works will be to prove these results on a similar dataset in order to obtain similar results. Another owrk is to demonstrate the flexibility of the model by using non-hierarchical sampling graph such as the position of the weather stations on the terrestrial globe.
 \end{abstract}
 \chapter{Introduction}
+\todo{add description of master project given by Michaël}
 \section{Motivation}
+...
 
 \chapter{Background}
 \section{sphere}
+
+
 Why spherical signal? In order to exploit rotational symmetry. Some data are the same, even under rotation transformation. To represent this, use advantage of sphere $S^2$ properties or rotation group $SO(3)$.
 \subsection{sampling}
 In computer analysis, real life analysis, deep learning, ... not possible to treat continuous signal. Must find a way to discretize the spherical signal. Even if the 2D plane have an optimal discretization (euclidean grid), the sphere $S^2$ cannot have this. % cite smth (cohen, deepshpere and all others)
@@ -143,6 +149,7 @@ A spherical signal can be represented as a sum of spherical harmonics. These sph
 % image of spherical harmonics
 
 \subsection{band-limited signal} %cite soft fourier
+ Depending on the sampling density, signal can only be truthfully represented up to lmax spherical harmonic.
  
 \section{invariance and equivariance to rotation}
 what is invariance and equivariance
@@ -171,7 +178,62 @@ Computationnaly expensive
 * DeepSphere
 * LTS4
 * ...
+
+\chapter{Different datasets}
+\section{3D objects}
+Equivariance in rotation useful because the object is the same whatever the orientation is ( an upside down plane is still a plane).
+
+Main problem is that the spherical signal does not represent correctly the 3D object. occlusions are not represented, and only a specific point of view for each vertex is represented.
+
+meilleur representation est graph a partir de vertex. Normalement toujours rotation equivariant, même si approxime plus les harmoniques spheriques.
+
+classifiy only graphs and not signal on graph.
+
+\section{cosmological maps}
+see deepsphere paper
+
+\section{Omnidirectional imaging}
+real life or virtual.
+True representation on the sphere (depending on the sensor)
+
+direction of gravity is important
+No real rotation symmetry of signal
+\subsection{panorama}
+Better representation might be the cylinder. In this case, we keep a rotation and the gravity. A plus side is the perfect uniform sampling on the cylinder.
+\section{planetarian data}
+pseudo spherical data, easily represented by a graph.
+But there is no rotation symmetry, or only 1 rotation (spin of the earth)
+
+no similar signal on pole or equator, or on oceans and continents.
+
+but local rotation equivariance may be useful
+\subsection{climate on earth}
+\subsection{climate aerial}
+\subsection{...}
+density, economics,...
+
+\section{molecular}
+
+\section{medical imaging}
+
+\section{mocks dataset}
+do not represent reality, or real life problem. It is not useful at the end. Only to prove some trivial concepts.
+
 \chapter{Benchmark}
+
+\section{Choice of datasets/tasks}
+As the goal of this study is to compare DeepSphere against several spherical CNNs, and prove its advantages, one must chose carefully the datasets. \todo{Pour rappel, }The advantages of Deepshere are its speed and its flexibility. Downsides are only equivariant in $S^2$ by construction and invariant to the third rotation in $SO(3)$, and the almost equivariance due to graph construction.
+\subsection{SHREC17}
+train: 31364 instances in 55 classes (non uniform)
+val: 633 instances in 55 classes
+test: 10265 instances in 55 classes
+\subsection{ModelNet40}
+train: 9843 instances in 40 class (non uniform)
+test: 2468 instances in 40 class
+
+airplane\_0119 cannot support a rotation?
+\subsection{GHCN-daily}
+50469 stations position for every day since 1xxx
 \section{SHREC17 task}
 Task is to develop a 3D shape retrieval method
 \subsection{Cohen Model}
@@ -271,6 +333,38 @@ Dataset3: combination of D1 and D2
 Train on D1, D2 and D3 and see how they react on each dataset
 \section{Classification task - ModelNet40}
 More or less similar than SHREC17 but with less instances in total
-\section{weather data - GHCN}
 
+shift 90° on map give the exact same results, so the implementation is correct.
+
+plant\_0338 is flat and cannot be ray casted.
+plant\_0078
+
+problem rotation. not enough sample and indistiguishable.
+\section{weather data - GHCN}
+mask valeur nan
+valeur avec interpolation
+
+différent graph?
+
+regression\_tikhonov(G, y, M, tau=0): tau = 0, y = mask
+
+faire 2 graph (min set avec que des bonnes valeurs, super set avec 75\% de valeurs et regression tikhonov
+
+minSet:
+
+test regression temperature future
+features: temp for n days, number of day in year, number of month in year
+hyperparameters: number of neighbours in NNgraph, number of days, ...
+MSE 7.7/10.43 MAE: 2.47, exp\_var: 0.8567, r2: 0.848
+remove month as it is redundant with days:
+no change, remove later
+normalisation of data temperature:
+no good
+add info about station (position on sphere, altitude)
+no good
+
+prédit correctement le jour actuel, et pas le lendemain
+
+hypothèse, need small filter as we don't need to know info on other side planet.
+empirical result: better loss and other metrics with high filter and number of neighbours
 \end{document}
