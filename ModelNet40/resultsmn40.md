@@ -198,6 +198,23 @@ Seems to have problem with the preprocessing
 * time per batch: 0.063 s
 * 30 epoch = 11 m
 
+## deeper model
+### no rotation
+* train on dataset, augmentation=1, no random rotation (object center of the sphere)
+* change std
+* accuracy, F1 of training part (Z):  
+* accuracy, F1 of training part (rot): 
+* accuracy, F1 of training part (tr):   
+* accuracy, F1 of training part (rot+tr): 
+* accuracy, F1 of training part (): 97.29, 97.29 ##
+* accuracy, F1 of test part (Z): 
+* accuracy, F1 of test part (rot): 68.23, 68.28 
+* accuracy, F1 of test part (tr): 
+* accuracy, F1 of test part (rot+tr): 
+* accuracy, F1 of test part (): 88.45, 88.59
+* time per batch: 1.030 s
+* 30 epoch = 45 m
+
 ## Nsides 128
 ### train no rotation
 * train on dataset, augmentation=1, no random rotation (object center of the sphere)

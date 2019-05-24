@@ -456,6 +456,16 @@ class ModelNet40DatasetCache():
                 os.remove(npy_path)
                 print(npy_path)
         return datas, labels
+    
+    def get_npy_file(self, files):
+        datas = []
+        for file in files:
+            data = self.cache_npy(file, pick_randomly=False, repeat=self.repeat, experiment=self.experiment)
+            data = (np.stack(data)[:, :, :self.nfeat]-self.mean)/self.std
+            if self.transform:
+                data = self.transform(data)
+            datas.append(data)
+        return datas
             
     def cache_npy(self, file_path, pick_randomly=False, repeat=1, experiment='deepsphere'):    
         
