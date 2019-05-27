@@ -30,7 +30,7 @@
 \usepackage{todonotes}
 \usepackage{lipsum}
 
-%\bibliography{biblio}
+\bibliography{PDM_references.bib}
 
 \graphicspath{{./figures/}}
 \titleformat{\chapter}[hang]{\normalfont\huge\bfseries}{\thechapter.}{20pt}{\huge}
@@ -45,11 +45,11 @@
 
 \DeclareMathSizes{10}{11}{8}{8}   % Pour un texte de taille 10 
 \titlespacing*{\chapter} {0pt}{15pt}{15pt}
-%\makeatletter
-%\patchcmd{\printbibliography}{%
-%  \chapter*{\bibname}\@mkboth{\MakeUppercase\bibname}{\MakeUppercase\bibname}}{%
-%  \chapter{References}}{}{}
-%\makeatother
+\makeatletter
+\patchcmd{\printbibliography}{%
+ \chapter*{\bibname}\@mkboth{\MakeUppercase\bibname}{\MakeUppercase\bibname}}{%
+ \chapter{References}}{}{}
+\makeatother
 
 \renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0.4pt}
@@ -64,7 +64,7 @@
 }
 \pagestyle{plain}% Set page style to plain.
 
-%\setlength{\cftbeforechapskip}{0pt}  %enlève espace entre chapitre dans sommaire
+\setlength{\cftbeforechapskip}{0pt}  %enlève espace entre chapitre dans sommaire
 \newcolumntype{C}[1]{>{\centering\arraybackslash }b{#1}}
 
 \setlength{\parindent}{1em}
@@ -117,69 +117,119 @@ Further works will be to prove these results on a similar dataset in order to ob
 
 
 Why spherical signal? In order to exploit rotational symmetry. Some data are the same, even under rotation transformation. To represent this, use advantage of sphere $S^2$ properties or rotation group $SO(3)$.
-\subsection{sampling}
-In computer analysis, real life analysis, deep learning, ... not possible to treat continuous signal. Must find a way to discretize the spherical signal. Even if the 2D plane have an optimal discretization (euclidean grid), the sphere $S^2$ cannot have this. % cite smth (cohen, deepshpere and all others)
-Several discretizations have been analyzed, and have different properties.
-\begin{itemize}
-    \item equiangular %\cite lie-learn git
-    \begin{itemize}
-        \item Driscroll-Healy (pole) %\cite paper
-        Worst of all, but the most used because simple
-        \item SOFT (Using SO3 features) (without poles) %\cite paper
-        no more problems with the poles
-        \item Gauss-Legendre Quadrature
-        Not much improvement
-        \item Clenshaw-Curtis
-        Must see 
-        \item equidistribution
-        ???
-    \end{itemize}
-    \item Optimal Dimensionality
-    point for each spherical harmonics
-    \item HEALpix
-    hierarchical, same area representation and iso latitude
-    \item Uniform sampling
-    \item ...
-\end{itemize}
-iso-latitude is good for fast fourier transform and find easily the spherical harmonics
-hierarchical is good for pooling later
-same area to represent the sphere with the least deformation
+
 \subsection{Fourier and Spherical harmonics}
 A spherical signal can be represented as a sum of spherical harmonics. These spherical harmonics  works like Fourier mode.
 % image of spherical harmonics
 
+
+\subsection{sampling}\label{sec:sampling}
+In computer analysis, real life analysis, deep learning, ... not possible to treat continuous signal. Must find a way to discretize the spherical signal. Even if the 2D plane have an optimal uniform discretization (euclidean grid), the sphere $S^2$ cannot have this \cite{cohen_spherical_2018}\cite{perraudin_deepsphere:_2018}. % cite all others
+The different samplings/tesselation/partition into finite area elements can have different properties:
+\begin{itemize}
+    \item iso-latitude: this allow a fast fourrier transform and fast computation of spherical harmonics
+    \item hierarchical pixelization: useful for pooling operation.
+    \item same-area coverage: each pixel has the same importance, value as it covers the same area on the sphere
+    \item uniformity: how well the sampling spans the sphere without too much redundancy
+\end{itemize}
+
+Several discretizations have been analyzed, and have different properties.
+A better analyze of different samplings \cite{elahi_comparative_2016}
+\begin{itemize}
+    \item equiangular or equirectangular %\cite lie-learn git
+    This is the most intuitive discretization of the sphere. It corresponds to a grid in the polar coordinate system, as it samples on the latitude and longitude.
+    Use a bandwidth L and will give 2*L latitude rings with up to 2*L longitutude pixels
+    
+    This sampling is iso-latitude and hierarchical, so pooling and SHFT can be done rather easily on them. And the sampling is untuitively easy to understand. Nowadays, it is used widely for any spherical signal representation such as omnidirectional imaging or cartography. But it has a main downside as the pixels have not the same area coverage, meaning that some part of the sphere are more densely pixelated.
+    \begin{itemize}
+        \item Driscroll-Healy (pole)\cite{driscoll_computing_1994} %\cite paper
+        Worst of all, but the most used because simple.
+        pole is a ring of 2L pixels in the same position
+        \item SOFT (Using SO3 features) (without poles)\cite{healy_ffts_2003} %\cite paper
+        pole are no longer a part of the sampling
+        \item Gauss-Legendre Quadrature \cite{keiner_fast_2008}
+        Not much improvement. used for faster SHT
+        \item Clenshaw-Curtis \cite{gimbutas_fast_2013}
+        Must see 
+    \end{itemize}
+    \item Optimal Dimensionality \cite{elahi_comparative_2016} % other in elahi
+    Pixel for each spherical harmonics. Reduce the number of pixels needed and achieve a better uniformity.
+    \item platonic solid %\cite smth
+    Hierarchical, and same-area coverage, although distortion appears for some pixels. But not iso-latitude. not a problem if no SHFT is performed.
+    \item HEALpix \cite{noauthor_healpix_nodate}
+    Hearirchical Equal Area IsoLatitude Pixelisation
+    rhombic dodecahedron
+    hierarchical, same area representation and iso latitude
+    \item Uniform sampling
+    \item ...
+\end{itemize}
+
 \subsection{band-limited signal} %cite soft fourier
  Depending on the sampling density, signal can only be truthfully represented up to lmax spherical harmonic.
  
-\section{invariance and equivariance to rotation}
+\section{invariance and equivariance}
 what is invariance and equivariance
+\begin{equation}
+    T_1(f(x)) = f(T_2(x))
+\end{equation}
+where:
+\begin{itemize}
+    \item[T] a transformation operation (e.g. a rotation)
+    \item[f] a filter
+    \item[x] the data analyzed
+\end{itemize}
+Invariance is when $T_2$ is the identity. Thus the result of the filter will always be the same whichever the transformation. (internal representation is still the same)
+same-equivariance is when $T_1 = T_2$, transformation of input is the same transformation of output ans is a special case of equivariance.
 
-why is it useful
+classification task are invariant ==> object detection, task invariant, but internal properties are equivariant (being able to tell the orientation, position, lightning, ...) 
 
-It is seen that for a spherical graph to keep the rotation equivariance properties, the eigenvectors of its laplacian must approximate the spherical harmonics. Convergence is easily doable if random uniform sampling. %\cite martino
-Possible if as uniform as possible sampling
-equiangular is not one of them
+why is it useful?
+
+Some signal remains fundamentally the same under a symmetry transformation. Thus, being able to observe the same features through invariance or perceive the transformation through the equivariance, and still see the same data is useful.
+
+in case of cnn, it is for weight sharing. For whatever the transformation is, still see the same object.
+Standard CNN very powerful because they are translation equivariant (weight shared for all pixels), thus will react the same if pixels in another location.
+
+In standard CNN, data augmentation is done to learn the equivariance/invariance, or transformation of the input in a space where the desired equivariance can be transformed to a known equivariance (translation in the case of standard CNN. But this equivariance can be (mathematically) encoded directly in the architecture. Meaning that the filters will directly be equivariant and don't need to learn to be it.
+
+(
+
 \section{learning}
+% Models in deep learning that uses invariance and equivariance are more and more seen
+Archictecture that exploits structure and symmetries present in data are powerful because they don't have to learn them and can directly focus on the main features needed for the task. Thus being invariant or equivariant to some symmetry such as translation or rotation in the data domain can speed up the training time, and make the given model more robust to perturbation (translation or rotation).
 \subsection{spherical CNN}
+More datasets present rotation symmetries or lie on the sphere $S^2$ (e.g in section \ref{chap:Datasets}). In this section, architectures working on this kind of data are presented, either they are invariant, equivariant or variant to rotations and/or deformation
 \subsubsection{2D CNNs on planar projection}
+One of the most instinctive use of CNN on spherical data is to use a planar projection of $S^2$. However, there is no perfect unique uniform sampling of the sphere. Some of the different samplings are explained on section \ref{sec:sampling}.
+
+
 * no rotation equivariance as the translation on the plane doesn't translate really well to rotation on the sphere
 * can only do a deformation equivariant model at best
+\cite{boomsma_spherical_2017}
 \subsubsection{2D CNNs on pixels}
-* Cohen
-* Jiang
+* Cohen \cite{cohen_gauge_2019}
+* Jiang \cite{jiang_spherical_2019}
 * ...
+
+gauge transformation. invariance to deformation. iotropic vs anisotropic filters
 \subsubsection{SHFT on SO(3) and S2}
 \begin{itemize}
-    \item Cohen
-    \item Esteves
+    \item Cohen \cite{cohen_spherical_2018}
+    \item Esteves \cite{esteves_learning_2017}
 \end{itemize}
 Computationnaly expensive
 \subsubsection{Graph CNNs}
-* DeepSphere
-* LTS4
+* DeepSphere \cite{perraudin_deepsphere:_2018}
+* LTS4 \cite{frossard_graph-based_2017}
 * ...
 
-\chapter{Different datasets}
+only isotropic filter using monom or polynomial filter (ring hops)
+
+% It is seen that for a spherical graph to keep the rotation equivariance properties, the eigenvectors of its laplacian must approximate the spherical harmonics. Convergence is easily doable if random uniform sampling. %\cite martino
+% Possible if as uniform as possible sampling
+% equiangular is not one of them
+
+\chapter{Different datasets}\label{chap:Datasets}
 \section{3D objects}
 Equivariance in rotation useful because the object is the same whatever the orientation is ( an upside down plane is still a plane).
 
@@ -191,6 +241,9 @@ classifiy only graphs and not signal on graph.
 
 \section{cosmological maps}
 see deepsphere paper
+
+need a great resolution to observe features
+anisotropic filters is not needed in this case
 
 \section{Omnidirectional imaging}
 real life or virtual.
@@ -217,27 +270,50 @@ density, economics,...
 \section{medical imaging}
 
 \section{mocks dataset}
+Mainly projection of plane images on the sphere. For example, projection of MNIST digits.
+
 do not represent reality, or real life problem. It is not useful at the end. Only to prove some trivial concepts.
 
 \chapter{Benchmark}
 
 \section{Choice of datasets/tasks}
 As the goal of this study is to compare DeepSphere against several spherical CNNs, and prove its advantages, one must chose carefully the datasets. \todo{Pour rappel, }The advantages of Deepshere are its speed and its flexibility. Downsides are only equivariant in $S^2$ by construction and invariant to the third rotation in $SO(3)$, and the almost equivariance due to graph construction.
+
+Need global task, dense task, and a one that prove the flexibility of the model.
 \subsection{SHREC17}
+shape retrieval task. similar to a global classification task.
+This dataset was chosen mainly because it was used to demonstrate the ability of two other spherical CNNs, the models of Cohen and Esteves. there was still room for improvement
+
 train: 31364 instances in 55 classes (non uniform)
 val: 633 instances in 55 classes
 test: 10265 instances in 55 classes
 \subsection{ModelNet40}
+real global classification task, used by Esteves and jiang, and compared with Cohen.
 train: 9843 instances in 40 class (non uniform)
 test: 2468 instances in 40 class
 
 airplane\_0119 cannot support a rotation?
+
+poor population
 \subsection{GHCN-daily}
+non uniform sampling on the earth with various meteorological information such as temperature, precipitation and snow fall. lots of missing data. will be used as a proof of flexibility of deepsphere model if a task is found.
+
 50469 stations position for every day since 1xxx
+
+\subsection{climate pattern segmentation (ExtremeWeather}
+ExtremeWeather dataset from CAM5.1
+equirectangular sampling with a 25-km resolution at equator (0.23° x 0.31°) 
+labels are not certain. Task not so useful, but can prove the segmentation on the sphere.
+768x1152 pixels = 884'736 px ==> Nside = 256 ==> 786'432 px
+Jiang and Cohen used 10*4**5+2 tesselation = 10'242 (bilinear interpolation) ==> Nside = 16 - 32
+\subsection{cylinder panoramic}
+just an idea
+\subsection{just another non uniform dataset}
+
 \section{SHREC17 task}
 Task is to develop a 3D shape retrieval method
 \subsection{Cohen Model}
-Use an equiangular grid (SOFT) to project the data on the sphere of resXres with res=2*bandwidth
+Use an equiangular grid (SOFT) to project the data on the sphere of res x res with res = 2 * bandwidth
 
 \subsubsection{comparison}
 Without regularization, our model tend to overfit, and the validation loss increase steadily. But results still seems to become better as the number of epochs become greater (accuracy, f1 score and shrec17 script)
@@ -292,6 +368,8 @@ In order to approximates at best the first spherical harmonics
     \label{tab:SHREC17_retriev}
 \end{table}
 
+\todo{IDEA: for a single instance of easy class, and one from undinstiguishable class (flower pot), make several rotation and see evolution of logits and feature map}
+
 \subsection{Misc}
 Performance tested on Cohen similar architecture, with 20 epochs and 40 evaluation done on RAM.\\
 \begin{tabular}{|c|c|c|c|c|c|}
@@ -331,7 +409,10 @@ Dataset1: projected on equator
 Dataset2: project on pole
 Dataset3: combination of D1 and D2
 Train on D1, D2 and D3 and see how they react on each dataset
+
+Not done, and will maybe not be done. different graph each time. Not change from mock dataset such as Spherical-MNIST
 \section{Classification task - ModelNet40}
+\subsection{dataset and task}
 More or less similar than SHREC17 but with less instances in total
 
 shift 90° on map give the exact same results, so the implementation is correct.
@@ -340,7 +421,18 @@ plant\_0338 is flat and cannot be ray casted.
 plant\_0078
 
 problem rotation. not enough sample and indistiguishable.
+
+try with less features (distance and normals, like Esteves). nothing change, same results. confirm that other features can be computed from the first one.
+
+difficult to distinguidh on the sphere signal (for example desk from table)
+\subsection{Jiang - Esteves - Cohen models}
+
+\subsection{our result}
+
+\subsection{conclusion}
 \section{weather data - GHCN}
+\subsection{dataset}
+\subsection{find a task}
 mask valeur nan
 valeur avec interpolation
 
@@ -367,4 +459,21 @@ prédit correctement le jour actuel, et pas le lendemain
 
 hypothèse, need small filter as we don't need to know info on other side planet.
 empirical result: better loss and other metrics with high filter and number of neighbours
+
+\section{ExtremeWeather}
+\subsection{dataset and task}
+\subsection{other models}
+\subsection{our model and result}
+\subsection{conclusion}
+
+\section{Prove flexibility dataset}
+\subsection{dataset and task}
+\subsection{our approach}
+
+
+\chapter{Analysis - Summary}
+\chapter{conclusion}
+\section{Future Work}
+\printbibliography
+\addcontentsline{toc}{chapter}{Bibliography}
 \end{document}
