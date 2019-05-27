@@ -1,6 +1,6 @@
 \documentclass[11pt]{report}
-\usepackage{inputenc} 
-\usepackage[backend=bibtex, maxnames=6]{biblatex}
+\usepackage[utf8]{inputenc} 
+\usepackage[backend=bibtex, maxnames=5]{biblatex}
 \usepackage[T1]{fontenc}
 \usepackage[english]{babel}  
 \usepackage[pdftex]{graphicx}
@@ -29,6 +29,7 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{todonotes}
 \usepackage{lipsum}
+\usepackage{svg}
 
 \bibliography{PDM_references.bib}
 
@@ -82,18 +83,51 @@
     \vspace{10pt}
 	{\huge \bfseries \thetitle}\\
     \vspace{10pt}
-    { \large \bfseries Empirical analysis of Spherical Convolutional Neural Network }
+    { \large \bfseries Empirical analysis of SCNNs }
     \vspace{10pt}%\\
     
 	\rule{\linewidth}{0.2 mm} \\[1 cm]
 	
 	{\large % Course Code
-	\textsc{Master Thesis\\[1 cm] LTS2}\\[1 cm]				% Course Name 
+	\textsc{Master Thesis - 2019 - Microengineering Section\\[1 cm] }\\[1 cm]				% Course Name 
     }
     %\\[1 cm]
     \textsc{\bfseries Fr\'ed\'erick Matthieu Gusset}
 	\\[1.7 cm]
-	\textsc{Spring 2019} \\[2 cm]
+	
+	\begin{minipage}{0.1\textwidth}
+		\begin{flushleft} \large
+			\textsc{}\\
+            \vspace{10pt}
+            \textsc{} \\
+			\vspace{10pt}
+			\end{flushleft}
+			\end{minipage}~
+		\begin{minipage}{0.3\textwidth}
+		\begin{flushleft} \large
+			\textsc{Professor}\\
+            \vspace{10pt}
+            \textsc{Assistants} \\
+			\vspace{10pt}
+			\end{flushleft}
+			\end{minipage}~
+			\begin{minipage}{0.4\textwidth}
+			\begin{flushright} 
+			\vspace{10pt}\large
+			\textsc{Pierre Vandergheynst}\\
+            \vspace{10pt}
+			\textsc{Michaël Defferard}\\
+			\textsc{Nathanaël Perraudin}
+		\end{flushright}
+	\end{minipage}\\[2 cm]
+	
+	{\large % Course Code
+	\textsc{LTS2\\[1 cm] }\\[1 cm]				% Course Name 
+    }
+	
+	\vfill~
+	
+	\textsc{\today} \\[2 cm]
 \end{center}
 
 \begin{abstract}
@@ -107,7 +141,21 @@ CNNs are powerful tools in deep learning mainly due to their ability to exploit 
 
 Further works will be to prove these results on a similar dataset in order to obtain similar results. Another owrk is to demonstrate the flexibility of the model by using non-hierarchical sampling graph such as the position of the weather stations on the terrestrial globe.
 \end{abstract}
+
+\thispagestyle{empty}
+\cleardoublepage
+\thispagestyle{empty}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+\thispagestyle{empty}
+\clearpage
+\pagenumbering{gobble}
+\tableofcontents
+\thispagestyle{empty}
+\clearpage                        % New section, with numbering
+\pagenumbering{arabic}
 \chapter{Introduction}
+\setcounter{page}{1}
 \todo{add description of master project given by Michaël}
 \section{Motivation}
 ...
@@ -136,11 +184,13 @@ The different samplings/tesselation/partition into finite area elements can have
 Several discretizations have been analyzed, and have different properties.
 A better analyze of different samplings \cite{elahi_comparative_2016}
 \begin{itemize}
-    \item equiangular or equirectangular %\cite lie-learn git
+    \item equiangular or equirectangular\\ %\cite lie-learn git
     This is the most intuitive discretization of the sphere. It corresponds to a grid in the polar coordinate system, as it samples on the latitude and longitude.
     Use a bandwidth L and will give 2*L latitude rings with up to 2*L longitutude pixels
     
     This sampling is iso-latitude and hierarchical, so pooling and SHFT can be done rather easily on them. And the sampling is untuitively easy to understand. Nowadays, it is used widely for any spherical signal representation such as omnidirectional imaging or cartography. But it has a main downside as the pixels have not the same area coverage, meaning that some part of the sphere are more densely pixelated.
+    
+    Much deformation
     \begin{itemize}
         \item Driscroll-Healy (pole)\cite{driscoll_computing_1994} %\cite paper
         Worst of all, but the most used because simple.
@@ -160,6 +210,12 @@ A better analyze of different samplings \cite{elahi_comparative_2016}
     Hearirchical Equal Area IsoLatitude Pixelisation
     rhombic dodecahedron
     hierarchical, same area representation and iso latitude
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=0.5\linewidth]{gorski_f1.jpg}
+        \caption{HEALPix tesselation}
+        \label{fig:healpix}
+    \end{figure}
     \item Uniform sampling
     \item ...
 \end{itemize}
@@ -195,31 +251,45 @@ In standard CNN, data augmentation is done to learn the equivariance/invariance,
 (
 
 \section{learning}
+%\subsection{CNN}
 % Models in deep learning that uses invariance and equivariance are more and more seen
 Archictecture that exploits structure and symmetries present in data are powerful because they don't have to learn them and can directly focus on the main features needed for the task. Thus being invariant or equivariant to some symmetry such as translation or rotation in the data domain can speed up the training time, and make the given model more robust to perturbation (translation or rotation).
-\subsection{spherical CNN}
+\subsection{spherical CNNs}
 More datasets present rotation symmetries or lie on the sphere $S^2$ (e.g in section \ref{chap:Datasets}). In this section, architectures working on this kind of data are presented, either they are invariant, equivariant or variant to rotations and/or deformation
 \subsubsection{2D CNNs on planar projection}
 One of the most instinctive use of CNN on spherical data is to use a planar projection of $S^2$. However, there is no perfect unique uniform sampling of the sphere. Some of the different samplings are explained on section \ref{sec:sampling}.
 
+But as there is no perfect uniform sampling, it is not possible to translate the desired equivariance to rotation to an equivariance to translation, because deformation is induced on the projection (see Fig. \ref{fig:planar_projection}). First approaches use standard CNN on equiangular projection. Other projection, such as the cubed sphere\cite{boomsma_spherical_2017}, or platonic solids\cite{cohen_gauge_2019}\cite{jiang_spherical_2019}\cite{lee_spherephd:_2018} may be used to reduce deformation and ..., but may lose the rotation equivariance.
 
-* no rotation equivariance as the translation on the plane doesn't translate really well to rotation on the sphere
-* can only do a deformation equivariant model at best
-\cite{boomsma_spherical_2017}
-\subsubsection{2D CNNs on pixels}
-* Cohen \cite{cohen_gauge_2019}
-* Jiang \cite{jiang_spherical_2019}
-* ...
+Most models that works on omnidirectional imaging use this method with equiangular projection, and focuse more on a deformation free architecture \cite{su_learning_2017}\cite{ferrari_spherenet:_2018}, and drop the rotation equivariance part, arhuing that it is not necessary, even useful.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\linewidth]{v2-9d6a9d92bb02bc9e198c4c16397ce2fd_b.jpg}
+    \caption{Deformation of planar projection \cite{cohen_spherical_2018}}
+    \label{fig:planar_projection}
+\end{figure}
+% \subsubsection{2D CNNs on pixels}
+% * Cohen \cite{cohen_gauge_2019}
+% * Jiang \cite{jiang_spherical_2019}
+% * ...
 
 gauge transformation. invariance to deformation. iotropic vs anisotropic filters
 \subsubsection{SHFT on SO(3) and S2}
+One way to reach true equivariance to rotation is to use Spherical Harmonics and go in the spectral domain.
 \begin{itemize}
     \item Cohen \cite{cohen_spherical_2018}
     \item Esteves \cite{esteves_learning_2017}
 \end{itemize}
-Computationnaly expensive
+Computationnaly expensive as we need to do SHFT every forward pass and backward pass during the training of the neural net.
 \subsubsection{Graph CNNs}
 * DeepSphere \cite{perraudin_deepsphere:_2018}
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figure2-Blogpost-SCNN.png}
+    \caption{DeepSphere architecture}
+    \label{fig:deepsphere}
+\end{figure}
 * LTS4 \cite{frossard_graph-based_2017}
 * ...
 
@@ -302,7 +372,7 @@ non uniform sampling on the earth with various meteorological information such a
 
 \subsection{climate pattern segmentation (ExtremeWeather}
 ExtremeWeather dataset from CAM5.1
-equirectangular sampling with a 25-km resolution at equator (0.23° x 0.31°) 
+equirectangular sampling with a 25-km resolution at equator (0.23 deg x 0.31 deg) 
 labels are not certain. Task not so useful, but can prove the segmentation on the sphere.
 768x1152 pixels = 884'736 px ==> Nside = 256 ==> 786'432 px
 Jiang and Cohen used 10*4**5+2 tesselation = 10'242 (bilinear interpolation) ==> Nside = 16 - 32
@@ -311,7 +381,20 @@ just an idea
 \subsection{just another non uniform dataset}
 
 \section{SHREC17 task}
+\subsection{dataset and task}
 Task is to develop a 3D shape retrieval method
+\begin{figure}[ht]
+    \centering
+    \includesvg[width=0.5\linewidth]{lamp_000018.svg}
+    \caption{Ray-casting on the sphere}
+    \label{fig:ray_cast}
+\end{figure}
+\begin{figure}[ht]
+    \centering
+    \includesvg[width=0.5\linewidth]{lamp_sphere_000018.svg}
+    \caption{Resulting spherical signal}
+    \label{fig:sphere_signal}
+\end{figure}
 \subsection{Cohen Model}
 Use an equiangular grid (SOFT) to project the data on the sphere of res x res with res = 2 * bandwidth
 
@@ -327,7 +410,9 @@ pooling in spectral space
 As more computationnaly efficient, can do a deeper model.
 
 \subsection{Tweaking our system}
-Using an imperfect sampling (equiangular) to be more versatile and 
+Using an imperfect sampling (equiangular) to be more flexible
+
+Quick analysis of resulting graph
 \subsubsection{Construction of equiangular graph}
 In order to approximates at best the first spherical harmonics
 \subsection{Conclusion}
@@ -415,7 +500,7 @@ Not done, and will maybe not be done. different graph each time. Not change from
 \subsection{dataset and task}
 More or less similar than SHREC17 but with less instances in total
 
-shift 90° on map give the exact same results, so the implementation is correct.
+shift 90deg on map give the exact same results, so the implementation is correct.
 
 plant\_0338 is flat and cannot be ray casted.
 plant\_0078
@@ -476,4 +561,5 @@ empirical result: better loss and other metrics with high filter and number of n
 \section{Future Work}
 \printbibliography
 \addcontentsline{toc}{chapter}{Bibliography}
+\appendix
 \end{document}

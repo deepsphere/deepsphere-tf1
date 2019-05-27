@@ -1,4 +1,37 @@
 
+@article{lee_spherephd:_2018,
+	title = {{SpherePHD}: Applying {CNNs} on a Spherical {PolyHeDron} Representation of 360 degree Images},
+	url = {http://arxiv.org/abs/1811.08196},
+	shorttitle = {{SpherePHD}},
+	abstract = {Omni-directional cameras have many advantages overconventional cameras in that they have a much wider field-of-view ({FOV}). Accordingly, several approaches have beenproposed recently to apply convolutional neural networks({CNNs}) to omni-directional images for various visual tasks.However, most of them use image representations defined inthe Euclidean space after transforming the omni-directionalviews originally formed in the non-Euclidean space. Thistransformation leads to shape distortion due to nonuniformspatial resolving power and the loss of continuity. Theseeffects make existing convolution kernels experience diffi-culties in extracting meaningful information.This paper presents a novel method to resolve such prob-lems of applying {CNNs} to omni-directional images. Theproposed method utilizes a spherical polyhedron to rep-resent omni-directional views. This method minimizes thevariance of the spatial resolving power on the sphere sur-face, and includes new convolution and pooling methodsfor the proposed representation. The proposed method canalso be adopted by any existing {CNN}-based methods. Thefeasibility of the proposed method is demonstrated throughclassification, detection, and semantic segmentation taskswith synthetic and real datasets.},
+	journaltitle = {{arXiv}:1811.08196 [cs]},
+	author = {Lee, Yeonkun and Jeong, Jaeseok and Yun, Jongseob and Cho, Wonjune and Yoon, Kuk-Jin},
+	urldate = {2019-05-27},
+	date = {2018-11-20},
+	eprinttype = {arxiv},
+	eprint = {1811.08196},
+	keywords = {Computer Science - Computer Vision and Pattern Recognition}
+}
+
+@incollection{ferrari_spherenet:_2018,
+	location = {Cham},
+	title = {{SphereNet}: Learning Spherical Representations for Detection and Classification in Omnidirectional Images},
+	volume = {11213},
+	isbn = {978-3-030-01239-7 978-3-030-01240-3},
+	url = {http://link.springer.com/10.1007/978-3-030-01240-3_32},
+	shorttitle = {{SphereNet}},
+	abstract = {Omnidirectional cameras offer great beneﬁts over classical cameras wherever a wide ﬁeld of view is essential, such as in virtual reality applications or in autonomous robots. Unfortunately, standard convolutional neural networks are not well suited for this scenario as the natural projection surface is a sphere which cannot be unwrapped to a plane without introducing signiﬁcant distortions, particularly in the polar regions. In this work, we present {SphereNet}, a novel deep learning framework which encodes invariance against such distortions explicitly into convolutional neural networks. Towards this goal, {SphereNet} adapts the sampling locations of the convolutional ﬁlters, effectively reversing distortions, and wraps the ﬁlters around the sphere. By building on regular convolutions, {SphereNet} enables the transfer of existing perspective convolutional neural network models to the omnidirectional case. We demonstrate the effectiveness of our method on the tasks of image classiﬁcation and object detection, exploiting two newly created semi-synthetic and real-world omnidirectional datasets.},
+	pages = {525--541},
+	booktitle = {Computer Vision – {ECCV} 2018},
+	publisher = {Springer International Publishing},
+	author = {Coors, Benjamin and Condurache, Alexandru Paul and Geiger, Andreas},
+	editor = {Ferrari, Vittorio and Hebert, Martial and Sminchisescu, Cristian and Weiss, Yair},
+	urldate = {2019-05-27},
+	date = {2018},
+	langid = {english},
+	doi = {10.1007/978-3-030-01240-3_32}
+}
+
 @online{noauthor_healpix_nodate,
 	title = {{HEALPix} - Features},
 	url = {https://healpix.sourceforge.io/},
@@ -446,7 +479,6 @@
 	urldate = {2019-04-12},
 	date = {2018-12-14}
 }
-
 @book{noauthor_proceedings_2014,
 	location = {New York, {NY}},
 	title = {Proceedings of {ELM}-2014 volume 1: algorithms and theories},
@@ -466,6 +498,7 @@
 	urldate = {2019-04-10},
 	langid = {english}
 }
+
 @online{noauthor_importing_nodate,
 	title = {Importing Data {\textbar} {TensorFlow} Core},
 	url = {https://www.tensorflow.org/guide/datasets},
