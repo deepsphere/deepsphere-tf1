@@ -33,7 +33,7 @@
 
 \bibliography{PDM_references.bib}
 
-\graphicspath{{./figures/}}
+\graphicspath{{../figures/}}
 \titleformat{\chapter}[hang]{\normalfont\huge\bfseries}{\thechapter.}{20pt}{\huge}
 
 \title{Spherical Convolutional Neural Networks}
@@ -89,7 +89,7 @@
 	\rule{\linewidth}{0.2 mm} \\[1 cm]
 	
 	{\large % Course Code
-	\textsc{Master Thesis - 2019 - Microengineering Section\\[1 cm] }\\[1 cm]				% Course Name 
+	\textsc{Master Thesis - 2019 - Microengineering Section\\[1 cm]~}\\[1 cm]				% Course Name 
     }
     %\\[1 cm]
     \textsc{\bfseries Fr\'ed\'erick Matthieu Gusset}
@@ -122,7 +122,7 @@
 	\end{minipage}\\[2 cm]
 	
 	{\large % Course Code
-	\textsc{LTS2\\[1 cm] }\\[1 cm]				% Course Name 
+	\textsc{LTS2\\[1 cm]~}\\[1 cm]				% Course Name 
     }
 	
 	\vfill~
@@ -283,6 +283,8 @@ One way to reach true equivariance to rotation is to use Spherical Harmonics and
 \end{itemize}
 Computationnaly expensive as we need to do SHFT every forward pass and backward pass during the training of the neural net.
 \subsubsection{Graph CNNs}
+Another way to represent the data is to use a graph
+* LTS4 \cite{frossard_graph-based_2017}
 * DeepSphere \cite{perraudin_deepsphere:_2018}
 \begin{figure}[h!]
     \centering
@@ -290,7 +292,6 @@ Computationnaly expensive as we need to do SHFT every forward pass and backward 
     \caption{DeepSphere architecture}
     \label{fig:deepsphere}
 \end{figure}
-* LTS4 \cite{frossard_graph-based_2017}
 * ...
 
 only isotropic filter using monom or polynomial filter (ring hops)
