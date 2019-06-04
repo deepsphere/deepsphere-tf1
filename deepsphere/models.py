@@ -63,6 +63,32 @@ class LoadableGenerator(object):
             except StopIteration:
                 self.curr = None
 
+
+                
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import gen_nn_ops
+from tensorflow.python.ops import array_ops
+# # Copy me, use me, lead the path to the unpooling world :)
+# # Snippet to add to your model file
+# # https://github.com/assiaben/w/blob/master/unpooling/model.py
+# @ops.RegisterGradient("MaxPoolGradWithArgmax")
+# def _MaxPoolGradGradWithArgmax(op, grad):
+#     print(len(op.outputs))
+#     print(len(op.inputs))
+#     print(op.name)
+#     return (array_ops.zeros(
+#         shape=array_ops.shape(op.inputs[0]),
+#         dtype=op.inputs[0].dtype), array_ops.zeros(
+#             shape=array_ops.shape(op.inputs[1]), dtype=op.inputs[1].dtype),
+#             gen_nn_ops._max_pool_grad_grad_with_argmax(
+#                 op.inputs[0],
+#                 grad,
+#                 op.inputs[2],
+#                 op.get_attr("ksize"),
+#                 op.get_attr("strides"),
+#                 padding=op.get_attr("padding")))
+
+                
 class base_model(object):
     """Common methods for all models."""
 
@@ -247,8 +273,11 @@ class base_model(object):
                 exp_var, r2, loss, mae)
             accuracy = exp_var
             f1 = r2
+            # labels, predictions = sklearn.utils.check_array(labels, predictions)
+            mre = np.mean(np.abs((labels - predictions) / np.clip(labels, 1, None))) * 100
+            metrics = mae, mre
         else:
-            mae = None
+            metrics = None
             labels = labels.flatten()
             predictions = predictions.flatten()
             ncorrects = sum(predictions == labels)
@@ -258,7 +287,7 @@ class base_model(object):
                     accuracy, ncorrects, len(labels), f1, loss)
         if sess is None:
             string += '\nCPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall)
-        return string, accuracy, f1, loss, mae
+        return string, accuracy, f1, loss, metrics
 
     def fit(self, train_dataset, val_dataset, use_tf_dataset=False, verbose=True, cache=False):
         
@@ -268,6 +297,7 @@ class base_model(object):
 
         total_acc = 0
         acc = 0
+        mre = 0
         t_cpu, t_wall = process_time(), time.time()
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -317,7 +347,7 @@ class base_model(object):
             else:
                 feed_dict = {self.ph_training: True}
 
-            learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
+#             learning_rate, loss = sess.run([self.op_train, self.op_loss], feed_dict)
             evaluate = (step % self.eval_frequency == 0) or (step == num_steps)
             if evaluate and self.profile:
                 run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -325,18 +355,26 @@ class base_model(object):
             else:
                 run_options = None
                 run_metadata = None
-
-            learning_rate, y_pred, loss, batch_acc = sess.run([self.op_train, self.op_prediction, self.op_loss, self.tf_accuracy_update], 
-                                                   feed_dict, run_options, run_metadata)
+            
+            
+            
             t_begin_load = perf_counter()
 #             if use_tf_dataset:
 #                 batch_labels = labels
             if self.regression:
                 batch_acc = np.nan
+                learning_rate, y_pred, loss, batch_mre = sess.run([self.op_train, self.op_prediction, 
+                                                                   self.op_loss, self.tf_mre_update], 
+                                                                   feed_dict, run_options, run_metadata)
+                if step%(train_dataset.N//self.batch_size)==0:
+                    mre = sess.run(self.tf_mre)
 #                 batch_var = sklearn.metrics.explained_variance_score(batch_labels, y_pred)
 #                 batch_r2 = sklearn.metrics.r2_score(batch_labels, y_pred)
                 pass
             else:
+                learning_rate, y_pred, loss, batch_acc = sess.run([self.op_train, self.op_prediction, 
+                                                                   self.op_loss, self.tf_accuracy_update], 
+                                                                   feed_dict, run_options, run_metadata)
 #                 batch_acc = sess.run(self.tf_accuracy_update)
 #                 batch_acc = 100 * sklearn.metrics.accuracy_score(batch_labels, y_pred)
 #                 total_acc += batch_acc
@@ -352,10 +390,15 @@ class base_model(object):
                 epoch = step * self.batch_size / train_dataset.N
                 if verbose:
                     print('step {} / {} (epoch {:.2f} / {}):'.format(step, num_steps, epoch, self.num_epochs))
-                    print('  learning_rate = {:.2e}, training accuracy = {:.2f}, training loss = {:.2e}'.format(learning_rate, acc, loss))
+                    if self.regression:
+                        print('  learning_rate = {:.2e}, training mean relative error = {:.2e},' \
+                              ' training loss = {:.2e}'.format(learning_rate, batch_mre, loss))
+                    else:
+                        print('  learning_rate = {:.2e}, training accuracy = {:.2f}, training loss = {:.2e}'.format(learning_rate, 
+                                                                                                                    acc, loss))
                 losses_training.append(loss)
                 if self.regression:
-                    string, exp_var, r2, loss, mae = self.evaluate(val_data, val_labels, sess, cache=cache)
+                    string, exp_var, r2, loss, (mae, mre_val) = self.evaluate(val_data, val_labels, sess, cache=cache)
                 else:
                     if cache:
                         string, accuracy, f1, loss, _ = self.evaluate(val_dataset, None, sess, cache=cache)
@@ -365,7 +408,7 @@ class base_model(object):
                 losses_validation.append(loss)
                 if verbose:
                     print('  validation {}'.format(string))
-                    print('  CPU time: {:.0f}s, wall time: {:.0f}s, perf_time_load: {:.3f}s, perf_time: {:.3f}s'.format(process_time()-t_cpu, time.time()-t_wall, times[-1], t_end-t_begin_load))
+                    print('  CPU time: {:.0f}s, wall time: {:.0f}s, perf_time_load: {:.3f}s, perf_time: {:.3f}s'.format(process_time()-t_cpu, time.time()-t_wall, t_end-t_begin_load, times[-1]))
 
                 # Summaries for TensorBoard.
                 summary = tf.Summary()
@@ -375,6 +418,8 @@ class base_model(object):
                     summary.value.add(tag='validation/r2', simple_value=r2)
                     summary.value.add(tag='validation/loss', simple_value=loss)
                     summary.value.add(tag='validation/mae', simple_value=mae)
+                    summary.value.add(tag='validation/mre', simple_value=mre_val)
+                    summary.value.add(tag='training/mre', simple_value=mre)
                 else:
 #                     if accuracy > best_acc:
 #                         best_acc = accuracy
@@ -467,7 +512,14 @@ class base_model(object):
             self.op_labels = self.ph_labels
             
             # Metrics
-            self.tf_accuracy, self.tf_accuracy_update = tf.metrics.accuracy(self.ph_labels, self.op_prediction, name='metrics')
+            if regression:
+                self.tf_mre, self.tf_mre_update = tf.metrics.mean_relative_error(self.ph_labels, self.op_prediction, 
+                                                         tf.abs(tf.clip_by_value(self.ph_labels, 1, np.inf)), name='metrics_mre')
+                running_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics_mre")
+            else:
+                self.tf_accuracy, self.tf_accuracy_update = tf.metrics.accuracy(self.ph_labels, self.op_prediction, name='metrics_acc')
+
+            
 
             # Initialize variables, i.e. weights and biases.
             self.op_init = tf.global_variables_initializer()
@@ -496,6 +548,9 @@ class base_model(object):
         # TODO: optimizations for sparse data
         logits, descriptors = self._inference(data, training)
         return logits, descriptors
+    
+    def upward(self, logits, training):
+        pass
 
     def probabilities(self, logits):
         """Return the probability of a sample to belong to each class."""
@@ -529,12 +584,11 @@ class base_model(object):
         with tf.name_scope('loss'):
             if regression:
                 with tf.name_scope('MSE'):
-                    predictions = logits#tf.reduce_mean(logits, axis=1)
+                    predictions = logits#[:,:,0]
                     if hasattr(self, 'train_mask'):
                         predictions = predictions * data[..., -2]
                         labels = labels * data[..., -1]
                     mse = tf.losses.mean_squared_error(labels, predictions)
-#                     mse = tf.reduce_mean(tf.square(predictions - labels))
                     loss = mse
             else:
                 with tf.name_scope('cross_entropy'):
@@ -929,7 +983,8 @@ class cgcnn(base_model):
         return self._weight_variable([Min, Mout], stddev=stddev, regularization=regularization)
 
     def _inference(self, x, training):
-
+#         self.conv_layers = []
+        self.pool_layers = []
         # Graph convolutional layers.
         # x = tf.expand_dims(x, 2)  # N x M x F=1        # or N x M x F=num_features_in
         for i in range(len(self.p)):
@@ -944,11 +999,12 @@ class cgcnn(base_model):
                 x = self.activation(x)
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
+                self.pool_layers.append(x)
 
         # Statistical layer (provides invariance to translation and rotation).
         with tf.variable_scope('stat'):
             n_samples, n_nodes, n_features = x.get_shape()
-            if self.statistics is None and self.M:
+            if self.statistics is None and (self.M or self.regression):
                 x = tf.reshape(x, [int(n_samples), int(n_nodes * n_features)])
             elif self.statistics is None:
                 pass
@@ -986,6 +1042,26 @@ class cgcnn(base_model):
                 x = self.fc(x, self.M[-1], bias=False)
 
         return x, descriptor
+    
+    def _decoder(self, x, training):
+        # transpose filter
+        for i in range(1, 1+len(self.p)):
+            if self.p[-i]>1:
+                # self.unpool(x, self.p[-i])
+                x = gen_nn_ops._max_pool_grad(x, self.pool_layers[-i], self.pool_layers[-i], [1,p,1,1], [1,p,1,1],'SAME')
+#             x = self.filter_transpose(x)
+#             x = tf.concat([x, self.pool_layers[-i]], axis=-1)
+#             x = self.filter?
+            pass
+        pass
+
+#     def unpool(self, x, p):
+#         shape = x.shape  # N x M x F
+# #         zeros_pad = tf.zeros()
+#         x = 1 # N x M*p x F
+
+    def filter_transpose(self, x):
+        pass
 
     def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):
         """Return the Chebyshev filter coefficients of a layer.

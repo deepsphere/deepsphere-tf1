@@ -53,6 +53,7 @@ def interpolate(images, boxes):
     nfeat = 5
     Nside = [32, 64]
     for nside in Nside:
+        print("preprocessing data at nside = {}".format(nside))
         npix = hp.nside2npix(nside)
         data = np.empty((measures, npix, channels))
         labels = np.zeros((measures, npix, nfeat))
@@ -60,11 +61,11 @@ def interpolate(images, boxes):
         coords_hp = hp.pix2ang(nside, pix, nest=True, lonlat=True)
         coords_hp = np.asarray(coords_hp).T
         for measure in tqdm(range(measures)):
-            for channel in tqdm(range(channels)):
+            for channel in range(channels):
                 f = RegularGridInterpolator((lon_, lat_), images[measure,channel].T)
                 data[measure,:,channel] = f(coords_hp)
             for box in range(boxes.shape[1]):
-                ymin, xmin, ymax, xmax, clas = boxes[measure,i]
+                ymin, xmin, ymax, xmax, clas = boxes[measure,box]
                 if ymin==-1:
                     continue
                 ymin, ymax = lat_[ymin%lat_x], lat_[ymax%lat_x]
@@ -76,26 +77,29 @@ def interpolate(images, boxes):
                     indexes = np.where(np.logical_and(np.logical_or(coords_hp[:,0]>=xmin, coords_hp[:,0]<=xmax), 
                                             np.logical_and(coords_hp[:,1]>=ymin, coords_hp[:,1]<=ymax)))
                 labels[measure, indexes,:] = clas + 1
-        file = data_path + 'EW_{}nside_{}'.format(Nside, year)
+        datapath = '../../data/ExtremeWeather/'
+        file = datapath + 'EW_{}nside_{}'.format(nside, year)
         np.savez(file, data=data, labels=labels)
+        print("save file at: "+file)
     pass
 
 if __name__=='__main__':
     years = np.arange(1979, 2006)
-    years = [2005, 1979, 1981, 1984]
+    years = [1981, 1984]
     url = 'https://portal.nersc.gov/project/dasrepo/DO_NOT_REMOVE/extremeweather_dataset/h5data/climo_{}.h5'
-    datapath = '../../data/ExtremeWeather/
+    datapath = '../../data/ExtremeWeather/'
     file = 'EW_32nside_{}.npz'
     
     for year in years:
         if os.path.exists(os.path.join(datapath, file.format(year))):
             continue
         h5_path = download(datapath, url, year)
-        h5f = h5py.File(datapath)
+        h5f = h5py.File(h5_path)
         images = h5f["images"] # (1460,16,768,1152) numpy array
         boxes = h5f["boxes"] # (1460,15,5) numpy array
         interpolate(images, boxes)
-        os.remove(datapath)
+        os.remove(h5_path)
+        print("h5 file removed")
     
     
     
