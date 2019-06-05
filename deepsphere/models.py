@@ -65,9 +65,9 @@ class LoadableGenerator(object):
 
 
                 
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import gen_nn_ops
-from tensorflow.python.ops import array_ops
+# from tensorflow.python.framework import ops
+# from tensorflow.python.ops import gen_nn_ops
+# from tensorflow.python.ops import array_ops
 # # Copy me, use me, lead the path to the unpooling world :)
 # # Snippet to add to your model file
 # # https://github.com/assiaben/w/blob/master/unpooling/model.py
@@ -505,6 +505,8 @@ class base_model(object):
             # Model.
             op_data = self.ph_data
             op_logits, self.op_descriptor = self.inference(op_data, self.ph_training)
+            if self.statistics is None and not self.M and (np.asarray(self.p)>1).any():
+                op_logits = self.upward(op_logits, self.ph_training)
             self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization, op_data, extra_loss=self.extra_loss, regression=regression)
             self.op_train = self.training(self.op_loss)
             self.op_prediction = self.prediction(op_logits)
@@ -550,7 +552,8 @@ class base_model(object):
         return logits, descriptors
     
     def upward(self, logits, training):
-        pass
+        seg_map = self._decoder(logits, training)
+        return seg_map
 
     def probabilities(self, logits):
         """Return the probability of a sample to belong to each class."""
@@ -723,7 +726,7 @@ class cgcnn(base_model):
 
     def __init__(self, L, F, K, p, batch_norm, M,
                 num_epochs, scheduler, optimizer, num_feat_in=1, tf_dataset=None,
-                conv='chebyshev5', pool='max', activation='relu', statistics=None,
+                conv='chebyshev5', pool='max', activation='relu', statistics=None, Fseg=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200, regression=False,
                 mask=None, extra_loss=False, drop=1, dir_name='', profile=False, debug=False):
         super(cgcnn, self).__init__()
@@ -800,6 +803,7 @@ class cgcnn(base_model):
 
         # Store attributes and bind operations.
         self.L, self.F, self.K, self.p, self.M = L, F, K, p, M
+        self.Fseg = Fseg
         self.num_epochs = num_epochs
         self.scheduler, self.optimizer = scheduler, optimizer
         self.regularization, self.dropout = regularization, dropout
@@ -808,6 +812,7 @@ class cgcnn(base_model):
         self.dir_name = dir_name
         self.filter = getattr(self, conv)
         self.pool = getattr(self, 'pool_' + pool)
+        self.unpool = getattr(self, 'unpool_' + pool)
         self.activation = getattr(tf.nn, activation)
         self.statistics = statistics
         self.profile, self.debug = profile, debug
@@ -989,8 +994,10 @@ class cgcnn(base_model):
         # x = tf.expand_dims(x, 2)  # N x M x F=1        # or N x M x F=num_features_in
         for i in range(len(self.p)):
             with tf.variable_scope('conv{}'.format(i+1)):
+#                 print("conv{}".format(i), x.shape)
                 with tf.name_scope('filter'):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i], training)
+#                 print("filter{}".format(i), x.shape)
                 if i == len(self.p)-1 and len(self.M) == 0:
                     break  # That is a linear layer before the softmax.
                 if self.batch_norm[i]:
@@ -999,6 +1006,7 @@ class cgcnn(base_model):
                 x = self.activation(x)
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
+#                 print("pooling{}".format(i), x.shape)
                 self.pool_layers.append(x)
 
         # Statistical layer (provides invariance to translation and rotation).
@@ -1040,28 +1048,56 @@ class cgcnn(base_model):
         if len(self.M) != 0:
             with tf.variable_scope('logits'):
                 x = self.fc(x, self.M[-1], bias=False)
-
+#         print("end down pass")
         return x, descriptor
     
     def _decoder(self, x, training):
         # transpose filter
         for i in range(1, 1+len(self.p)):
+#             print(self.p[-i])
             if self.p[-i]>1:
-                # self.unpool(x, self.p[-i])
-                x = gen_nn_ops._max_pool_grad(x, self.pool_layers[-i], self.pool_layers[-i], [1,p,1,1], [1,p,1,1],'SAME')
-#             x = self.filter_transpose(x)
-#             x = tf.concat([x, self.pool_layers[-i]], axis=-1)
-#             x = self.filter?
-            pass
-        pass
+                with tf.variable_scope('upconv{}'.format(len(self.p)-i)):
+                    with tf.name_scope('pooling'):
+                        x = self.unpool(x, self.p[-i])
+#                         print('unpool{}'.format(len(self.p)-i), x.shape)
+                    with tf.name_scope('up-conv'):
+                        x = self.filter(x, self.L[-i], self.F[-i], self.K[-i], training)
+#                         print('upconv{}'.format(len(self.p)-i), x.shape)
+#                 x = gen_nn_ops._max_pool_grad(x, self.pool_layers[-i], self.pool_layers[-i], [1,p,1,1], [1,p,1,1],'SAME')
+                    x = tf.concat([x, self.pool_layers[-i]], axis=-1)
+                with tf.variable_scope('deconv{}'.format(len(self.p)-i)):
+                    with tf.name_scope('filter'):
+                        try:
+                            x = self.filter(x, self.L[-i], self.F[-i], self.K[-i], training)
+#                             print('deconv{}'.format(len(self.p)-i), x.shape)
+                        except:
+                            raise ValueError("Down-sampling should not be used in the first layers if training for segmentation task")
+            else:
+                with tf.variable_scope('deconv{}'.format(len(self.p)-i)):
+                    with tf.name_scope('filter'):
+                        try:
+                            x = self.filter(x, self.L[-i], self.F[-i], self.K[-i], training)
+                        except:
+                            x = self.filter(x, self.L[-i], self.Fseg, self.K[-i], training)
+#                         print('deconv{}'.format(len(self.p)-i), x.shape)
+        
+#         print("end up pass")
+        x = self.filter(x, self.L[-i], self.Fseg, 1, training)
+#         print(x.shape)
+        return x
+        
 
-#     def unpool(self, x, p):
-#         shape = x.shape  # N x M x F
-# #         zeros_pad = tf.zeros()
-#         x = 1 # N x M*p x F
-
-    def filter_transpose(self, x):
-        pass
+    def unpool_average(self, x, p):
+        N, M, F = x.shape  # N x M x F
+        x = tf.tile(tf.expand_dims(x, 2), [1,1,p,1]) 
+        return tf.reshape(x, [N, M*p, F]) # N x M*p x F
+    
+    def unpool_max(self, x, p):
+        # TODO: keep in memory the true position of max pool
+        N, M, F = x.shape  # N x M x F
+        zeros_pad = tf.zeros([N, M, p-1, F])
+        x = tf.concat([tf.expand_dims(x, 2), zeros_pad], axis=2)
+        return tf.reshape(x, [N, M*p, F]) # N x M*p x F
 
     def get_filter_coeffs(self, layer, ind_in=None, ind_out=None):
         """Return the Chebyshev filter coefficients of a layer.
