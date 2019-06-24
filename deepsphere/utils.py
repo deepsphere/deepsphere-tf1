@@ -151,70 +151,78 @@ def equiangular_weightmatrix(bw=64, indexes=None, dtype=np.float32):
     z = ct
     coords = np.vstack([x.flatten(), y.flatten(), z.flatten()]).transpose() 
     coords = np.asarray(coords, dtype=dtype)
+    npix = len(coords)
     
+    distances = spatial.distance.cdist(coords, coords)**2
     
-    def south(x, bw):
-        if x >= (2*bw)*(2*bw-1):
-            return north((x+bw)%(2*bw)+(2*bw)*(2*bw),bw)
-        else:
-            return x + 2*bw
+#     def south(x, bw):
+#         if x >= npix - 2*bw:
+#             return (x + bw)%(2*bw) + npix - 2*bw
+#         else:
+#             return x + 2*bw
         
-    def north(x, bw):
-        if x < 2*bw:
-            return south((x+bw)%(2*bw),bw)
-        else:
-            return x - 2*bw
+#     def north(x, bw):
+#         if x < 2*bw:
+#             return (x + bw)%(2*bw)
+#         else:
+#             return x - 2*bw
         
-    def west(x, bw):
-        if x%(2*bw)==0:
-            x += 2*bw
-        return x -1
+#     def west(x, bw):
+#         if x%(2*bw)==0:
+#             x += 2*bw
+#         return x -1
     
-    def east(x, bw):
-        if x%(2*bw)==2*bw-1:
-            x -= 2*bw
-        return x + 1
+#     def east(x, bw):
+#         if x%(2*bw)==2*bw-1:
+#             x -= 2*bw
+#         return x + 1
         
-    neighbors = []
-    col_index=[]
-    for ind in indexes:
-        # first line is the same point, so is connected to all points of second line
-        if ind < 2* bw:
-            neighbor = np.arange(2*bw)+2*bw
-        elif ind < 4*bw:
-            neighbor = [south(west(ind,bw),bw), west(ind,bw), east(ind,bw), south(east(ind,bw),bw), south(ind,bw)]
-            neighbor += list(range(2*bw))
-            #print(neighbor)
-        else:
-            neighbor = [south(west(ind,bw),bw), west(ind,bw), north(west(ind,bw), bw), north(ind,bw), 
-                        north(east(ind,bw),bw), east(ind,bw), south(east(ind,bw),bw), south(ind,bw)]
-        neighbors.append(neighbor)
-        col_index += list(neighbor)
-    # neighbors = np.asarray(neighbors)
-    col_index = np.asarray(col_index)
+#     neighbors = []
+#     col_index=[]
+#     for ind in indexes:
+#         # first line is the same point, so is connected to all points of second line
+# #         if ind < 2* bw:
+# #             neighbor = np.arange(2*bw)+2*bw
+# #         elif ind < 4*bw:
+# #             neighbor = [south(west(ind,bw),bw), west(ind,bw), east(ind,bw), south(east(ind,bw),bw), south(ind,bw)]
+# #             neighbor += list(range(2*bw))
+# #             #print(neighbor)
+# #         else:
+#         neighbor = [south(west(ind,bw),bw), west(ind,bw), north(west(ind,bw), bw), north(ind,bw), 
+#                         north(east(ind,bw),bw), east(ind,bw), south(east(ind,bw),bw), south(ind,bw)]
+#         neighbors.append(neighbor)
+#         col_index += list(neighbor)
+#     # neighbors = np.asarray(neighbors)
+#     col_index = np.asarray(col_index)
     
-    #col_index = neighbors.reshape((-1))
-    row_index = np.hstack([np.repeat(indexes[:2*bw], 2*bw), np.repeat(indexes[2*bw:4*bw], 2*bw+5), 
-                          np.repeat(indexes[4*bw:], 8)])
+#     #col_index = neighbors.reshape((-1))
+# #     row_index = np.hstack([np.repeat(indexes[:2*bw], 2*bw), np.repeat(indexes[2*bw:4*bw], 2*bw+5), 
+# #                           np.repeat(indexes[4*bw:], 8)])
+#     row_index = np.hstack([np.repeat(indexes, 8)])
     
-    distances = np.sum((coords[row_index] - coords[col_index])**2, axis=1)
-    # slower: np.linalg.norm(coords[row_index] - coords[col_index], axis=1)**2
+#     distances = np.sum((coords[row_index] - coords[col_index])**2, axis=1)
+#     # slower: np.linalg.norm(coords[row_index] - coords[col_index], axis=1)**2
 
-    # Compute similarities / edge weights.
-    kernel_width = np.mean(distances)
-    weights = np.exp(-distances / (2 * kernel_width))
+#     # Compute similarities / edge weights.
+# #     kernel_width = np.mean(distances)
+# #     weights = np.exp(-distances / (2 * kernel_width))
 
     # Similarity proposed by Renata & Pascal, ICCV 2017.
-    # weights = 1 / distances
+    weights = 1 / distances
 
-    # Build the sparse matrix.
-    W = sparse.csr_matrix(
-        (weights, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
-    
-    # adjustments
-    mat = W[:2*bw,2*bw:4*bw]*5/(2*bw)
-    W[:2*bw,2*bw:4*bw] = mat
-    W[2*bw:4*bw,:2*bw] = mat.T
+#     # Build the sparse matrix.
+#     W = sparse.csr_matrix(
+#         (weights, (row_index, col_index)), shape=(npix, npix), dtype=dtype)
+    W=weights
+    for i in range(np.alen(W)):
+        W[i, i] = 0.
+#     k = np.exp(0)
+#     W[W < k] = 0
+    W = sparse.csr_matrix(W, dtype=dtype)
+#     # adjustments
+#     mat = W[:2*bw,2*bw:4*bw]*5/(2*bw)
+#     W[:2*bw,2*bw:4*bw] = mat
+#     W[2*bw:4*bw,:2*bw] = mat.T
     
     return W
 
@@ -380,6 +388,8 @@ def nside2indexes(nsides, order):
     order  : parameter specifying the size of the sphere part
     """
     nsample = 12 * order**2
+    if order==0:
+        nsample=1
     indexes = [np.arange(hp.nside2npix(nside) // nsample) for nside in nsides]
     return indexes
 

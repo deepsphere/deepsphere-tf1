@@ -97,6 +97,8 @@ def hp_split(img, order, nest=True):
     if not nest:
         raise NotImplementedError('Implement the change of coordinate.')
     nsample = 12 * order**2
+    if order==0:
+        return img
     return img.reshape([nsample, npix // nsample])
 
 

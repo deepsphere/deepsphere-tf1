@@ -129,7 +129,7 @@ class base_model(object):
             size = data.N
         else:
             size = data.shape[0]
-        if self.regression or (not self.M and self.statistics is None):
+        if (not self.M and self.statistics is None):
             predictions = np.empty(data.shape[0:2])
         else:
             predictions = np.empty(size)
@@ -163,7 +163,7 @@ class base_model(object):
 
             # Compute loss if labels are given.
             if labels is not None:
-                if self.regression or (not self.M and self.statistics is None):
+                if (not self.M and self.statistics is None):
                     batch_labels = np.zeros((self.batch_size, data.shape[1]))
                 else:
                     batch_labels = np.zeros(self.batch_size)
@@ -176,7 +176,7 @@ class base_model(object):
                 loss += batch_loss
             else:
                 batch_pred = sess.run(self.op_prediction, feed_dict)
-                
+               
             predictions[begin:end] = batch_pred[:end-begin]
 
         if labels is not None or (cache and batch_labels is not None):
@@ -274,7 +274,7 @@ class base_model(object):
             accuracy = exp_var
             f1 = r2
             # labels, predictions = sklearn.utils.check_array(labels, predictions)
-            mre = np.mean(np.abs((labels - predictions) / np.clip(labels, 1, None))) * 100
+            mre = np.mean(np.abs((labels - predictions) /np.clip(labels, 1, None))) * 100
             metrics = mae, mre
         else:
             metrics = None
@@ -368,6 +368,7 @@ class base_model(object):
                                                                    feed_dict, run_options, run_metadata)
                 if step%(train_dataset.N//self.batch_size)==0:
                     mre = sess.run(self.tf_mre)
+                    sess.run(self.op_metrics_init)
 #                 batch_var = sklearn.metrics.explained_variance_score(batch_labels, y_pred)
 #                 batch_r2 = sklearn.metrics.r2_score(batch_labels, y_pred)
                 pass
@@ -380,6 +381,7 @@ class base_model(object):
 #                 total_acc += batch_acc
                 if step%(train_dataset.N//self.batch_size)==0:
                     acc = sess.run(self.tf_accuracy)
+                    sess.run(self.op_metrics_init)
 #                 acc += batch_acc
                 
             t_end = perf_counter()
@@ -494,7 +496,7 @@ class base_model(object):
             # Inputs.
             with tf.name_scope('inputs'):
                 self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0, nfeature), 'data')
-                if regression:
+                if regression and not self.M:
                     self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size, M_0), 'labels')
                 elif self.statistics is None and not self.M:
                     self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size, M_0), 'labels')
@@ -565,7 +567,7 @@ class base_model(object):
         """Return the predicted classes."""
         with tf.name_scope('prediction'):
             if self.regression:
-                prediction = logits
+                prediction = tf.squeeze(logits)
             else:
                 prediction = tf.argmax(logits, axis=-1)
             return prediction
@@ -588,6 +590,8 @@ class base_model(object):
             if regression:
                 with tf.name_scope('MSE'):
                     predictions = logits#[:,:,0]
+                    if self.M:
+                        labels = tf.expand_dims(labels, axis=-1)
                     if hasattr(self, 'train_mask'):
                         predictions = predictions * data[..., -2]
                         labels = labels * data[..., -1]
@@ -1084,6 +1088,7 @@ class cgcnn(base_model):
 #         print("end up pass")
         x = self.filter(x, self.L[-i], self.Fseg, 1, training)
 #         print(x.shape)
+
         return x
         
 
