@@ -65,30 +65,6 @@ class LoadableGenerator(object):
 
 
                 
-# from tensorflow.python.framework import ops
-# from tensorflow.python.ops import gen_nn_ops
-# from tensorflow.python.ops import array_ops
-# # Copy me, use me, lead the path to the unpooling world :)
-# # Snippet to add to your model file
-# # https://github.com/assiaben/w/blob/master/unpooling/model.py
-# @ops.RegisterGradient("MaxPoolGradWithArgmax")
-# def _MaxPoolGradGradWithArgmax(op, grad):
-#     print(len(op.outputs))
-#     print(len(op.inputs))
-#     print(op.name)
-#     return (array_ops.zeros(
-#         shape=array_ops.shape(op.inputs[0]),
-#         dtype=op.inputs[0].dtype), array_ops.zeros(
-#             shape=array_ops.shape(op.inputs[1]), dtype=op.inputs[1].dtype),
-#             gen_nn_ops._max_pool_grad_grad_with_argmax(
-#                 op.inputs[0],
-#                 grad,
-#                 op.inputs[2],
-#                 op.get_attr("ksize"),
-#                 op.get_attr("strides"),
-#                 padding=op.get_attr("padding")))
-
-                
 class base_model(object):
     """Common methods for all models."""
 
@@ -123,22 +99,24 @@ class base_model(object):
             
         return descriptors
 
-    def predict(self, data, labels=None, sess=None, cache=False, best=False):
+    def predict(self, data, labels=None, sess=None, cache=False):
         loss = 0
         if cache:
             size = data.N
         else:
             size = data.shape[0]
-        if (not self.M and self.statistics is None):
-            predictions = np.empty(data.shape[0:2])
+        if self.dense:
+            M0 = self.L[0].shape[0]
+            predictions = np.empty((size, M0))
+            label = np.empty((size, M0))
         else:
             predictions = np.empty(size)
-        sess = self._get_session(sess, best)
+            label = np.empty(size)
+        sess = self._get_session(sess)
         if cache:
             if cache is 'TF':
                 dataset = data.get_tf_dataset(self.batch_size)
                 data_iter = dataset.make_one_shot_iterator()
-                label = np.empty(size)
             else:
                 data_iter = data.iter(self.batch_size)
         for begin in range(0, size, self.batch_size):
@@ -147,7 +125,7 @@ class base_model(object):
             if cache:
                 if cache is 'TF':
                     batch_data, batch_labels = data_iter.get_next()
-                    label[begin:end] = np.asarray(batch_labels)
+                    label[begin:end] = np.asarray(sess.run(batch_labels))
                 else:
                     batch_data, batch_labels = next(data_iter)
                 if type(batch_data) is not np.ndarray:
@@ -163,8 +141,8 @@ class base_model(object):
 
             # Compute loss if labels are given.
             if labels is not None:
-                if (not self.M and self.statistics is None):
-                    batch_labels = np.zeros((self.batch_size, data.shape[1]))
+                if self.dense:
+                    batch_labels = np.zeros((self.batch_size, M0))
                 else:
                     batch_labels = np.zeros(self.batch_size)
                 batch_labels[:end-begin] = labels[begin:end]
@@ -193,7 +171,11 @@ class base_model(object):
             size = data.N
         else:
             size = data.shape[0]
-        probabilities = np.empty((size, nb_class))
+        if self.dense:
+            M0 = self.L[0].shape[0]
+            probabilities = np.empty((size, M0, nb_class))
+        else:
+            probabilities = np.empty((size, nb_class))
         sess = self._get_session(sess)
         if cache:
             if cache is 'TF':
@@ -241,7 +223,7 @@ class base_model(object):
         else:
             return probabilities
 
-    def evaluate(self, data, labels, sess=None, cache=False, best=False):
+    def evaluate(self, data, labels, sess=None, cache=False):
         """
         Runs one evaluation against the full epoch of data.
         Return the precision and the number of correct predictions.
@@ -257,9 +239,9 @@ class base_model(object):
         """
         t_cpu, t_wall = process_time(), time.time()
         if cache is 'TF':
-            predictions, labels, loss = self.predict(data, labels, sess, cache=cache, best=best)
+            predictions, labels, loss = self.predict(data, labels, sess, cache=cache)
         else:
-            predictions, loss = self.predict(data, labels, sess, cache=cache, best=best)
+            predictions, loss = self.predict(data, labels, sess, cache=cache)
             if cache:
                 labels = data.get_labels()
         if hasattr(self, 'val_mask'):
@@ -298,6 +280,7 @@ class base_model(object):
         total_acc = 0
         acc = 0
         mre = 0
+        
         t_cpu, t_wall = process_time(), time.time()
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -309,7 +292,6 @@ class base_model(object):
         shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
         os.makedirs(self._get_path('checkpoints'))
         path = os.path.join(self._get_path('checkpoints'), 'model')
-#         path_best = os.path.join(self._get_path('checkpoints'), 'best.ckpt')
         
         # Initialization
         sess.run(self.op_metrics_init)
@@ -332,7 +314,6 @@ class base_model(object):
             if len(val_data.shape) is 2:
                 val_data = np.expand_dims(val_data, axis=2)
                 
-#         best_acc = 0
             
         times = []
         for step in range(1, num_steps+1):
@@ -359,8 +340,7 @@ class base_model(object):
             
             
             t_begin_load = perf_counter()
-#             if use_tf_dataset:
-#                 batch_labels = labels
+            
             if self.regression:
                 batch_acc = np.nan
                 learning_rate, y_pred, loss, batch_mre = sess.run([self.op_train, self.op_prediction, 
@@ -369,20 +349,14 @@ class base_model(object):
                 if step%(train_dataset.N//self.batch_size)==0:
                     mre = sess.run(self.tf_mre)
                     sess.run(self.op_metrics_init)
-#                 batch_var = sklearn.metrics.explained_variance_score(batch_labels, y_pred)
-#                 batch_r2 = sklearn.metrics.r2_score(batch_labels, y_pred)
                 pass
             else:
                 learning_rate, y_pred, loss, batch_acc = sess.run([self.op_train, self.op_prediction, 
                                                                    self.op_loss, self.tf_accuracy_update], 
                                                                    feed_dict, run_options, run_metadata)
-#                 batch_acc = sess.run(self.tf_accuracy_update)
-#                 batch_acc = 100 * sklearn.metrics.accuracy_score(batch_labels, y_pred)
-#                 total_acc += batch_acc
                 if step%(train_dataset.N//self.batch_size)==0:
                     acc = sess.run(self.tf_accuracy)
                     sess.run(self.op_metrics_init)
-#                 acc += batch_acc
                 
             t_end = perf_counter()
             times.append(t_end-t_begin)
@@ -423,15 +397,11 @@ class base_model(object):
                     summary.value.add(tag='validation/mre', simple_value=mre_val)
                     summary.value.add(tag='training/mre', simple_value=mre)
                 else:
-#                     if accuracy > best_acc:
-#                         best_acc = accuracy
-#                         self.op_saver.save(sess, path_best)
                     summary.value.add(tag='validation/accuracy', simple_value=accuracy)
                     summary.value.add(tag='validation/f1', simple_value=f1)
                     summary.value.add(tag='validation/loss', simple_value=loss)
-                    summary.value.add(tag='training/batch_accuracy', simple_value=batch_acc)
-                    summary.value.add(tag='training/epoch_accuracy', simple_value=acc)#/(step%(train_dataset.N//self.batch_size)+1))
-#                     summary.value.add(tag='training/total_accuracy', simple_value=total_acc/step)
+#                     summary.value.add(tag='training/batch_accuracy', simple_value=batch_acc)
+                    summary.value.add(tag='training/epoch_accuracy', simple_value=acc)
                 writer.add_summary(summary, step)
                 if self.profile:
                     writer.add_run_metadata(run_metadata, 'step{}'.format(step))
@@ -460,7 +430,7 @@ class base_model(object):
         #print(self.graph.get_collection('trainable_variables'))
         total_parameters = 0
         for variable in self.graph.get_collection('trainable_variables'):
-            print(variable.name)
+            # print(variable.name)
             # shape is an array of tf.Dimension
             shape = variable.get_shape()
             #print(shape)
@@ -469,7 +439,7 @@ class base_model(object):
             for dim in shape:
                 #print(dim)
                 variable_parameters *= dim.value
-            #print(variable_parameters)
+            print(variable.name, variable_parameters)
             total_parameters += variable_parameters
         #print(total_parameters)
         return total_parameters
@@ -496,9 +466,7 @@ class base_model(object):
             # Inputs.
             with tf.name_scope('inputs'):
                 self.ph_data = tf.placeholder_with_default(ph_data, (self.batch_size, M_0, nfeature), 'data')
-                if regression and not self.M:
-                    self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size, M_0), 'labels')
-                elif self.statistics is None and not self.M:
+                if self.dense:
                     self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size, M_0), 'labels')
                 else:
                     self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
@@ -507,7 +475,7 @@ class base_model(object):
             # Model.
             op_data = self.ph_data
             op_logits, self.op_descriptor = self.inference(op_data, self.ph_training)
-            if self.statistics is None and not self.M and (np.asarray(self.p)>1).any():
+            if self.dense and (np.asarray(self.p)>1).any():
                 op_logits = self.upward(op_logits, self.ph_training)
             self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization, op_data, extra_loss=self.extra_loss, regression=regression)
             self.op_train = self.training(self.op_loss)
@@ -522,6 +490,7 @@ class base_model(object):
                 running_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics_mre")
             else:
                 self.tf_accuracy, self.tf_accuracy_update = tf.metrics.accuracy(self.ph_labels, self.op_prediction, name='metrics_acc')
+                running_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics_acc")
 
             
 
@@ -589,7 +558,7 @@ class base_model(object):
         with tf.name_scope('loss'):
             if regression:
                 with tf.name_scope('MSE'):
-                    predictions = logits#[:,:,0]
+                    predictions = logits
                     if self.M:
                         labels = tf.expand_dims(labels, axis=-1)
                     if hasattr(self, 'train_mask'):
@@ -648,7 +617,7 @@ class base_model(object):
         path = os.path.dirname(os.path.realpath(__file__))
         return os.path.join(path, '..', folder, self.dir_name)
 
-    def _get_session(self, sess=None, best=False):
+    def _get_session(self, sess=None):
         """Restore parameters if no session given."""
         if sess is None:
             config = tf.ConfigProto()
@@ -656,8 +625,6 @@ class base_model(object):
             sess = tf.Session(graph=self.graph, config=config)
             #print(self._get_path('checkpoints'))
             filename = tf.train.latest_checkpoint(self._get_path('checkpoints'))
-#             if best:
-#                 filename = os.path.join(self._get_path('checkpoints'), 'best.ckpt')
             self.op_saver.restore(sess, filename)
         return sess
 
@@ -731,8 +698,8 @@ class cgcnn(base_model):
     def __init__(self, L, F, K, p, batch_norm, M,
                 num_epochs, scheduler, optimizer, num_feat_in=1, tf_dataset=None,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None, Fseg=None,
-                regularization=0, dropout=1, batch_size=128, eval_frequency=200, regression=False,
-                mask=None, extra_loss=False, drop=1, dir_name='', profile=False, debug=False):
+                regularization=0, dropout=1, batch_size=128, eval_frequency=200, regression=False, dense=False,
+                mask=None, extra_loss=False, dropFilt=1, dir_name='', profile=False, debug=False):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
@@ -804,6 +771,8 @@ class cgcnn(base_model):
             if i < Nfc - 1:  # No bias if it's a softmax.
                 print('    biases: M_{} = {}'.format(Ngconv+i+1, M[i]))
             M_last = M[i]
+        
+        ## TODO: rewrite this before when using dense predictions
 
         # Store attributes and bind operations.
         self.L, self.F, self.K, self.p, self.M = L, F, K, p, M
@@ -820,9 +789,10 @@ class cgcnn(base_model):
         self.activation = getattr(tf.nn, activation)
         self.statistics = statistics
         self.profile, self.debug = profile, debug
-        self.drop = drop
+        self.dropFilt = dropFilt
         self.extra_loss = extra_loss
         self.regression = regression
+        self.dense = dense
         if mask:
             self.train_mask = mask[0]
             self.val_mask = mask[1]
@@ -863,12 +833,12 @@ class cgcnn(base_model):
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
         # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
         W = self._weight_variable_cheby(K, Fin, Fout, regularization=True)
-        if self.drop<1:
+        # Drop filters of the convolutional layer
+        if self.dropFilt<1:
             W = tf.reshape(W, [Fin, K, Fout])
             W = tf.transpose(W, perm=[1,0,2])
             mask = tf.ones((Fin, Fout))
-            #mask = tf.get_variable('mask', (Fin, Fout), tf.float32, initializer=tf.ones_initializer(tf.float32))
-            dropout = tf.cond(training, lambda: float(self.drop), lambda: 1.0)
+            dropout = tf.cond(training, lambda: float(self.dropFilt), lambda: 1.0)
             mask = tf.nn.dropout(mask, dropout) * (dropout)
             W = tf.multiply(W, mask)
             W = tf.transpose(W, perm=[1,0,2])
@@ -910,6 +880,16 @@ class cgcnn(base_model):
         x = tf.reshape(x, [N*M, Fin*K])  # N*M x Fin*K
         # Filter: Fin*Fout filters of order K, i.e. one filterbank per output feature.
         W = self._weight_variable([Fin*K, Fout], regularization=True)
+        # Drop filters of the convolutional layer
+        if self.dropFilt<1:
+            W = tf.reshape(W, [Fin, K, Fout])
+            W = tf.transpose(W, perm=[1,0,2])
+            mask = tf.ones((Fin, Fout))
+            dropout = tf.cond(training, lambda: float(self.dropFilt), lambda: 1.0)
+            mask = tf.nn.dropout(mask, dropout) * (dropout)
+            W = tf.multiply(W, mask)
+            W = tf.transpose(W, perm=[1,0,2])
+            W = tf.reshape(W, [Fin*K, Fout])
         x = tf.matmul(x, W)  # N*M x Fout
         return tf.reshape(x, [N, M, Fout])  # N x M x Fout
 
@@ -922,18 +902,30 @@ class cgcnn(base_model):
     def pool_max(self, x, p):
         """Max pooling of size p. Should be a power of 2."""
         if p > 1:
-            x = tf.expand_dims(x, 3)  # N x M x F x 1
-            x = tf.nn.max_pool(x, ksize=[1,p,1,1], strides=[1,p,1,1], padding='SAME')
-            return tf.squeeze(x, [3])  # N x M/p x F
+            if self.sampling is 'equiangular':
+                N, M, F = x.get_shape()
+                x = tf.reshape(x,[N,int(M**0.5), int(M**0.5), F])
+                x = tf.nn.max_pool(x, ksize=[1,p**0.5,p**0.5,1], strides=[1,p**0.5,p**0.5,1], padding='SAME')
+                return tf.reshape(x, [N, -1, F])
+            else:
+                x = tf.expand_dims(x, 3)  # N x M x F x 1
+                x = tf.nn.max_pool(x, ksize=[1,p,1,1], strides=[1,p,1,1], padding='SAME')
+                return tf.squeeze(x, [3])  # N x M/p x F
         else:
             return x
 
     def pool_average(self, x, p):
         """Average pooling of size p. Should be a power of 2."""
         if p > 1:
-            x = tf.expand_dims(x, 3)  # N x M x F x 1
-            x = tf.nn.avg_pool(x, ksize=[1,p,1,1], strides=[1,p,1,1], padding='SAME')
-            return tf.squeeze(x, [3])  # N x M/p x F
+            if self.sampling is 'equiangular':
+                N, M, F = x.get_shape()
+                x = tf.reshape(x,[N,int(M**0.5), int(M**0.5), F])
+                x = tf.nn.avg_pool(x, ksize=[1,p**0.5,p**0.5,1], strides=[1,p**0.5,p**0.5,1], padding='SAME')
+                return tf.reshape(x, [N, -1, F])
+            else:
+                x = tf.expand_dims(x, 3)  # N x M x F x 1
+                x = tf.nn.avg_pool(x, ksize=[1,p,1,1], strides=[1,p,1,1], padding='SAME')
+                return tf.squeeze(x, [3])  # N x M/p x F
         else:
             return x
     
@@ -1016,10 +1008,11 @@ class cgcnn(base_model):
         # Statistical layer (provides invariance to translation and rotation).
         with tf.variable_scope('stat'):
             n_samples, n_nodes, n_features = x.get_shape()
-            if self.statistics is None and (self.M or self.regression):
-                x = tf.reshape(x, [int(n_samples), int(n_nodes * n_features)])
-            elif self.statistics is None:
-                pass
+            if self.statistics is None:
+                if self.M:# or self.regression:
+                    x = tf.reshape(x, [int(n_samples), int(n_nodes * n_features)])
+                else:
+                    pass
             elif self.statistics is 'mean':
                 x, _ = tf.nn.moments(x, axes=1)
             elif self.statistics is 'var':
@@ -1033,8 +1026,6 @@ class cgcnn(base_model):
                 x = tf.reshape(x, [int(n_samples), n_bins * int(n_features)])
             elif self.statistics is 'max':
                 x = tf.reduce_max(x, axis=1)
-            #elif self.statistics is 'integrate':  # same as average pooling
-            #    x = x
             else:
                 raise ValueError('Unknown statistical layer {}'.format(self.statistics))
         
@@ -1093,11 +1084,15 @@ class cgcnn(base_model):
         
 
     def unpool_average(self, x, p):
+        if self.sampling is 'equiangular':
+            raise NotImplementedError('unpooling with equiangular sampling is not yet implemented')
         N, M, F = x.shape  # N x M x F
         x = tf.tile(tf.expand_dims(x, 2), [1,1,p,1]) 
         return tf.reshape(x, [N, M*p, F]) # N x M*p x F
     
     def unpool_max(self, x, p):
+        if self.sampling is 'equiangular':
+            raise NotImplementedError('unpooling with equiangular sampling is not yet implemented')
         # TODO: keep in memory the true position of max pool
         N, M, F = x.shape  # N x M x F
         zeros_pad = tf.zeros([N, M, p-1, F])
@@ -1282,6 +1277,7 @@ class flexPartSphere(cgcnn):
     """
     def __init__(self, **kwargs):
         super(flexPartSphere, self).__init__(**kwargs)
+        raise NotImplementedError("pooling random part of sphere not implemented yet")
         
     def pool_any_part_max(self, x, Nside, theta, phi):
         pix, weights = hp.get_interp_weights(Nside, theta, phi, nest=True, lonlat=True)

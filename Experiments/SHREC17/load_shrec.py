@@ -29,20 +29,14 @@ except:
 
 from scipy.spatial.distance import pdist, squareform
 
-def search_tresh(descriptors, labels):
-    dist_mat = squareform(pdist(descriptors, 'cosine'))
-    thresh = {i: [] for i in range(max(labels)+1)}
-    dists /= dists.max()
-
 def shrec_output(descriptors, ids, probabilities, datapath, savedir='results_deep/test_perturbed'):
-    # TODO: descriptors are not probabilities, but the step before the fully connected layer
     os.makedirs(os.path.join(datapath, savedir), exist_ok=True)
     dist_mat = squareform(pdist(descriptors, 'cosine'))
     predictions = np.argmax(probabilities, axis=1)
     for dist, name, score in zip(dist_mat, ids, probabilities):
-        most_feat = np.argsort(score)[::-1][0]  # equal to prediction in actual configuration
+        most_feat = np.argsort(score)[::-1][0]
         retrieved = [(dist[j], ids[j]) for j in range(len(ids)) if predictions[j] == most_feat]
-        thresh = np.median([ret[0] for ret in retrieved])  # need to change dinamically?
+        thresh = np.median([ret[0] for ret in retrieved])  # need to change dynamically?
         retrieved += [(d, _id) for d, _id in zip(dist, ids) if d < thresh]
         retrieved = sorted(retrieved, reverse=True)
         retrieved = [i for _, i in retrieved]
@@ -77,49 +71,24 @@ def rotmat(a, b, c, hom_coord=False):   # apply to mesh using mesh.apply_transfo
 
 def make_sgrid(nside, alpha, beta, gamma):
 
-    #theta, phi = S2.meshgrid(b=b, grid_type='Healpix')
-    #sgrid = S2.change_coordinates(np.c_[theta[..., None], phi[..., None]], p_from='S', p_to='C')
-#     npix = hp.nside2npix(nside)
-#     x, y, z = hp.pix2vec(nside, np.arange(npix), nest=True)
-    _beta = np.pi * (2 * np.arange(2 * nside) + 1) / (4. * nside)
-    _alpha = np.arange(2 * nside) * np.pi / nside
-    theta, phi = np.meshgrid(*(_beta, _alpha),indexing='ij')
-    ct = np.cos(theta).flatten()
-    st = np.sin(theta).flatten()
-    cp = np.cos(phi).flatten()
-    sp = np.sin(phi).flatten()
-    x = st * cp
-    y = st * sp
-    z = ct
-    #sgrid = np.stack([x, y, z])
+    npix = hp.nside2npix(nside)
+    x, y, z = hp.pix2vec(nside, np.arange(npix), nest=True)
+#     _beta = np.pi * (2 * np.arange(2 * nside) + 1) / (4. * nside)
+#     _alpha = np.arange(2 * nside) * np.pi / nside
+#     theta, phi = np.meshgrid(*(_beta, _alpha),indexing='ij')
+#     ct = np.cos(theta).flatten()
+#     st = np.sin(theta).flatten()
+#     cp = np.cos(phi).flatten()
+#     sp = np.sin(phi).flatten()
+#     x = st * cp
+#     y = st * sp
+#     z = ct
     coords = np.vstack([x, y, z]).transpose()
     coords = np.asarray(coords, dtype=np.float32)           # shape 3 x npix
-    #sgrid = sgrid.T#reshape((-1, 3))
     R = rotmat(alpha, beta, gamma, hom_coord=False)
     sgrid = np.einsum('ij,nj->ni', R, coords)    # inner(A,B).T
 
     return sgrid
-
-
-# def make_sgrid_daniildis(res=64, alpha=0, beta=0, gamma=0):     # nchannel = 1, 2 if d, sin(alpha) input_res=64, batch size 9843???
-#     # res x res equiangular grid
-#     beta = np.arange(2 * res) * np.pi / (2. * res)  # Driscoll-Heally
-#     alpha = np.arange(2 * res) * np.pi / res
-#     # beta = np.arange(1,2 * res, 2) * np.pi / (2 * res - 1)   # equiangular?
-#     # alpha = 2 * np.pi * np.arange(2*res - 1) / (2*res-1)
-#     theta, phi = np.meshgrid(*(beta, alpha),indexing='ij')
-#     out = np.empty(theta.shape + (3,))
-#     ct = np.cos(theta)
-#     st = np.sin(theta)
-#     cp = np.cos(phi)
-#     sp = np.sin(phi)
-#     x = st * cp
-#     y = st * sp
-#     z = ct
-#     out[..., 0] = x
-#     out[..., 1] = y
-#     out[..., 2] = z
-#     return out
 
 
 def render_model(mesh, sgrid, outside=False, multiple=False):
@@ -276,19 +245,6 @@ def ProjectOnSphere(nside, mesh, outside=False, multiple=False):
 
     im = np.concatenate([im, hull_im], axis=0)
     assert len(im) == 6
-
-    # im[0] -= 0.75
-    # im[0] /= 0.26
-    # im[1] -= 0.59
-    # im[1] /= 0.50
-    # im[2] -= 0.54
-    # im[2] /= 0.29
-    # im[3] -= 0.52
-    # im[3] /= 0.19
-    # im[4] -= 0.80
-    # im[4] /= 0.18
-    # im[5] -= 0.51
-    # im[5] /= 0.25
 
     im = im.astype(np.float32).T  # pylint: disable=E1101
 
