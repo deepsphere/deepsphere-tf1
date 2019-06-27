@@ -192,7 +192,7 @@ def get_data(datapath, years, feature_names, ghcn_to_local, rawpath=None):
     full_data = full_data[:, valid_days, :]
 
     n_days = full_data.shape[1]
-    return full_data, n_days
+    return full_data, n_days, valid_days
 
 
 def clean_nodes(data, feat, lon, lat, superset=False, neighbor=10, figs=False, **kwargs):
@@ -214,7 +214,12 @@ def clean_nodes(data, feat, lon, lat, superset=False, neighbor=10, figs=False, *
     print("number of stations in min set: {}\nnumber of stations in super set: {}".format(keepToo.sum(), keepSuper.sum()))
     keep = keepSuper if superset else keepToo
     
+    if keep.sum()==0:
+        print("no nodes for the current configuration")
+        return [None]*3
+    
     graph = sphereGraph(lon[keep], lat[keep], neighbor, **kwargs)
+    graph.compute_laplacian("combinatorial")
     
     if figs:
         fig = plt.figure(figsize=(20, 10))
@@ -224,8 +229,9 @@ def clean_nodes(data, feat, lon, lat, superset=False, neighbor=10, figs=False, *
         plt.plot(lon[keep], lat[keep], 'or', marker='o', markerfacecolor='r', markersize=2)
         fig2 = plt.figure(figsize=(20,20))
         axes = fig2.add_subplot(111, projection='3d')
-        graph.plot(vertex_size=10, edges=False, ax=axes)
+        graph.plot(vertex_size=10, edges=True, ax=axes)
     return dataset, keep, graph
+
 
 sys.path.append('../../deepsphere')
 from data import LabeledDataset
@@ -243,10 +249,10 @@ def dataset_temp(datas, lon=None, lat=None, alt=None, w_days=None, add_feat=True
 
     if add_feat:
         # location of stations
-        coords_v = np.stack([lon[keepToo], lat[keepToo]], axis=-1)
+        coords_v = np.stack([lon, lat], axis=-1)
         coords_v = (coords_v-coords_v.mean(axis=0))/coords_v.std(axis=0)
         # altitude of stations
-        alt_v = elev[keepToo]
+        alt_v = alt
         alt_v = (alt_v-alt_v.mean())/alt_v.std()
 
         x_train = np.dstack([x_train, np.repeat(coords_v[np.newaxis,:], x_train.shape[0], axis=0),
@@ -259,6 +265,142 @@ def dataset_temp(datas, lon=None, lat=None, alt=None, w_days=None, add_feat=True
     training = LabeledDataset(x_train, labels_train)
     validation = LabeledDataset(x_val, labels_val)
     return training, validation
+
+def dataset_prec(datas, lon=None, lat=None, alt=None, w_days=None, add_feat=True, ratio=0.7):
+    n_days = datas.shape[0]
+    limit = int(ratio*n_days)
+
+    mean = datas.mean(axis=(0,1))[1:3]
+    std = datas.std(axis=(0,1))[1:3]
+
+    x_train = (datas[:limit,:,1:3] - mean) / std
+    labels_train = datas[:limit,:,0]
+    x_val = (datas[limit:,:,1:3] - mean) / std
+    labels_val = datas[limit:,:,0]
+
+    if add_feat:
+        # location of stations
+        coords_v = np.stack([lon, lat], axis=-1)
+        coords_v = (coords_v-coords_v.mean(axis=0))/coords_v.std(axis=0)
+        # altitude of stations
+        alt_v = alt
+        alt_v = (alt_v-alt_v.mean())/alt_v.std()
+
+        x_train = np.dstack([x_train, np.repeat(coords_v[np.newaxis,:], x_train.shape[0], axis=0),
+                             np.repeat(alt_v[np.newaxis,:], x_train.shape[0], axis=0),
+                             np.repeat(w_days[:limit, np.newaxis], x_train.shape[1], axis=1)])
+        x_val = np.dstack([x_val, np.repeat(coords_v[np.newaxis,:], x_val.shape[0], axis=0),
+                          np.repeat(alt_v[np.newaxis,:], x_val.shape[0], axis=0),
+                          np.repeat(w_days[limit:, np.newaxis], x_val.shape[1], axis=1)])
+
+    training = LabeledDataset(x_train, labels_train)
+    validation = LabeledDataset(x_val, labels_val)
+    return training, validation
+
+
+def dataset_reg(datas, lon=None, lat=None, alt=None, w_days=None, add_feat=False, days_pred=5, ratio=0.7):
+    n_days, n_stations, n_feature= datas.shape
+    limit = int(0.7*(n_days-days_pred))
+    
+    dataset_x = np.vstack([np.roll(datas, -i, axis=0) for i in range(days_pred)])
+    dataset_x = dataset_x.reshape(days_pred, n_days, n_stations, n_feature).transpose((1,2,3,0))
+    
+    days_x = np.vstack([np.roll(w_days, -i, axis=0) for i in range(days_pred)])
+    days_x = days_x.reshape(days_pred, n_days).transpose()
+
+    x_train = dataset_x[:limit,:,:,:].transpose(0, 2, 1, 3).reshape(-1, n_stations, days_pred)
+    labels_train = datas[days_pred:limit+days_pred,:,:].transpose(0,2,1).reshape(-1, n_stations)
+    x_val = dataset_x[limit:n_days-days_pred,:,:,:].transpose(0, 2, 1, 3).reshape(-1, n_stations, days_pred)
+    labels_val = datas[days_pred+limit:,:,:].transpose(0,2,1).reshape(-1, n_stations)
+
+    if add_feat:
+        # location of stations
+        coords_v = np.stack([lon, lat], axis=-1)
+        coords_v = (coords_v-coords_v.mean(axis=0))/coords_v.std(axis=0)
+        # altitude of stations
+        alt_v = alt
+        alt_v = (alt_v-alt_v.mean())/alt_v.std()
+
+        x_train = np.dstack([x_train, 
+#                     np.broadcast_to(month_x[:n_days-days_pred,np.newaxis, :], x_train.shape),
+                     np.repeat(coords_v[np.newaxis,:], x_train.shape[0],axis=0),
+                     np.repeat(alt_v[np.newaxis,:], x_train.shape[0],axis=0),
+                     np.tile(np.repeat(w_days[:limit, np.newaxis], x_train.shape[1],axis=1), (2,1))])
+#                      np.broadcast_to(days_x[:n_days-days_pred,np.newaxis, :], x_train.shape)])
+
+        x_val = np.dstack([x_val, 
+#                   np.broadcast_to(month_x[:n_days-days_pred,np.newaxis, :], x_val.shape), 
+                   np.repeat(coords_v[np.newaxis,:], x_val.shape[0],axis=0),
+                   np.repeat(alt_v[np.newaxis,:], x_val.shape[0],axis=0),
+                   np.tile(np.repeat(w_days[limit:n_days-days_pred, np.newaxis], x_val.shape[1],axis=1), (2,1))])
+#                    np.broadcast_to(days_x[:n_days-days_pred,np.newaxis, :], x_val.shape)])
+
+    training = LabeledDataset(x_train, labels_train)
+    validation = LabeledDataset(x_val, labels_val)
+    return training, validation
+
+def dataset_snow(datas, lon=None, lat=None, alt=None, w_days=None, add_feat=True, ratio=0.7):
+    n_days = datas.shape[0]
+    limit = int(ratio*n_days)
+
+    mean = datas.mean(axis=(0,1))[:3]
+    std = datas.std(axis=(0,1))[:3]
+
+    x_train = (datas[:limit,:,:3] - mean) / std
+    labels_train = datas[:limit,:,3]
+    x_val = (datas[limit:,:,:3] - mean) / std
+    labels_val = datas[limit:,:,3]
+
+    if add_feat:
+        # location of stations
+        coords_v = np.stack([lon, lat], axis=-1)
+        coords_v = (coords_v-coords_v.mean(axis=0))/coords_v.std(axis=0)
+        # altitude of stations
+        alt_v = alt
+        alt_v = (alt_v-alt_v.mean())/alt_v.std()
+
+        x_train = np.dstack([x_train, np.repeat(coords_v[np.newaxis,:], x_train.shape[0], axis=0),
+                             np.repeat(alt_v[np.newaxis,:], x_train.shape[0], axis=0),
+                             np.repeat(w_days[:limit, np.newaxis], x_train.shape[1], axis=1)])
+        x_val = np.dstack([x_val, np.repeat(coords_v[np.newaxis,:], x_val.shape[0], axis=0),
+                          np.repeat(alt_v[np.newaxis,:], x_val.shape[0], axis=0),
+                          np.repeat(w_days[limit:, np.newaxis], x_val.shape[1], axis=1)])
+
+    training = LabeledDataset(x_train, labels_train)
+    validation = LabeledDataset(x_val, labels_val)
+    return training, validation
+
+def dataset_global(datas, lon=None, lat=None, alt=None, w_days=None, add_feat=True, ratio=0.7):
+    n_days = datas.shape[0]
+    limit = int(ratio*n_days)
+
+    mean = datas.mean(axis=(0,1))[0]
+    std = datas.std(axis=(0,1))[0]
+
+    x_train = np.atleast_3d((datas[:limit,:,0] - mean) / std)
+    labels_train = w_days[:limit]
+    x_val = np.atleast_3d((datas[limit:,:,0] - mean) / std)
+    labels_val = w_days[limit:]
+
+    if add_feat:
+        # location of stations
+        coords_v = np.stack([lon, lat], axis=-1)
+        coords_v = (coords_v-coords_v.mean(axis=0))/coords_v.std(axis=0)
+        # altitude of stations
+        alt_v = alt
+        alt_v = (alt_v-alt_v.mean())/alt_v.std()
+
+        x_train = np.dstack([x_train, np.repeat(coords_v[np.newaxis,:], x_train.shape[0], axis=0),
+                             np.repeat(alt_v[np.newaxis,:], x_train.shape[0], axis=0),
+                             np.repeat(w_days[:limit, np.newaxis], x_train.shape[1], axis=1)])
+        x_val = np.dstack([x_val, np.repeat(coords_v[np.newaxis,:], x_val.shape[0], axis=0),
+                          np.repeat(alt_v[np.newaxis,:], x_val.shape[0], axis=0),
+                          np.repeat(w_days[limit:, np.newaxis], x_val.shape[1], axis=1)])
+
+    training = LabeledDataset(x_train, labels_train)
+    validation = LabeledDataset(x_val, labels_val)
+    return training, validation
+
 
 from pygsp.graphs import NNGraph
 class sphereGraph(NNGraph):

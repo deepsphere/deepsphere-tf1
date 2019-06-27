@@ -558,9 +558,9 @@ class base_model(object):
         with tf.name_scope('loss'):
             if regression:
                 with tf.name_scope('MSE'):
-                    predictions = logits
-                    if self.M:
-                        labels = tf.expand_dims(labels, axis=-1)
+                    predictions = tf.squeeze(logits)
+#                     if self.M:
+#                         labels = tf.expand_dims(labels, axis=-1)
                     if hasattr(self, 'train_mask'):
                         predictions = predictions * data[..., -2]
                         labels = labels * data[..., -1]
