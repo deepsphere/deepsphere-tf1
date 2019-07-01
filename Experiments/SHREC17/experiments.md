@@ -533,6 +533,7 @@ TODO: revoir les résultats
 * test on test_perturbed dataset: P@N 0.704, R@N 0.695, F1@N 0.693, mAP 0.663, NDCG 0.747
 
 ## Equiangular graph with correct pooling
+* git commit: c279685d6e7258a6d4f12e98c680230ba3b6c754
 ** bw = [64, 32, 16, 8, 4, 2, 2]
 ** params['F'] = [16, 32, 64, 128, 256, n_classes]
 ** params['batch_norm'] = [True] * 6
