@@ -267,8 +267,9 @@ def compute_mean_std(dataset, name, root, nside, delete=False):
     pkl.dump(info, open(file, 'wb'))
     dataset.mean = mean
     dataset.std = std
-    print(mean)
-    print(std)
+#     print(mean)
+#     print(std)
+    return mean, std
 
 
 def plot_healpix_projection(file, nside, outside=False, rotp=True, multiple=False, **kwargs):

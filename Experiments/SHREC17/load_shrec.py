@@ -4,6 +4,8 @@
 """Load dataset from SHREC17 and project it to a HEALpix sphere
     Code from: https://github.com/jonas-koehler/s2cnn/blob/master/examples/shrec17/dataset.py
     and https://github.com/AMLab-Amsterdam/lie_learn/blob/master/lie_learn/spaces/S2.py
+    
+    Use of Cohen equiangular files, and not created by us.
 """
 
 import csv
@@ -328,6 +330,47 @@ def cache_healpix_projection(root, dataset, nside, repeat=1, outside=False, rot=
                 else:
                     img = data
                 np.save(npy_path.format(i), img)
+                
+
+def compute_mean_std(dataset, name, root, nside, delete=False):
+    dataset.mean = 0.
+    dataset.std = 1.
+    dataset.loaded = True
+    data_iter = dataset.iter(1)
+    N = dataset.N
+    file = os.path.join(root, 'info.pkl')
+    try:
+        info = pkl.load(open(file,'rb'))
+    except:
+        print("file non-existent")
+        info = {}
+    if delete:
+        if nside in info.keys():
+            info[nside].pop(name, None)
+        return
+    mean = 0.
+    std = 1.
+    for i in tqdm(range(N)):
+        data, _ = next(data_iter)
+        mean += np.mean(data, axis=(0,1))
+    mean /= N
+    
+    for i in tqdm(range(N)):
+        data, _ = next(data_iter)
+        std += ((data - mean)**2).mean(axis=(0,1))
+    std /= N
+    std = np.sqrt(std)
+    
+    if nside in info.keys():
+        info[nside][name]={"mean":mean,"std":std}
+    else:
+        info[nside] = {name:{"mean":mean,"std":std}}
+    pkl.dump(info, open(file, 'wb'))
+    dataset.mean = mean
+    dataset.std = std
+#     print(mean)
+#     print(std)
+    return mean, std
 
 
 class Shrec17Dataset(object):
@@ -350,6 +393,7 @@ class Shrec17Dataset(object):
                 return x
         else:
             fun = tqdm
+        self.experiment = experiment
         self.nside = nside
         self.nfeat = nfeat
         self.root = os.path.expanduser(root)
@@ -440,6 +484,8 @@ class Shrec17Dataset(object):
     def check_trans(self, file_path):
         # print("transform {}...".format(file_path))
         try:
+            if self.experiment=='equiangular':
+                raise NotImplementError("equiangular projection creation file not implemented yet")
             mesh = ToMesh(file_path, rot=False, tr=0.1)
             data = ProjectOnSphere(self.nside, mesh)
             return data
@@ -803,6 +849,8 @@ class Shrec17DatasetCache(object):
     def check_trans(self, file_path):
         #print("transform {}...".format(file_path))
         try:
+            if self.experiment=='equiangular':
+                raise NotImplementError("equiangular projection creation file not implemented yet")
             mesh = ToMesh(file_path, rot=False, tr=0.1)
             data = ProjectOnSphere(self.nside, mesh)
             return data

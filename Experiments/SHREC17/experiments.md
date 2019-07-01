@@ -525,13 +525,37 @@ TODO: revoir les résultats
 * time per batch: 0.16 s
 * Remarks: xxxx MiB on GPU, 7h52m to train
 
-###### change learning rate over time
 
 ## Augmented Dataset no rotation / on rotated dataset
 * accuracy, F1, loss of validation part: (81.86, 81.47, 0.97)
 * accuracy, F1, loss of test part: (77.78, 77.98, 1.17)
 * test on val_perturbed dataset: P@N 0.723, R@N 0.736, F1@N 0.723, mAP 0.699, NDCG 0.726
 * test on test_perturbed dataset: P@N 0.704, R@N 0.695, F1@N 0.693, mAP 0.663, NDCG 0.747
+
+## Equiangular graph with correct pooling
+** bw = [64, 32, 16, 8, 4, 2, 2]
+** params['F'] = [16, 32, 64, 128, 256, n_classes]
+** params['batch_norm'] = [True] * 6
+** params['num_epochs'] = 20
+** params['batch_size'] = 32
+** params['activation'] = 'relu'
+** params['regularization'] = 0
+** params['dropout'] = 1
+** params['scheduler'] = lambda step: 5e-1
+** params['K'] = [4] * 6  
+** optimizer: Adam
+** average pooling at the end
+* nparams = weights + bias = ~189k
+* train on perturbed dataset, augmentation=5, random translations and rotations (object not on the center of the sphere)
+* training set loss: 0.22
+* accuracy, F1, loss of validation part: (83.05, 82.61, 0.81)
+* accuracy, F1, loss of test part: (79.25, 79.36, 1.02)
+* test on val_perturbed dataset: P@N 0.730, R@N 0.745, F1@N 0.730, mAP 0.708, NDCG 0.731
+                          macro: P@N 0.497, R@N 0.537, F1@N 0.492, mAP 0.453, NDCG 0.505
+* test on test_perturbed dataset: P@N 0.709, R@N 0.700, F1@N 0.698, mAP 0.665, NDCG 0.748
+                          macro: P@N 0.439, R@N 0.489, F1@N 0.439, mAP 0.403, NDCG 0.459
+* time per batch: 0.033 s
+* Remarks: 889 MiB on GPU, 2h30m to train
 
 # Cohen model
 ## paper experiment

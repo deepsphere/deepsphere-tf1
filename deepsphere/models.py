@@ -904,6 +904,7 @@ class cgcnn(base_model):
         if p > 1:
             if self.sampling is 'equiangular':
                 N, M, F = x.get_shape()
+                N, M, F = int(N), int(M), int(F)
                 x = tf.reshape(x,[N,int(M**0.5), int(M**0.5), F])
                 x = tf.nn.max_pool(x, ksize=[1,p**0.5,p**0.5,1], strides=[1,p**0.5,p**0.5,1], padding='SAME')
                 return tf.reshape(x, [N, -1, F])

@@ -1,3 +1,7 @@
+"""
+    Script from Carlos Esteves, used for the SHREC17 competion
+"""
+
 import os
 import subprocess
 from joblib import Parallel, delayed

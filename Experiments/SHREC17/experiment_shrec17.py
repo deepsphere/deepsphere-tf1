@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+"""
+Script to run the DeepSphere experiment with SHREC17 dataset.
+"""
+
 import os
 import shutil
 import sys
@@ -24,19 +28,18 @@ ename = '_'+experiment_type
 datapath = '../data/shrec17/' # localisation of the .obj files
 
 augmentation = 3        # number of element per file (1 = no augmentation of dataset)
+nfeat = 6
 
-# EXP_NAME = 'shrec17_Cohen_simple_SGD_max_nsides_300epoch_reg_{}sides{}'.format(Nside, ename)
 EXP_NAME = 'shrec17_best_4K_cache_{}aug_{}sides{}'.format(augmentation, Nside, ename)
 
-train_dataset = Shrec17DatasetTF(datapath, 'train', nside=Nside, augmentation=augmentation, nfile=None, verbose=False)
-val_dataset = Shrec17DatasetCache(datapath, 'val', nside=Nside, augmentation=1, nfile=None, verbose=False)
+train_dataset = Shrec17DatasetTF(datapath, 'train', nside=Nside, augmentation=augmentation, nfile=None, nfeat=nfeat, verbose=False)
+val_dataset = Shrec17DatasetCache(datapath, 'val', nside=Nside, augmentation=1, nfile=None, nfeat=nfeat, verbose=False)
 
 nclass = train_dataset.nclass
 
 #x_train, labels_train, ids_train = train_dataset.return_data(train=True, train_ratio=1., verbose=False)
 #x_val, labels_val, ids_val = val_dataset.return_data(train=False, verbose=False)
 
-nfeat = 6#x_val.shape[-1]
 
 #training = LabeledDataset(x_train, labels_train)
 #validation = LabeledDataset(x_val, labels_val)
