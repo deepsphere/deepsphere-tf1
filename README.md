@@ -5,7 +5,7 @@ Frédérick Gusset, [Nathanaël Perraudin][nath], [Michaël Defferrard][mdeff]
 [nath]: https://perraudin.info
 [mdeff]: http://deff.ch
 
-The code in this repository is based on [DeepSphere][https://github.com/SwissDataScienceCenter/DeepSphere] and regroups all experiments performed in the master thesis ["An empirical study of spherical convolutional neural networks"][thesis]. This master project was performed in the LTS2 lab at EPFL, during Spring semester 2019.
+The code in this repository is based on [DeepSphere](https://github.com/SwissDataScienceCenter/DeepSphere) and regroups all experiments performed in the master thesis ["An empirical study of spherical convolutional neural networks"][thesis]. This master project was performed in the LTS2 lab at EPFL, during Spring semester 2019.
 
 [thesis]: https://infoscience.epfl.ch/record/267531?&ln=fr
 
@@ -43,7 +43,7 @@ The different benchmarks are regrouped in the [Experiment](Experiments) folder, 
     * [demo_sphere_SHREC17][cached data]
       Shrec17 experiment with TF dataset pipeline
     * [demo_sphere_SHREC17_equiangular][equiangular]
-      SHREC17 experiment using an equiangular sampling similar as [Cohen et al.][https://arxiv.org/abs/1801.10130]
+      SHREC17 experiment using an equiangular sampling similar as [Cohen et al.](https://arxiv.org/abs/1801.10130)
 
 2. ModelNet40
     * [demo](Experiments/ModelNet40/demo_sphere_ModelNet40.ipynb)
