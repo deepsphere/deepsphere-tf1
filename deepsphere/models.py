@@ -908,6 +908,8 @@ class cgcnn(base_model):
                 x = tf.reshape(x,[N,int(M**0.5), int(M**0.5), F])
                 x = tf.nn.max_pool(x, ksize=[1,p**0.5,p**0.5,1], strides=[1,p**0.5,p**0.5,1], padding='SAME')
                 return tf.reshape(x, [N, -1, F])
+            elif self.sampling  is 'icosahedron':
+                return x[:, :p, :]
             else:
                 x = tf.expand_dims(x, 3)  # N x M x F x 1
                 x = tf.nn.max_pool(x, ksize=[1,p,1,1], strides=[1,p,1,1], padding='SAME')
@@ -923,6 +925,8 @@ class cgcnn(base_model):
                 x = tf.reshape(x,[N,int(M**0.5), int(M**0.5), F])
                 x = tf.nn.avg_pool(x, ksize=[1,p**0.5,p**0.5,1], strides=[1,p**0.5,p**0.5,1], padding='SAME')
                 return tf.reshape(x, [N, -1, F])
+            elif self.sampling  is 'icosahedron':
+                return x[:, :p, :]
             else:
                 x = tf.expand_dims(x, 3)  # N x M x F x 1
                 x = tf.nn.avg_pool(x, ksize=[1,p,1,1], strides=[1,p,1,1], padding='SAME')
@@ -1215,6 +1219,8 @@ class deepsphere(cgcnn):
                 self.pygsp_graphs[layer-1] = utils.healpix_graph(nside=nside)
             elif self.sampling is 'equiangular':
                 self.pygsp_graphs[layer-1] = utils.equiangular_graph(bw=nside)
+            elif self.sampling is 'icosahedron':
+                self.pygsp_graphs[layer-1] = utils.icosahedron_graph(order=nside)
             else:
                 raise valueError('Unknown sampling: '+self.sampling)
             self.pygsp_graphs[layer-1].estimate_lmax()
