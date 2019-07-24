@@ -488,23 +488,15 @@ class SphereIcosahedron(NNGraph):
         self.intp = None
         PHI = (1 + np.sqrt(5))/2
         radius = np.sqrt(PHI**2+1)
-        coords = np.zeros((12,3))
-        pointUpFor = deque([0, 1, PHI])
-        pointUpBack = deque([0, -1, PHI])
-        pointDownFor = deque([0, 1, -PHI])
-        pointDownBack = deque([0, -1, -PHI])
-        for i in range(3):
-            coords[4*i] = pointUpFor
-            coords[4*i+1] = pointUpBack
-            coords[4*i+2] = pointDownFor
-            coords[4*i+3] = pointDownBack
-            pointUpFor.rotate()
-            pointUpBack.rotate()
-            pointDownFor.rotate()
-            pointDownBack.rotate()
-        coords = coords/radius
-        faces = [1, 2, 7, 1, 7, 10, 1, 10, 9, 1, 9, 5, 1, 5, 2, 2, 7, 12, 12, 7, 8, 7, 8, 10, 8, 10, 3, 10, 3, 9, 3, 9, 6, 9, 6, 5, 6, 5, 11, 5, 11, 2, 11, 2, 12, 4, 11, 12, 4, 12, 8, 4, 8, 3, 4, 3, 6, 4, 6, 11]
-        self.faces = np.reshape(faces, (20,3))-1
+        coords = [-1, PHI, 0, 1, PHI, 0, -1, -PHI, 0, 1, -PHI, 0, 
+                  0, -1, PHI, 0, 1, PHI, 0, -1, -PHI, 0, 1, -PHI,
+                  PHI, 0, -1, PHI, 0, 1, -PHI, 0, -1, -PHI, 0, 1]
+        coords =  np.reshape(coords, (-1, 3))/radius
+        faces = [0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11,
+                 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8,
+                 3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9,
+                 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1]
+        self.faces = np.reshape(faces, (20,3))
         self.level = level
         self.coords = coords
         
@@ -513,6 +505,7 @@ class SphereIcosahedron(NNGraph):
         for i in range(level):
             self.divide()
             self.normalize()
+            # self.coords = self.coords.reshape((4,-1)).T.flatten()
         
         if sampling=='face':
             self.coords = self.coords[self.faces].mean(axis=1)
@@ -589,7 +582,7 @@ class SphereIcosahedron(NNGraph):
         
     def xyz2latlong(self):
         x, y, z = self.coords[:, 0], self.coords[:, 1], self.coords[:, 2]
-        long = np.arctan2(y, x)
+        long = np.arctan2(y, x) + np.pi
         xy2 = x**2 + y**2
         lat = np.arctan2(z, np.sqrt(xy2))
         return lat, long
@@ -696,7 +689,7 @@ def icosahedron_laplacian(order=0,
                           dtype=np.float32):
     graph = SphereIcosahedron(order, sampling='vertex')
     graph.compute_laplacian("combinatorial")
-    return graph.L
+    return sparse.csr_matrix(graph.L, dtype=dtype)
 
 
 def rescale_L(L, lmax=2, scale=1):
@@ -719,7 +712,7 @@ def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix', std=
     if not isinstance(full, list):
         full = [full] * len(nsides)
     for i, (nside, index, sigma, mat) in enumerate(zip(nsides, indexes, std, full)):
-        if i > 0:  # First is input dimension.
+        if i > 0 and sampling != 'icosahedron':  # First is input dimension.
             p.append((nside_last // nside)**2)
         nside_last = nside
         if i < len(nsides) - 1:  # Last does not need a Laplacian.
@@ -733,7 +726,7 @@ def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix', std=
                 raise ValueError('Unknown sampling: '+sampling)
             L.append(laplacian)
     if sampling == 'icosahedron':
-        for order in nsides[1]:
+        for order in nsides[1:]:
             p.append(10 * 4 ** order + 2)
     return L, p
 

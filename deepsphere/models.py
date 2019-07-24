@@ -205,7 +205,10 @@ class base_model(object):
 
             # Compute loss if labels are given.
             if labels is not None:
-                batch_labels = np.zeros(self.batch_size)
+                if self.dense:
+                    batch_labels = np.zeros((self.batch_size, M0))
+                else:
+                    batch_labels = np.zeros(self.batch_size)
                 batch_labels[:end-begin] = labels[begin:end]
                 feed_dict[self.ph_labels] = batch_labels
                 batch_prob, batch_loss = sess.run([self.op_probabilities, self.op_loss], feed_dict)
@@ -240,6 +243,11 @@ class base_model(object):
         t_cpu, t_wall = process_time(), time.time()
         if cache is 'TF':
             predictions, labels, loss = self.predict(data, labels, sess, cache=cache)
+        elif self.dense:
+            probabilities, loss = self.probs(data, 3, labels, sess, cache=cache)
+            predictions = np.argmax(probabilities, axis=-1)
+            if cache:
+                labels = data.get_labels()
         else:
             predictions, loss = self.predict(data, labels, sess, cache=cache)
             if cache:
@@ -258,6 +266,30 @@ class base_model(object):
             # labels, predictions = sklearn.utils.check_array(labels, predictions)
             mre = np.mean(np.abs((labels - predictions) /np.clip(labels, 1, None))) * 100
             metrics = mae, mre
+        elif self.dense:
+            def accuracy(pred_cls, true_cls, nclass=3):
+                accu = []
+                tot_int = 0
+                tot_cl = 0
+                for i in range(3):
+                    intersect = np.sum(((pred_cls == i) * (true_cls == i)))
+                    thiscls = np.sum(true_cls == i)
+                    accu.append(intersect / thiscls * 100)
+#                     tot_int += intersect
+#                     tot_cl += thiscls
+                return np.array(accu), np.mean(accu) #tot_int/tot_cl * 100
+            labels = labels.flatten()
+            true = sklearn.preprocessing.label_binarize(labels, classes=[0, 1, 2])
+            probabilities = probabilities.reshape(-1, 3)
+            AP = sklearn.metrics.average_precision_score(true, probabilities, None)
+            
+            predictions = predictions.flatten()
+            ncorrects = sum(predictions == labels)
+            class_acc, accuracy = accuracy(predictions, labels)
+            f1 = sklearn.metrics.f1_score(labels, predictions, average=None)
+            string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (TC): {:.2f}, f1 (AR): {:.2f}, loss: {:.2e}'.format(
+                    accuracy, ncorrects, len(labels), 100*f1[1], 100*f1[2], loss)
+            metrics = AP, class_acc
         else:
             metrics = None
             labels = labels.flatten()
@@ -370,7 +402,7 @@ class base_model(object):
                         print('  learning_rate = {:.2e}, training mean relative error = {:.2e},' \
                               ' training loss = {:.2e}'.format(learning_rate, batch_mre, loss))
                     else:
-                        print('  learning_rate = {:.2e}, training accuracy = {:.2f}, training loss = {:.2e}'.format(learning_rate, 
+                        print('  learning_rate = {:.2e}, training mAP = {:.2f}, training loss = {:.2e}'.format(learning_rate, 
                                                                                                                     acc, loss))
                 losses_training.append(loss)
                 if self.regression:
@@ -379,7 +411,9 @@ class base_model(object):
                     if cache:
                         string, accuracy, f1, loss, _ = self.evaluate(val_dataset, None, sess, cache=cache)
                     else:
-                        string, accuracy, f1, loss, _ = self.evaluate(val_data, val_labels, sess)
+                        string, accuracy, f1, loss, metrics = self.evaluate(val_data, val_labels, sess)
+                        if self.dense:
+                            AP, class_acc = metrics
                     accuracies_validation.append(accuracy)
                 losses_validation.append(loss)
                 if verbose:
@@ -397,11 +431,24 @@ class base_model(object):
                     summary.value.add(tag='validation/mre', simple_value=mre_val)
                     summary.value.add(tag='training/mre', simple_value=mre)
                 else:
-                    summary.value.add(tag='validation/accuracy', simple_value=accuracy)
-                    summary.value.add(tag='validation/f1', simple_value=f1)
+                    if self.dense:
+                        summary.value.add(tag='training/epoch_map', simple_value=acc)
+                        summary.value.add(tag='validation/accuracy', simple_value=accuracy)
+                        summary.value.add(tag='validation/accuracy_BG', simple_value=class_acc[0])
+                        summary.value.add(tag='validation/accuracy_TC', simple_value=class_acc[1])
+                        summary.value.add(tag='validation/accuracy_AR', simple_value=class_acc[2])
+                        summary.value.add(tag='validation/f1_BG', simple_value=f1[0])
+                        summary.value.add(tag='validation/f1_TC', simple_value=f1[1])
+                        summary.value.add(tag='validation/f1_AR', simple_value=f1[2])
+                        summary.value.add(tag='validation/AP_BG', simple_value=AP[0])
+                        summary.value.add(tag='validation/AP_TC', simple_value=AP[1])
+                        summary.value.add(tag='validation/AP_AR', simple_value=AP[2])
+                    else:
+                        summary.value.add(tag='training/epoch_accuracy', simple_value=acc)
+                        summary.value.add(tag='validation/accuracy', simple_value=accuracy)
+                        summary.value.add(tag='validation/f1', simple_value=f1)
                     summary.value.add(tag='validation/loss', simple_value=loss)
 #                     summary.value.add(tag='training/batch_accuracy', simple_value=batch_acc)
-                    summary.value.add(tag='training/epoch_accuracy', simple_value=acc)
                 writer.add_summary(summary, step)
                 if self.profile:
                     writer.add_run_metadata(run_metadata, 'step{}'.format(step))
@@ -484,13 +531,20 @@ class base_model(object):
             self.op_labels = self.ph_labels
             
             # Metrics
-            if regression:
-                self.tf_mre, self.tf_mre_update = tf.metrics.mean_relative_error(self.ph_labels, self.op_prediction, 
-                                                         tf.abs(tf.clip_by_value(self.ph_labels, 1, np.inf)), name='metrics_mre')
-                running_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics_mre")
-            else:
-                self.tf_accuracy, self.tf_accuracy_update = tf.metrics.accuracy(self.ph_labels, self.op_prediction, name='metrics_acc')
-                running_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics_acc")
+            with tf.name_scope('metrics'):
+                if regression:
+                    self.tf_mre, self.tf_mre_update = tf.metrics.mean_relative_error(self.ph_labels, self.op_prediction, 
+                                                             tf.abs(tf.clip_by_value(self.ph_labels, 1, np.inf)), name='metrics_mre')
+                    running_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics_mre")
+                elif self.dense:
+                    self.tf_accuracy, self.tf_accuracy_update = tf.metrics.average_precision_at_k(tf.to_int64(self.ph_labels), 
+                                                                                      op_logits, 
+                                                                                      3,
+                                                                                      name='metrics_map')
+                else:
+                    self.tf_accuracy, self.tf_accuracy_update = tf.metrics.accuracy(self.ph_labels, self.op_prediction,
+                                                                                    name='metrics_acc')
+            running_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics")
 
             
 
@@ -569,7 +623,17 @@ class base_model(object):
             else:
                 with tf.name_scope('cross_entropy'):
                     labels = tf.to_int64(labels)
+                    labels_onehot = tf.one_hot(labels, 3)
+#                     weights = tf.constant([[0.00102182, 0.95426438, 0.04471379]])
+                    if self.dense:
+                        weights = tf.constant([[0.34130685, 318.47388343,  14.93759951]])
+                        batch_weights = tf.reshape(tf.matmul(tf.reshape(labels_onehot, [-1,3]), tf.transpose(weights)), 
+                                                   [self.batch_size, 10242])
+#                     batch_weights = tf.reduce_sum(class_weights * onehot_labels, axis=1)
                     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
+                    if self.dense:
+                        cross_entropy = tf.multiply(batch_weights, cross_entropy)  
+#                     cross_entropy = tf.reduce_sum(cross_entropy*batch_weights) / self.batch_size
                     cross_entropy = tf.reduce_mean(cross_entropy)
                     loss = cross_entropy
             with tf.name_scope('regularization'):
@@ -710,9 +774,9 @@ class cgcnn(base_model):
         if not np.all(np.array(p) >= 1):
             raise ValueError('Down-sampling factors p should be greater or equal to one.')
         p_log2 = np.where(np.array(p) > 1, np.log2(p), 0)
-        if not np.all(np.mod(p_log2, 1) == 0):
+        if not np.all(np.mod(p_log2, 1) == 0) and self.sampling != 'icosahedron':
             raise ValueError('Down-sampling factors p should be powers of two.')
-        if len(M) == 0 and p[-1] != 1:
+        if len(M) == 0 and p[-1] != 1 and self.sampling != 'icosahedron':
             raise ValueError('Down-sampling should not be used in the last '
                              'layer if no fully connected layer follows.')
         if mask and not isinstance(mask, list):
@@ -1055,13 +1119,21 @@ class cgcnn(base_model):
         # transpose filter
         for i in range(1, 1+len(self.p)):
 #             print(self.p[-i])
-            if self.p[-i]>1:
+            if self.p[-i]>1 and (i!=0 and i!=len(self.p)):
                 with tf.variable_scope('upconv{}'.format(len(self.p)-i)):
                     with tf.name_scope('pooling'):
-                        x = self.unpool(x, self.p[-i])
+                        if self.sampling == 'icosahedron':
+                            try:
+                                p = self.p[-i-1]
+                            except:
+                                p = self.p[-i]
+                        else:
+                            p = self.p[-i]
+                        x = self.unpool(x, p)
 #                         print('unpool{}'.format(len(self.p)-i), x.shape)
                     with tf.name_scope('up-conv'):
                         x = self.filter(x, self.L[-i], self.F[-i], self.K[-i], training)
+                        x = self.bias(x)
 #                         print('upconv{}'.format(len(self.p)-i), x.shape)
 #                 x = gen_nn_ops._max_pool_grad(x, self.pool_layers[-i], self.pool_layers[-i], [1,p,1,1], [1,p,1,1],'SAME')
                     x = tf.concat([x, self.pool_layers[-i]], axis=-1)
@@ -1069,6 +1141,10 @@ class cgcnn(base_model):
                     with tf.name_scope('filter'):
                         try:
                             x = self.filter(x, self.L[-i], self.F[-i], self.K[-i], training)
+                            if self.batch_norm[-i]:
+                                x = self.batch_normalization(x, training)
+                            x = self.bias(x)
+                            x = self.activation(x)
 #                             print('deconv{}'.format(len(self.p)-i), x.shape)
                         except:
                             raise ValueError("Down-sampling should not be used in the first layers if training for segmentation task")
@@ -1077,6 +1153,10 @@ class cgcnn(base_model):
                     with tf.name_scope('filter'):
                         try:
                             x = self.filter(x, self.L[-i], self.F[-i], self.K[-i], training)
+                            if self.batch_norm[-i]:
+                                x = self.batch_normalization(x, training)
+                            x = self.bias(x)
+                            x = self.activation(x)
                         except:
                             x = self.filter(x, self.L[-i], self.Fseg, self.K[-i], training)
 #                         print('deconv{}'.format(len(self.p)-i), x.shape)
@@ -1091,6 +1171,12 @@ class cgcnn(base_model):
     def unpool_average(self, x, p):
         if self.sampling is 'equiangular':
             raise NotImplementedError('unpooling with equiangular sampling is not yet implemented')
+        elif self.sampling is 'icosahedron':
+            N, M, F = x.shape
+            return tf.pad(x, tf.constant([[0,0],[0,int(p-M)],[0,0]]), "CONSTANT", constant_values=1)
+#             one_pad = tf.ones((N, p-M, F))
+#             return tf.concat([x, one_pad], axis=1)
+            #return x[:, :p, :]
         N, M, F = x.shape  # N x M x F
         x = tf.tile(tf.expand_dims(x, 2), [1,1,p,1]) 
         return tf.reshape(x, [N, M*p, F]) # N x M*p x F
@@ -1098,6 +1184,8 @@ class cgcnn(base_model):
     def unpool_max(self, x, p):
         if self.sampling is 'equiangular':
             raise NotImplementedError('unpooling with equiangular sampling is not yet implemented')
+        elif self.sampling is 'icosahedron':
+            raise NotImplementedError('unpooling with icosahedron sampling is not yet implemented')
         # TODO: keep in memory the true position of max pool
         N, M, F = x.shape  # N x M x F
         zeros_pad = tf.zeros([N, M, p-1, F])
