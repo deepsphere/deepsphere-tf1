@@ -115,8 +115,11 @@ class base_model(object):
         sess = self._get_session(sess)
         if cache:
             if cache is 'TF':
+                config = tf.ConfigProto()
+                config.gpu_options.allow_growth = True
+                sess2 = tf.Session(config=config)
                 dataset = data.get_tf_dataset(self.batch_size)
-                data_iter = dataset.make_one_shot_iterator()
+                data_iter = dataset.make_one_shot_iterator().get_next()
             else:
                 data_iter = data.iter(self.batch_size)
         for begin in range(0, size, self.batch_size):
@@ -124,8 +127,9 @@ class base_model(object):
             end = min([end, size])
             if cache:
                 if cache is 'TF':
-                    batch_data, batch_labels = data_iter.get_next()
-                    label[begin:end] = np.asarray(sess.run(batch_labels))
+                    batch_data, batch_labels = sess2.run(data_iter)
+                    batch_data.astype(np.float32)
+                    label[begin:end] = np.asarray(batch_labels)[:end-begin]
                 else:
                     batch_data, batch_labels = next(data_iter)
                 if type(batch_data) is not np.ndarray:
@@ -159,7 +163,8 @@ class base_model(object):
 
         if labels is not None or (cache and batch_labels is not None):
             if cache is 'TF':
-                return predictions, labels, loss * self.batch_size / size
+                del sess2
+                return predictions, label, loss * self.batch_size / size
             else:
                 return predictions, loss * self.batch_size / size
         else:
@@ -174,13 +179,18 @@ class base_model(object):
         if self.dense:
             M0 = self.L[0].shape[0]
             probabilities = np.empty((size, M0, nb_class))
+            label = np.empty((size, M0))
         else:
             probabilities = np.empty((size, nb_class))
+            label = np.empty(size)
         sess = self._get_session(sess)
         if cache:
             if cache is 'TF':
+                config = tf.ConfigProto()
+                config.gpu_options.allow_growth = True
+                sess2 = tf.Session(config=config)
                 dataset = data.get_tf_dataset(self.batch_size)
-                data_iter = dataset.make_one_shot_iterator()
+                data_iter = dataset.make_one_shot_iterator().get_next()
             else:
                 data_iter = data.iter(self.batch_size)
         for begin in range(0, size, self.batch_size):
@@ -189,7 +199,9 @@ class base_model(object):
 
             if cache:
                 if cache is 'TF':
-                    batch_data, batch_labels = data_iter.get_next()
+                    batch_data, batch_labels = sess2.run(data_iter)
+                    batch_data.astype(np.float32)
+                    label[begin:end] = np.asarray(batch_labels)[:end-begin]
                 else:
                     batch_data, batch_labels = next(data_iter)
                 if type(batch_data) is not np.ndarray:
@@ -222,7 +234,11 @@ class base_model(object):
             probabilities[begin:end] = batch_prob[:end-begin]
 
         if labels is not None or (cache and batch_labels is not None):
-            return probabilities, loss * self.batch_size / size
+            if cache is 'TF':
+                del sess2
+                return probabilities, label, loss * self.batch_size / size
+            else:
+                return probabilities, loss * self.batch_size / size
         else:
             return probabilities
 
@@ -242,7 +258,11 @@ class base_model(object):
         """
         t_cpu, t_wall = process_time(), time.time()
         if cache is 'TF':
-            predictions, labels, loss = self.predict(data, labels, sess, cache=cache)
+            if self.dense:
+                probabilities, labels, loss = self.probs(data, 3, labels, sess, cache=cache)
+                predictions = np.argmax(probabilities, axis=-1)
+            else:
+                predictions, labels, loss = self.predict(data, labels, sess, cache=cache)
         elif self.dense:
             probabilities, loss = self.probs(data, 3, labels, sess, cache=cache)
             predictions = np.argmax(probabilities, axis=-1)
@@ -502,7 +522,7 @@ class base_model(object):
         with self.graph.as_default():
 
             # Make the dataset
-            self.tf_train_dataset = tf.data.Dataset().from_generator(self.loadable_generator.iter, 
+            self.tf_train_dataset = tf.data.Dataset.from_generator(self.loadable_generator.iter, 
                                                                      output_types=(tf.float32, (tf.float32 if regression else tf.int32)))
             self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
             if tf_dataset is not None:

@@ -7,18 +7,14 @@
 """
 
 import os
-import shutil
-import sys
 
 import numpy as np
-import time
-import matplotlib.pyplot as plt
-import healpy as hp
+# import healpy as hp
 from itertools import product
 
-from tqdm import tqdm
-import h5py
-from scipy.interpolate import griddata, RegularGridInterpolator, NearestNDInterpolator
+# from tqdm import tqdm
+# import h5py
+# from scipy.interpolate import griddata, RegularGridInterpolator, NearestNDInterpolator
 
 
 
@@ -51,29 +47,29 @@ def download(datapath, url, info):
 
     return file_path
 
-def interpolate(images, labels):
-    channels, lat_x, lon_x = images.shape
-    lon_ = np.arange(lon_x)/lon_x*360
-    lat_ = np.arange(lat_x)/lat_x*180-90
-    lon, lat = np.meshgrid(*(lon_, lat_))
-    coords_map = np.stack([lon, lat], axis=-1).reshape((-1, 2))
-    Nside = [32]#[32, 64]
-    for nside in Nside:
-        print("preprocessing data at nside = {}".format(nside))
-        npix = hp.nside2npix(nside)
-        data = np.empty((npix, channels))
-        new_labels = np.empty((npix))
-        pix = np.arange(npix)
-        coords_hp = hp.pix2ang(nside, pix, nest=True, lonlat=True)
-        coords_hp = np.asarray(coords_hp).T
-        for channel in range(channels):
-            f = RegularGridInterpolator((lon_, lat_), images[channel].T)
-            data[:,channel] = f(coords_hp)
-        f = NearestNDInterpolator(coords_map, labels[:].flatten(), rescale=False)
-        new_labels = f(coords_hp)
+# def interpolate(images, labels):
+#     channels, lat_x, lon_x = images.shape
+#     lon_ = np.arange(lon_x)/lon_x*360
+#     lat_ = np.arange(lat_x)/lat_x*180-90
+#     lon, lat = np.meshgrid(*(lon_, lat_))
+#     coords_map = np.stack([lon, lat], axis=-1).reshape((-1, 2))
+#     Nside = [32]#[32, 64]
+#     for nside in Nside:
+#         print("preprocessing data at nside = {}".format(nside))
+#         npix = hp.nside2npix(nside)
+#         data = np.empty((npix, channels))
+#         new_labels = np.empty((npix))
+#         pix = np.arange(npix)
+#         coords_hp = hp.pix2ang(nside, pix, nest=True, lonlat=True)
+#         coords_hp = np.asarray(coords_hp).T
+#         for channel in range(channels):
+#             f = RegularGridInterpolator((lon_, lat_), images[channel].T)
+#             data[:,channel] = f(coords_hp)
+#         f = NearestNDInterpolator(coords_map, labels[:].flatten(), rescale=False)
+#         new_labels = f(coords_hp)
             
         
-    return data, new_labels
+#     return data, new_labels
 
 def valid_days(data):
     valid = ~np.isnan(data).all(axis=(1,2,3))
@@ -117,6 +113,7 @@ if __name__=='__main__':
     os.makedirs(datapath, exist_ok=True)
     h5_path = download(datapath, 'https://portal.nersc.gov/project/dasrepo/deepcam/segm_h5_v3_reformat/stats.h5', (None,))
     
+    
     for year in years:
 #         datas = np.ones((len(months), len(days), len(hours), 16, npix, len(runs))) * np.nan
 #         print(datas.shape)
@@ -129,17 +126,17 @@ if __name__=='__main__':
                 except Exception as e:
     #                 print(e)
                     continue
-                try:
-                    h5f = h5py.File(h5_path)
-                    # Features
-                    # [TMQ, U850, V850, UBOT, VBOT, QREFHT, PS, PSL, T200, T500, PRECT, TS, TREFHT, Z1000, Z200, ZBOT]
-                    data = h5f['climate']["data"]     # 16x768x1152  Features X lat X lon
-                except:
-                    os.remove(h5_path)
-                    print("h5 file {} removed".format(h5_path))
-                    continue
-                labels = h5f['climate']["labels"] # 768x1152     lat X lon
-                data, labels = interpolate(data, labels)
+#                 try:
+#                     h5f = h5py.File(h5_path)
+#                     # Features
+#                     # [TMQ, U850, V850, UBOT, VBOT, QREFHT, PS, PSL, T200, T500, PRECT, TS, TREFHT, Z1000, Z200, ZBOT]
+#                     data = h5f['climate']["data"]     # 16x768x1152  Features X lat X lon
+#                 except:
+#                     os.remove(h5_path)
+#                     print("h5 file {} removed".format(h5_path))
+#                     continue
+#                 labels = h5f['climate']["labels"] # 768x1152     lat X lon
+#                 data, labels = interpolate(data, labels)
     #             datas[month-1, day-1, hour, :, :, run-1] = interpolate(data)
 #                 if year>2106:
 #                     os.remove(h5_path)
@@ -148,9 +145,9 @@ if __name__=='__main__':
     #         print(datas.shape)
     #         print(valid_days(datas).shape)
     #         datas = datas[valid_days(datas)]
-                np.savez(datapath+file.format(year, month, day, hour, run), datas=data, labels=labels)
-                print("save file at: "+file.format(year, month, day, hour, run))
-                break
+#                 np.savez(datapath+file.format(year, month, day, hour, run), datas=data, labels=labels)
+#                 print("save file at: "+file.format(year, month, day, hour, run))
+#                 break
     
     
     

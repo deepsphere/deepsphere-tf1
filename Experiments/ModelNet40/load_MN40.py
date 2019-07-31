@@ -679,10 +679,10 @@ class ModelNet40DatasetTF():
 #         dataset = dataset.shuffle(buffer_size=self.N)
 #         dataset = dataset.repeat()    # optional
         dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(self.N))
-        parse_fn_batch = lambda file: tf.py_func(get_elem_batch, [file], [tf.float32, tf.int64])   # doesn't seem to work anymore. where is the bug?
+        parse_fn_batch = lambda file: tf.py_func(get_elem, [file], [tf.float32, tf.int64])   # doesn't seem to work anymore. where is the bug?
         parse_fn = lambda file: tf.py_func(get_elem, [file], [tf.float32, tf.int64]) # change to py_function in future
-#         dataset = dataset.batch(batch_size, drop_remainder=False).map(parse_fn_batch, num_parallel_calls=4)  
-        dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=parse_fn, batch_size=batch_size, drop_remainder = False))
+        dataset = dataset.map(parse_fn, num_parallel_calls=batch_size*1).batch(batch_size, drop_remainder=False)  
+#         dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=parse_fn, batch_size=batch_size, drop_remainder = False))
 
         self.dataset = dataset.prefetch(buffer_size=4)
         return self.dataset
