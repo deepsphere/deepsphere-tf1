@@ -128,7 +128,6 @@ class base_model(object):
             if cache:
                 if cache is 'TF':
                     batch_data, batch_labels = sess2.run(data_iter)
-                    batch_data.astype(np.float32)
                     label[begin:end] = np.asarray(batch_labels)[:end-begin]
                 else:
                     batch_data, batch_labels = next(data_iter)
@@ -200,7 +199,6 @@ class base_model(object):
             if cache:
                 if cache is 'TF':
                     batch_data, batch_labels = sess2.run(data_iter)
-                    batch_data.astype(np.float32)
                     label[begin:end] = np.asarray(batch_labels)[:end-begin]
                 else:
                     batch_data, batch_labels = next(data_iter)
@@ -259,7 +257,9 @@ class base_model(object):
         t_cpu, t_wall = process_time(), time.time()
         if cache is 'TF':
             if self.dense:
+                beg = perf_counter()
                 probabilities, labels, loss = self.probs(data, 3, labels, sess, cache=cache)
+                print("probs time: ", perf_counter()-beg)
                 predictions = np.argmax(probabilities, axis=-1)
             else:
                 predictions, labels, loss = self.predict(data, labels, sess, cache=cache)
@@ -302,11 +302,17 @@ class base_model(object):
             true = sklearn.preprocessing.label_binarize(labels, classes=[0, 1, 2])
             probabilities = probabilities.reshape(-1, 3)
             AP = sklearn.metrics.average_precision_score(true, probabilities, None)
-            
-            predictions = predictions.flatten()
-            ncorrects = sum(predictions == labels)
-            class_acc, accuracy = accuracy(predictions, labels)
-            f1 = sklearn.metrics.f1_score(labels, predictions, average=None)
+            print("AP time: ", perf_counter()-beg)
+#             AP = [0, 0, 0]
+#             predictions = predictions.flatten()
+#             ncorrects = sum(predictions == labels)
+#             class_acc, accuracy = accuracy(predictions, labels)
+            ncorrects = 0
+            print("acc time: ", perf_counter()-beg)
+            class_acc, accuracy = [0,0,0],0
+#             f1 = sklearn.metrics.f1_score(labels, predictions, average=None)
+            print("f1 time: ", perf_counter()-beg)
+            f1 = [0, 0, 0]
             string = 'accuracy: {:.2f} ({:d} / {:d}), f1 (TC): {:.2f}, f1 (AR): {:.2f}, loss: {:.2e}'.format(
                     accuracy, ncorrects, len(labels), 100*f1[1], 100*f1[2], loss)
             metrics = AP, class_acc
@@ -333,6 +339,11 @@ class base_model(object):
         acc = 0
         mre = 0
         
+        if not verbose:
+            tf.logging.set_verbosity(tf.logging.WARN)
+        else:
+            tf.logging.set_verbosity(tf.logging.DEBUG)
+        
         t_cpu, t_wall = process_time(), time.time()
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -348,7 +359,7 @@ class base_model(object):
         # Initialization
         sess.run(self.op_metrics_init)
         sess.run(self.op_init)
-
+#         print("after init")
         # Training.
         accuracies_validation = []
         losses_validation = []
@@ -366,7 +377,7 @@ class base_model(object):
             if len(val_data.shape) is 2:
                 val_data = np.expand_dims(val_data, axis=2)
                 
-            
+#         print("begin loop, eval freq = ", self.eval_frequency)
         times = []
         for step in range(1, num_steps+1):
             t_begin = perf_counter()
@@ -389,26 +400,26 @@ class base_model(object):
                 run_options = None
                 run_metadata = None
             
-            
+#             if step%10==0:
+#                 print('{}/{}'.format(step, num_steps))
             
             t_begin_load = perf_counter()
             
             if self.regression:
                 batch_acc = np.nan
-                learning_rate, y_pred, loss, batch_mre = sess.run([self.op_train, self.op_prediction, 
-                                                                   self.op_loss, self.tf_mre_update], 
-                                                                   feed_dict, run_options, run_metadata)
+                learning_rate, loss, batch_mre = sess.run([self.op_train, self.op_loss, self.tf_mre_update], 
+                                                          feed_dict, run_options, run_metadata)
                 if step%(train_dataset.N//self.batch_size)==0:
                     mre = sess.run(self.tf_mre)
                     sess.run(self.op_metrics_init)
                 pass
             else:
-                learning_rate, y_pred, loss, batch_acc = sess.run([self.op_train, self.op_prediction, 
-                                                                   self.op_loss, self.tf_accuracy_update], 
-                                                                   feed_dict, run_options, run_metadata)
+                learning_rate, loss = sess.run([self.op_train, self.op_loss], # , self.tf_accuracy_update], 
+                                                          feed_dict, run_options, run_metadata)
                 if step%(train_dataset.N//self.batch_size)==0:
-                    acc = sess.run(self.tf_accuracy)
-                    sess.run(self.op_metrics_init)
+                    pass
+#                     acc = sess.run(self.tf_accuracy)
+#                     sess.run(self.op_metrics_init)
                 
             t_end = perf_counter()
             times.append(t_end-t_begin)
@@ -429,11 +440,11 @@ class base_model(object):
                     string, exp_var, r2, loss, (mae, mre_val) = self.evaluate(val_data, val_labels, sess, cache=cache)
                 else:
                     if cache:
-                        string, accuracy, f1, loss, _ = self.evaluate(val_dataset, None, sess, cache=cache)
+                        string, accuracy, f1, loss, metrics = self.evaluate(val_dataset, None, sess, cache=cache)
                     else:
                         string, accuracy, f1, loss, metrics = self.evaluate(val_data, val_labels, sess)
-                        if self.dense:
-                            AP, class_acc = metrics
+                    if self.dense:
+                        AP, class_acc = metrics
                     accuracies_validation.append(accuracy)
                 losses_validation.append(loss)
                 if verbose:
@@ -452,7 +463,7 @@ class base_model(object):
                     summary.value.add(tag='training/mre', simple_value=mre)
                 else:
                     if self.dense:
-                        summary.value.add(tag='training/epoch_map', simple_value=acc)
+#                         summary.value.add(tag='training/epoch_map', simple_value=acc)
                         summary.value.add(tag='validation/accuracy', simple_value=accuracy)
                         summary.value.add(tag='validation/accuracy_BG', simple_value=class_acc[0])
                         summary.value.add(tag='validation/accuracy_TC', simple_value=class_acc[1])
@@ -516,6 +527,7 @@ class base_model(object):
     def build_graph(self, M_0, nfeature=1, tf_dataset=None, regression=False):
         """Build the computational graph of the model."""
 
+        gstart = time.time()
         self.loadable_generator = LoadableGenerator()
 
         self.graph = tf.Graph()
@@ -528,6 +540,7 @@ class base_model(object):
             if tf_dataset is not None:
                 self.tf_data_iterator = tf_dataset.make_one_shot_iterator()
             ph_data, ph_labels = self.tf_data_iterator.get_next()
+            print("data iterator inst., time: ", time.time()-gstart) 
 
 
             # Inputs.
@@ -539,16 +552,22 @@ class base_model(object):
                     self.ph_labels = tf.placeholder_with_default(ph_labels, (self.batch_size), 'labels')
                 self.ph_training = tf.placeholder(tf.bool, (), 'training')
 
+            print("inputs, time: ", time.time()-gstart)
             # Model.
             op_data = self.ph_data
             op_logits, self.op_descriptor = self.inference(op_data, self.ph_training)
+            print("inference done, time: ", time.time()-gstart)
             if self.dense and (np.asarray(self.p)>1).any():
                 op_logits = self.upward(op_logits, self.ph_training)
+                print("decoder done, time: ", time.time()-gstart)
             self.op_loss = self.loss(op_logits, self.ph_labels, self.regularization, op_data, extra_loss=self.extra_loss, regression=regression)
+            print("loss done, time: ", time.time()-gstart)
             self.op_train = self.training(self.op_loss)
+            print("training done, time: ", time.time()-gstart)
             self.op_prediction = self.prediction(op_logits)
             self.op_probabilities = self.probabilities(op_logits)
             self.op_labels = self.ph_labels
+            print("op end done, time: ", time.time()-gstart)
             
             # Metrics
             with tf.name_scope('metrics'):
@@ -566,7 +585,7 @@ class base_model(object):
                                                                                     name='metrics_acc')
             running_vars = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics")
 
-            
+            print("metrics done, time: ", time.time()-gstart)
 
             # Initialize variables, i.e. weights and biases.
             self.op_init = tf.global_variables_initializer()
@@ -577,6 +596,7 @@ class base_model(object):
             self.op_saver = tf.train.Saver(max_to_keep=5)
 
         self.graph.finalize()
+        print("all done, time: ", time.time()-gstart)
 
     def inference(self, data, training):
         """
@@ -648,7 +668,7 @@ class base_model(object):
                     if self.dense:
                         weights = tf.constant([[0.34130685, 318.47388343,  14.93759951]])
                         batch_weights = tf.reshape(tf.matmul(tf.reshape(labels_onehot, [-1,3]), tf.transpose(weights)), 
-                                                   [self.batch_size, 10242])
+                                                   [self.batch_size, self.L[0].shape[0]])
 #                     batch_weights = tf.reduce_sum(class_weights * onehot_labels, axis=1)
                     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
                     if self.dense:
@@ -796,7 +816,7 @@ class cgcnn(base_model):
         p_log2 = np.where(np.array(p) > 1, np.log2(p), 0)
         if not np.all(np.mod(p_log2, 1) == 0) and self.sampling != 'icosahedron':
             raise ValueError('Down-sampling factors p should be powers of two.')
-        if len(M) == 0 and p[-1] != 1 and self.sampling != 'icosahedron':
+        if len(M) == 0 and p[-1] != 1 and self.sampling != 'icosahedron' and not dense:
             raise ValueError('Down-sampling should not be used in the last '
                              'layer if no fully connected layer follows.')
         if mask and not isinstance(mask, list):
@@ -887,14 +907,15 @@ class cgcnn(base_model):
         # show_all_variables()
 
     def chebyshev5(self, x, L, Fout, K, training=False):
+        fstart = time.time()
         N, M, Fin = x.get_shape()
         N, M, Fin = int(N), int(M), int(Fin)
         # Rescale Laplacian and store as a TF sparse tensor. Copy to not modify the shared L.
-        L = sparse.csr_matrix(L)
-        lmax = 1.02*sparse.linalg.eigsh(
-                L, k=1, which='LM', return_eigenvectors=False)[0]
-        L = utils.rescale_L(L, lmax=lmax, scale=0.75)
-        L = L.tocoo()
+#         L = sparse.csr_matrix(L)
+#         lmax = 1.02*sparse.linalg.eigsh(
+#                 L, k=1, which='LM', return_eigenvectors=False)[0]
+#         L = utils.rescale_L(L, lmax=lmax, scale=0.75)
+#         L = L.tocoo()
         indices = np.column_stack((L.row, L.col))
         L = tf.SparseTensor(indices, L.data, L.shape)
         L = tf.sparse_reorder(L)
@@ -940,11 +961,11 @@ class cgcnn(base_model):
         N, M, Fin = x.get_shape()
         N, M, Fin = int(N), int(M), int(Fin)
         # Rescale Laplacian and store as a TF sparse tensor. Copy to not modify the shared L.
-        L = sparse.csr_matrix(L)
-        lmax = 1.02*sparse.linalg.eigsh(
-                L, k=1, which='LM', return_eigenvectors=False)[0]
-        L = utils.rescale_L(L, lmax=lmax)
-        L = L.tocoo()
+#         L = sparse.csr_matrix(L)
+#         lmax = 1.02*sparse.linalg.eigsh(
+#                 L, k=1, which='LM', return_eigenvectors=False)[0]
+#         L = utils.rescale_L(L, lmax=lmax)
+#         L = L.tocoo()
         indices = np.column_stack((L.row, L.col))
         L = tf.SparseTensor(indices, L.data, L.shape)
         L = tf.sparse_reorder(L)
@@ -989,7 +1010,7 @@ class cgcnn(base_model):
             if self.sampling is 'equiangular':
                 N, M, F = x.get_shape()
                 N, M, F = int(N), int(M), int(F)
-                x = tf.reshape(x,[N,int(M**0.5), int(M**0.5), F])
+                x = tf.reshape(x,[N,int((M/self.ratio)**0.5), int((M*self.ratio)**0.5), F])
                 x = tf.nn.max_pool(x, ksize=[1,p**0.5,p**0.5,1], strides=[1,p**0.5,p**0.5,1], padding='SAME')
                 return tf.reshape(x, [N, -1, F])
             elif self.sampling  is 'icosahedron':
@@ -1006,7 +1027,9 @@ class cgcnn(base_model):
         if p > 1:
             if self.sampling is 'equiangular':
                 N, M, F = x.get_shape()
-                x = tf.reshape(x,[N,int(M**0.5), int(M**0.5), F])
+                N, M, F = int(N), int(M), int(F)
+#                 print(M, (M/self.ratio)**0.5, (M*self.ratio)**0.5)
+                x = tf.reshape(x,[N,int((M/self.ratio)**0.5), int((M*self.ratio)**0.5), F])
                 x = tf.nn.avg_pool(x, ksize=[1,p**0.5,p**0.5,1], strides=[1,p**0.5,p**0.5,1], padding='SAME')
                 return tf.reshape(x, [N, -1, F])
             elif self.sampling  is 'icosahedron':
@@ -1073,6 +1096,7 @@ class cgcnn(base_model):
         return self._weight_variable([Min, Mout], stddev=stddev, regularization=regularization)
 
     def _inference(self, x, training):
+        infstart = time.time()
 #         self.conv_layers = []
         self.pool_layers = []
         # Graph convolutional layers.
@@ -1082,16 +1106,18 @@ class cgcnn(base_model):
 #                 print("conv{}".format(i), x.shape)
                 with tf.name_scope('filter'):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i], training)
-#                 print("filter{}".format(i), x.shape)
+                print("filter{}, time: ".format(i), time.time()-infstart)
                 if i == len(self.p)-1 and len(self.M) == 0:
                     break  # That is a linear layer before the softmax.
                 if self.batch_norm[i]:
                     x = self.batch_normalization(x, training)
+                print("bn{}, time: ".format(i), time.time()-infstart)
                 x = self.bias(x)
                 x = self.activation(x)
+                print("relu{}, time: ".format(i), time.time()-infstart)
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
-#                 print("pooling{}".format(i), x.shape)
+                print("pooling{}, time: ".format(i), time.time()-infstart)
                 self.pool_layers.append(x)
 
         # Statistical layer (provides invariance to translation and rotation).
@@ -1137,6 +1163,7 @@ class cgcnn(base_model):
     
     def _decoder(self, x, training):
         # transpose filter
+        decstart = time.time()
         for i in range(1, 1+len(self.p)):
 #             print(self.p[-i])
             if self.p[-i]>1 and (i!=0 and i!=len(self.p)):
@@ -1146,15 +1173,15 @@ class cgcnn(base_model):
                             try:
                                 p = self.p[-i-1]
                             except:
-                                p = self.p[-i]
+                                p = 10 * 4 ** 5 + 2 # self.p[-i]
                         else:
                             p = self.p[-i]
                         x = self.unpool(x, p)
-#                         print('unpool{}'.format(len(self.p)-i), x.shape)
+                        print('unpool{}, time: '.format(len(self.p)-i), time.time()-decstart)
                     with tf.name_scope('up-conv'):
                         x = self.filter(x, self.L[-i], self.F[-i], self.K[-i], training)
                         x = self.bias(x)
-#                         print('upconv{}'.format(len(self.p)-i), x.shape)
+                        print('upconv{}, time: '.format(len(self.p)-i), time.time()-decstart)
 #                 x = gen_nn_ops._max_pool_grad(x, self.pool_layers[-i], self.pool_layers[-i], [1,p,1,1], [1,p,1,1],'SAME')
                     x = tf.concat([x, self.pool_layers[-i]], axis=-1)
                 with tf.variable_scope('deconv{}'.format(len(self.p)-i)):
@@ -1165,7 +1192,7 @@ class cgcnn(base_model):
                                 x = self.batch_normalization(x, training)
                             x = self.bias(x)
                             x = self.activation(x)
-#                             print('deconv{}'.format(len(self.p)-i), x.shape)
+                            print('deconv{}, time: '.format(len(self.p)-i), time.time()-decstart)
                         except:
                             raise ValueError("Down-sampling should not be used in the first layers if training for segmentation task")
             else:
@@ -1177,20 +1204,30 @@ class cgcnn(base_model):
                                 x = self.batch_normalization(x, training)
                             x = self.bias(x)
                             x = self.activation(x)
+                            print('deconv{}, time: '.format(len(self.p)-i), time.time()-decstart)
                         except:
                             x = self.filter(x, self.L[-i], self.Fseg, self.K[-i], training)
-#                         print('deconv{}'.format(len(self.p)-i), x.shape)
+                            x = self.bias(x)
+                            x = self.activation(x)
+                            print('deconv{}'.format(len(self.p)-i), x.shape)
         
 #         print("end up pass")
-        x = self.filter(x, self.L[-i], self.Fseg, 1, training)
-#         print(x.shape)
+        with tf.variable_scope('outconv'):
+            x = self.filter(x, self.L[-i], self.Fseg, 1, training)
+        print('end decoder, time: ', time.time()-decstart)
 
         return x
         
 
     def unpool_average(self, x, p):
         if self.sampling is 'equiangular':
-            raise NotImplementedError('unpooling with equiangular sampling is not yet implemented')
+            from tensorflow.keras.backend import repeat_elements
+#             raise NotImplementedError('unpooling with equiangular sampling is not yet implemented')
+            N, M, F = x.shape
+            N, M, F = int(N), int(M), int(F)
+            x = tf.reshape(x,[N,int((M/self.ratio)**0.5), int((M*self.ratio)**0.5), F])
+            x = repeat_elements(repeat_elements(x, int(p**0.5), axis=1), int(p**0.5), axis=2)
+            return tf.reshape(x, [N, -1, F])
         elif self.sampling is 'icosahedron':
             N, M, F = x.shape
             return tf.pad(x, tf.constant([[0,0],[0,int(p-M)],[0,0]]), "CONSTANT", constant_values=1)
@@ -1203,9 +1240,9 @@ class cgcnn(base_model):
     
     def unpool_max(self, x, p):
         if self.sampling is 'equiangular':
-            raise NotImplementedError('unpooling with equiangular sampling is not yet implemented')
+            raise NotImplementedError('unpooling max with equiangular sampling is not yet implemented')
         elif self.sampling is 'icosahedron':
-            raise NotImplementedError('unpooling with icosahedron sampling is not yet implemented')
+            raise NotImplementedError('unpooling max with icosahedron sampling is not yet implemented')
         # TODO: keep in memory the true position of max pool
         N, M, F = x.shape  # N x M x F
         zeros_pad = tf.zeros([N, M, p-1, F])
@@ -1305,6 +1342,11 @@ class deepsphere(cgcnn):
         # nsides is bandwidth if sampling is equiangular (SOFT)
         L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4, sampling=sampling, std=std, full=full)
         self.sampling = sampling
+        if sampling == 'equiangular':
+            if isinstance(nsides[0], tuple):
+                self.ratio = nsides[0][1]/nsides[0][0]
+            else:
+                self.ratio = 1.
         self.nsides = nsides
         self.pygsp_graphs = [None] * len(nsides)
         super(deepsphere, self).__init__(L=L, p=p, **kwargs)

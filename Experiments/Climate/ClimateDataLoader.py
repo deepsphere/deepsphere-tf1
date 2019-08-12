@@ -48,8 +48,13 @@ class IcosahedronDataset():
                              5.4465833, 0.006383436, 7778.5957, 3846.1863, 
                              9.791707, 14.35133, 1.8771327e-07, 19.866386, 
                              19.094095, 624.22406, 679.5602, 4.2283397]
-        self.rotmat = np.array([[np.cos(np.pi/4),np.sin(np.pi/4)],
-                                [-np.sin(np.pi/4),np.cos(np.pi/4)]])
+        self.rotmat = lambda lat: np.array([[np.cos(np.pi*lat/180),np.sin(np.pi*lat/180)],
+                                            [-np.sin(np.pi*lat/180),np.cos(np.pi*lat/180)]])
+        
+        from pygsp.graphs import SphereIcosahedron as icosahedron_graph
+        g = icosahedron_graph(5)
+        self.lat = np.rad2deg(g.lat)
+        del g
         
         
 #         data[partition] = {'data': np.zeros((len(flist),10242,16)),
@@ -59,21 +64,24 @@ class IcosahedronDataset():
 #             data[partition]['data'][i] = (file['data'].T - precomp_mean) / precomp_std
 #             data[partition]['labels'][i] = np.argmax(file['labels'].astype(np.int), axis=0)
 
-    def get_tf_dataset(self, batch_size):
+    def get_tf_dataset(self, batch_size, transform=False):
         dataset = tf.data.Dataset.from_tensor_slices(self.filenames)
         
-        def get_elem(filename):
+        def get_elem(filename, transform=transform):
             try:
                 file = np.load(filename.decode())#.astype(np.float32)
                 data = file['data'].T
                 data = data - self.precomp_mean
                 data = data / self.precomp_std
                 label = np.argmax(file['labels'].astype(np.int), axis=0)
-                data[:,1:3] = np.linalg.norm(data[:,1:3]) # @ self.rotmat
-                data[:,3:5] = np.linalg.norm(data[:,3:5]) # @ self.rotmat
-#                 data[:,1] = np.arctan2(data[:,1], data[:,2]) # @ self.rotmat
+                if transform:
+                    data[:,1:3] = np.squeeze((data[:,np.newaxis,1:3] @ self.rotmat(self.lat).transpose(2,0,1)))
+                    data[:,3:5] = np.squeeze((data[:,np.newaxis,3:5] @ self.rotmat(self.lat).transpose(2,0,1)))
+#                 data[:,1:3] = np.linalg.norm(data[:,1:3]) # @ self.rotmat
+#                 data[:,3:5] = np.linalg.norm(data[:,3:5]) # @ self.rotmat
+#                 data[:,1] = np.arctan2(data[:,1], data[:,2])
 #                 data[:,2] = data[:,1]
-#                 data[:,3] = np.arctan2(data[:,3], data[:,4]) # @ self.rotmat
+#                 data[:,3] = np.arctan2(data[:,3], data[:,4])
 #                 data[:,4] = data[:,3]
                 data = data.astype(np.float32)
             except Exception as e:
@@ -93,8 +101,16 @@ class IcosahedronDataset():
 
 
 class EquiangularDataset():
-    def __init__(self, path=None, s3=True):
+    def __init__(self, path=None, partition='train', s3=True):
         self.s3 = s3
+        if partition not in ['train', 'val', 'test']:
+            raise ValueError('invalid partition: {}'.format(partition))
+        self.partition = partition
+        with open(path+partition+".txt", "r") as f:
+            lines = f.readlines()
+        self.filenames = [os.path.join(path, l.replace('\n', '')) for l in lines]
+        if len(self.filenames)==0:
+            raise ValueError('Files not found')
         if s3:
 #             import subprocess
             self.s3bucket = '10380-903b2ba14e0d980c25436f9ca5bb29f5'
@@ -108,7 +124,10 @@ class EquiangularDataset():
 #             self.filenames = [self.s3dir.format(self.s3bucket)+elem for elem in filenames]
 #             self.filenames = [elem.split(' ')[-1] for elem in filenames.split('\n')[:-1]]
         else:
-            self.filenames = glob.glob(path+'data*.h5')
+            filenames = glob.glob(path+'data*.h5')
+            self.filenames = list(set(self.filenames) & set(filenames))
+        if len(self.filenames)==0:
+            raise ValueError('No files in partition {}'.format(self.partition))
         self.N = len(self.filenames)
         fstats = h5py.File(path+'stats.h5', 'r')
         stats = fstats['climate']["stats"]
@@ -116,7 +135,7 @@ class EquiangularDataset():
         self.std = stats[:,-1]
         fstats.close()
         
-    def get_dataset(self, batch_size):
+    def get_tf_dataset(self, batch_size):
         dataset = tf.data.Dataset.from_tensor_slices(self.filenames)
         dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(self.N))
         
@@ -127,9 +146,13 @@ class EquiangularDataset():
             try:
                 fdata = sess.run(tf.io.read_file(h5_file.decode()))
                 file = h5py.File(fdata)
-                print(file.keys())
+#                 print(file.keys())
                 data = np.asarray(file['climate']["data"], dtype=np.float32).transpose(1,2,0)
+#                 data[:,1:3] = data[:,1:3] @ self.rotmat
+#                 data[:,3:5] = data[:,3:5] @ self.rotmat
+                data = data.reshape(-1, 16)
                 labels = np.asarray(file['climate']["labels"], dtype=np.int64)
+                labels = labels.reshape(-1)
                 data = (data - self.mean)/self.std
             except Exception as e:
                 print(e)
@@ -138,12 +161,14 @@ class EquiangularDataset():
         
         def local_dataset(h5_file):
             try:
-                start = time.time()
+#                 start = time.time()
                 file = h5py.File(h5_file.decode())
                 data = np.asarray(file['climate']["data"], dtype=np.float32).transpose(1,2,0)
+                data = data.reshape(-1, 16)
                 labels = np.asarray(file['climate']["labels"], dtype=np.int64)
+                labels = labels.reshape(-1)
                 data = (data - self.mean)/self.std
-                print("time preprocess: ", time.time()-start)
+#                 print("time preprocess: ", time.time()-start)
             except KeyError:
                 print(h5_file.decode())
                 return

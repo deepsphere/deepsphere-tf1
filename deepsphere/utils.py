@@ -386,19 +386,34 @@ def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix', std=
         std = [std] * len(nsides)
     if not isinstance(full, list):
         full = [full] * len(nsides)
+    import time
+    lstart = time.time()
+    nside_last = -1
     for i, (nside, index, sigma, mat) in enumerate(zip(nsides, indexes, std, full)):
+        bw = nside
+        if isinstance(nside, tuple):
+            nside = nside[0]
         if i > 0 and sampling != 'icosahedron':  # First is input dimension.
             p.append((nside_last // nside)**2)
+        if nside == nside_last and i < len(nsides) - 1:
+            L.append(L[-1].copy().tocoo())
+            continue
         nside_last = nside
         if i < len(nsides) - 1:  # Last does not need a Laplacian.
             if sampling == 'healpix':
                 laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4, std=sigma, full=mat)
             elif sampling == 'equiangular':
-                laplacian = equiangular_laplacian(bw=nside, indexes=index, use_4=use_4)
+                laplacian = equiangular_laplacian(bw=bw, indexes=index, use_4=use_4)
             elif sampling == 'icosahedron':
                 laplacian = icosahedron_laplacian(order=nside, indexes=index)
             else:
                 raise ValueError('Unknown sampling: '+sampling)
+            print("build laplacian, time: ", time.time()-lstart)
+#             L = sparse.csr_matrix(L)
+            lmax = 1.02*sparse.linalg.eigsh(laplacian, k=1, which='LM', return_eigenvectors=False)[0]
+            laplacian = rescale_L(laplacian, lmax=lmax)
+            laplacian = laplacian.tocoo()
+            print("rescale laplacian, time: ", time.time()-lstart)
             L.append(laplacian)
     if sampling == 'icosahedron':
         for order in nsides[1:]:
