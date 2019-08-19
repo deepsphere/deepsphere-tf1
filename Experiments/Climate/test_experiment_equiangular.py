@@ -53,16 +53,11 @@ if __name__ == '__main__':
     g = SphereEquiangular(bandwidth=(384, 576), sampling='SOFT')
     glong, glat = np.rad2deg(g.lon), np.rad2deg(g.lat)
     del g
-    
-    training = EquiangularDataset(path, 'train', s3=False)
-    validation = EquiangularDataset(path, 'val', s3=False)
+
+    training = EquiangularDataset(path, 'train', s3=False)    
     test = EquiangularDataset(path, 'test', s3=False)
     
     EXP_NAME = 'Climate_pooling_{}_4layers_k4_lrprog'.format(sampling)
-    
-    # Cleanup before running again.
-    shutil.rmtree('../../summaries/{}/'.format(EXP_NAME), ignore_errors=True)
-    shutil.rmtree('../../checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
     
     import tensorflow as tf
     if flat:
@@ -86,11 +81,11 @@ if __name__ == '__main__':
     params['dropout'] = 1
     params['num_epochs'] = 15  # Number of passes through the training data.
     params['batch_size'] = 1
-    params['scheduler'] = lambda step: tf.train.exponential_decay(1e-3, step, decay_steps=2000, decay_rate=0.999)
+    params['scheduler'] = lambda step: tf.train.exponential_decay(1e-3, step, decay_steps=2000, decay_rate=1)
     #params['optimizer'] = lambda lr: tf.train.GradientDescentOptimizer(lr)
     params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
 #     params['optimizer'] = lambda lr: tf.train.RMSPropOptimizer(lr, decay=0.9, momentum=0.)
-    n_evaluations = 90
+    n_evaluations = 15
     params['eval_frequency'] = int(params['num_epochs'] * (training.N) / params['batch_size'] / n_evaluations)
     params['M'] = []
     params['Fseg'] = 3
@@ -101,14 +96,14 @@ if __name__ == '__main__':
     
     model = models.deepsphere(**params)
     
-    acc_val, loss_val, loss_train, t_step, t_batch = model.fit(training, validation, use_tf_dataset=True, cache='TF')
+#     probabilities, _, _ = model.probs(test, 3, cache='TF')
+#     predictions, labels_test, loss = model.predict(test, cache='TF')
     
-    probabilities, _, _ = model.probs(test, 3, cache='TF')
-    predictions, labels_test, loss = model.predict(test, cache='TF')
-    
-    AP = average_precision(probabilities, labels_test)
+#     AP = average_precision(probabilities, labels_test)
+    AP, acc, loss = model.evaluate_TF(test, cache='TF')
     mAP = np.mean(AP[1:])
-    acc, macc = accuracy(predictions, labels_test)
+#     acc, macc = accuracy(predictions, labels_test)
+    macc = np.mean(acc)
     
     if os.path.isfile(filepath+'.npz'):
         file = np.load(filepath+'.npz')
@@ -119,7 +114,9 @@ if __name__ == '__main__':
         tb = []
         avprec = []
         accuracy = []
-    tb.append(t_batch)
+#     tb.append(t_batch)
     avprec.append([*AP, mAP])
     accuracy.append([*acc, macc])
     np.savez(filepath, AP=avprec, acc=accuracy, tbatch=tb)
+
+    print("Test Set: AP {:.4f}, {:.4f}, mean: {:.4f}; Accuracy {:.4f}, {:.4f}, {:.4f}, mean: {:.4f}".format(*(AP[1:]), mAP, *acc, macc))
