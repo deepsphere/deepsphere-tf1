@@ -16,7 +16,7 @@ from scipy import sparse
 import sklearn
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
-from tensorflow.contrib.losses.python.metric_learning import triplet_semihard_loss
+# from tensorflow.contrib.losses.python.metric_learning import triplet_semihard_loss
 from tensorflow.nn import l2_normalize
 
 from . import utils
@@ -177,8 +177,16 @@ class base_model(object):
             size = data.shape[0]
         if self.dense:
             M0 = self.L[0].shape[0]
-            probabilities = np.empty((size, M0, nb_class))
-            label = np.empty((size, M0))
+            while True:
+                try:
+                    probabilities = np.empty((size, M0, nb_class))
+                    label = np.empty((size, M0))
+                    break
+                except Exception as e:
+                    print(e)
+                    size = size//2
+                    if size<1:
+                        raise e
         else:
             probabilities = np.empty((size, nb_class))
             label = np.empty(size)
@@ -239,6 +247,87 @@ class base_model(object):
                 return probabilities, loss * self.batch_size / size
         else:
             return probabilities
+
+    def evaluate_TF(self, data, labels=None, sess=None, cache='TF'):
+        loss = 0
+        accu = np.zeros(3)
+        aps = np.zeros(3)
+        sess = self._get_session(sess)
+        def accuracy(pred_cls, true_cls, nclass=3):
+            accu = []
+            tot_int = 0
+            tot_cl = 0
+            for i in range(3):
+                intersect = np.sum(((pred_cls == i) * (true_cls == i)))
+                thiscls = np.sum(true_cls == i)
+                accu.append(intersect / thiscls * 100)
+#                 tot_int += intersect
+#                 tot_cl += thiscls
+            return np.array(accu)#, np.mean(accu) #tot_int/tot_cl * 100
+        if cache:
+            size = data.N
+        else:
+            size = data.shape[0]
+
+        if cache:
+            if cache is 'TF':
+                config = tf.ConfigProto()
+                config.gpu_options.allow_growth = True
+                sess2 = tf.Session(config=config)
+                dataset = data.get_tf_dataset(self.batch_size)
+                data_iter = dataset.make_one_shot_iterator().get_next()
+            else:
+                data_iter = data.iter(self.batch_size)
+        for begin in range(0, size, self.batch_size):
+            end = begin + self.batch_size
+            end = min([end, size])
+
+            if cache:
+                if cache is 'TF':
+                    batch_data, batch_labels = sess2.run(data_iter)
+                else:
+                    batch_data, batch_labels = next(data_iter)
+                if type(batch_data) is not np.ndarray:
+                    batch_data = batch_data.toarray()  # convert sparse matrices
+                feed_dict = {self.ph_data: batch_data, self.ph_labels: batch_labels, self.ph_training: False}
+            else:
+                batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
+                tmp_data = data[begin:end, :, :]
+                if type(tmp_data) is not np.ndarray:
+                    tmp_data = tmp_data.toarray()  # convert sparse matrices
+                batch_data[:end-begin] = tmp_data
+                feed_dict = {self.ph_data: batch_data, self.ph_training: False}
+
+            if labels is not None:
+                feed_dict[self.ph_labels] = batch_labels
+                batch_prob, batch_loss = sess.run([self.op_probabilities, self.op_loss], feed_dict)
+                loss += batch_loss
+            elif cache and batch_labels is not None:
+                batch_prob, batch_loss = sess.run([self.op_probabilities, self.op_loss], feed_dict)
+                loss += batch_loss
+            else:
+                batch_prob = sess.run(self.op_probabilities, feed_dict)
+            batch_pred = np.argmax(batch_prob, axis=-1)
+
+            batch_labels = batch_labels.flatten()
+            true = sklearn.preprocessing.label_binarize(batch_labels, classes=[0, 1, 2])
+            batch_prob = batch_prob.reshape(-1, 3)
+            AP = sklearn.metrics.average_precision_score(true, batch_prob, None)
+            batch_pred = batch_pred.flatten()
+#             ncorrects = sum(predictions == labels)
+            class_acc = accuracy(batch_pred, batch_labels)
+            accu += class_acc
+            aps += AP
+
+        if labels is not None or (cache and batch_labels is not None):
+            if cache is 'TF':
+                del sess2
+                return aps/size, accu/size, loss * self.batch_size / size
+            else:
+                return aps/size, accus/size, loss * self.batch_size / size
+        else:
+            return aps/size, accu/size
+
 
     def evaluate(self, data, labels, sess=None, cache=False):
         """
@@ -440,7 +529,9 @@ class base_model(object):
                     string, exp_var, r2, loss, (mae, mre_val) = self.evaluate(val_data, val_labels, sess, cache=cache)
                 else:
                     if cache:
-                        string, accuracy, f1, loss, metrics = self.evaluate(val_dataset, None, sess, cache=cache)
+#                         pass
+                        string, accuracy, f1, loss, metrics = "", 0, [0, 0, 0], 0., ([0,0,0],[0,0,0])
+#                         string, accuracy, f1, loss, metrics = self.evaluate(val_dataset, None, sess, cache=cache)
                     else:
                         string, accuracy, f1, loss, metrics = self.evaluate(val_data, val_labels, sess)
                     if self.dense:
