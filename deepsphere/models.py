@@ -665,13 +665,13 @@ class base_model(object):
                     labels = tf.to_int64(labels)
                     labels_onehot = tf.one_hot(labels, 3)
 #                     weights = tf.constant([[0.00102182, 0.95426438, 0.04471379]])
-                    if self.dense:
+                    if self.weighted:
                         weights = tf.constant([[0.34130685, 318.47388343,  14.93759951]])
                         batch_weights = tf.reshape(tf.matmul(tf.reshape(labels_onehot, [-1,3]), tf.transpose(weights)), 
                                                    [self.batch_size, self.L[0].shape[0]])
 #                     batch_weights = tf.reduce_sum(class_weights * onehot_labels, axis=1)
                     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
-                    if self.dense:
+                    if self.weighted:
                         cross_entropy = tf.multiply(batch_weights, cross_entropy)  
 #                     cross_entropy = tf.reduce_sum(cross_entropy*batch_weights) / self.batch_size
                     cross_entropy = tf.reduce_mean(cross_entropy)
@@ -803,7 +803,7 @@ class cgcnn(base_model):
                 num_epochs, scheduler, optimizer, num_feat_in=1, tf_dataset=None,
                 conv='chebyshev5', pool='max', activation='relu', statistics=None, Fseg=None,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200, regression=False, dense=False,
-                mask=None, extra_loss=False, dropFilt=1, dir_name='', profile=False, debug=False):
+                weighted=False, mask=None, extra_loss=False, dropFilt=1, dir_name='', profile=False, debug=False):
         super(cgcnn, self).__init__()
 
         # Verify the consistency w.r.t. the number of layers.
@@ -897,6 +897,7 @@ class cgcnn(base_model):
         self.extra_loss = extra_loss
         self.regression = regression
         self.dense = dense
+        self.weighted = weighted
         if mask:
             self.train_mask = mask[0]
             self.val_mask = mask[1]

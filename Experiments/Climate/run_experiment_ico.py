@@ -54,7 +54,7 @@ if __name__ == '__main__':
     validation = IcosahedronDataset(path+'data_5_all/', 'val')
     test = IcosahedronDataset(path+'data_5_all/', 'test')
     
-    EXP_NAME = 'Climate_pooling_weight_{}_5layers_k4'.format(sampling)
+    EXP_NAME = 'Climate_pooling_{}_4layers_k4_morefeature_changeref'.format(sampling)
     
     # Cleanup before running again.
     shutil.rmtree('../../summaries/{}/'.format(EXP_NAME), ignore_errors=True)
@@ -65,10 +65,10 @@ if __name__ == '__main__':
 #               'F': [32, 64, 128, 256, 512, 512, 512],#np.max(labels_train).astype(int)+1],
 #               'K': [4]*7,
 #               'batch_norm': [True]*7}
-    params = {'nsides': [5, 5, 4, 3, 2, 1],
-              'F': [8, 16, 32, 64, 64],#np.max(labels_train).astype(int)+1],
-              'K': [4]*5,
-              'batch_norm': [True]*5}
+    params = {'nsides': [5, 5, 4, 3, 2],
+              'F': [32, 64, 128, 256],# feat: [8, 16, 32, 64], feat+: [32, 64, 128, 256], feat++: [32, 64, 128, 256] 
+              'K': [4]*4,
+              'batch_norm': [True]*4}
     params['sampling'] = sampling
     params['dir_name'] = EXP_NAME
     params['num_feat_in'] = 16 # x_train.shape[-1]
@@ -88,8 +88,9 @@ if __name__ == '__main__':
     params['M'] = []
     params['Fseg'] = 3 # np.max(labels_train).astype(int)+1
     params['dense'] = True
+    params['weighted'] = False
 #     params['profile'] = True
-    params['tf_dataset'] = training.get_tf_dataset(params['batch_size'])
+    params['tf_dataset'] = training.get_tf_dataset(params['batch_size'], transform=True)
     
     model = models.deepsphere(**params)
     
@@ -117,3 +118,6 @@ if __name__ == '__main__':
     avprec.append([*AP, mAP])
     accuracy.append([*acc, macc])
     np.savez(filepath, AP=avprec, acc=accuracy, tbatch=tb)
+    
+    print("Test Set: AP {:.4f}, {:.4f}, mean: {:.4f}; Accuracy {:.4f}, {:.4f}, {:.4f}, mean: {:.4f}; t_inference {:.4f}".format(
+               *(AP[1:]), mAP, *acc, macc, t_batch/params['batch_size']*1000))

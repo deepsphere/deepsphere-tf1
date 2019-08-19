@@ -15,10 +15,9 @@ import h5py
 
 from tqdm import tqdm
 from mpl_toolkits.mplot3d import Axes3D
-import cartopy.crs as ccrs
+# import cartopy.crs as ccrs
 
 from deepsphere import models
-from deepsphere.data import LabeledDataset
 from ClimateDataLoader import EquiangularDataset
 from pygsp.graphs import SphereEquiangular
 
@@ -95,6 +94,7 @@ if __name__ == '__main__':
     params['M'] = []
     params['Fseg'] = 3
     params['dense'] = True
+    params['weighted'] = True
 #     params['profile'] = True
     params['tf_dataset'] = training.get_dataset(params['batch_size'])
     
