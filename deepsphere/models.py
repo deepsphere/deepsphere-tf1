@@ -418,7 +418,7 @@ class base_model(object):
             string += '\nCPU time: {:.0f}s, wall time: {:.0f}s'.format(process_time()-t_cpu, time.time()-t_wall)
         return string, accuracy, f1, loss, metrics
 
-    def fit(self, train_dataset, val_dataset, use_tf_dataset=False, verbose=True, cache=False):
+    def fit(self, train_dataset, val_dataset, use_tf_dataset=False, restore=True, verbose=True, cache=False):
         
         # Load the dataset
 #         if use_tf_dataset:
@@ -434,20 +434,35 @@ class base_model(object):
             tf.logging.set_verbosity(tf.logging.DEBUG)
         
         t_cpu, t_wall = process_time(), time.time()
+        
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         sess = tf.Session(graph=self.graph, config=config)
+        if restore:
+            try:
+                filename = tf.train.latest_checkpoint(self._get_path('checkpoints'))
+                self.op_saver.restore(sess, filename)
+                start_step = int(filename.split('-')[-1])+1
+            except ValueError:
+                start_step=1
+                shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
+                shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
+                os.makedirs(self._get_path('checkpoints'))
+                restore = False
+        else:
+            start_step=1
+            shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
+            shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
+            os.makedirs(self._get_path('checkpoints'))
         if self.debug:
             sess = tf_debug.TensorBoardDebugWrapperSession(sess, 'localhost:6064')
-        shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
         writer = tf.summary.FileWriter(self._get_path('summaries'), self.graph)
-        shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
-        os.makedirs(self._get_path('checkpoints'))
         path = os.path.join(self._get_path('checkpoints'), 'model')
         
         # Initialization
-        sess.run(self.op_metrics_init)
-        sess.run(self.op_init)
+        if not restore:
+            sess.run(self.op_metrics_init)
+            sess.run(self.op_init)
 #         print("after init")
         # Training.
         accuracies_validation = []
@@ -468,7 +483,7 @@ class base_model(object):
                 
 #         print("begin loop, eval freq = ", self.eval_frequency)
         times = []
-        for step in range(1, num_steps+1):
+        for step in range(start_step, num_steps+1):
             t_begin = perf_counter()
             if not use_tf_dataset:
                 batch_data, batch_labels = next(train_iter)
