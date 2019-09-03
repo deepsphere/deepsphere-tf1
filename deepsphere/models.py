@@ -1207,7 +1207,6 @@ class cgcnn(base_model):
 
     def _inference(self, x, training):
         infstart = time.time()
-        self.conv_layers = []
         self.pool_layers = []
         self.pool_layers.append(x)
         # Graph convolutional layers.
@@ -1220,6 +1219,7 @@ class cgcnn(base_model):
 #                 self.pool_layers.append(x)
                 print("filter{}, time: ".format(i), time.time()-infstart)
                 if i == len(self.p)-1 and len(self.M) == 0:
+                    self.pool_layers.append(x)
                     break  # That is a linear layer before the softmax.
                 if self.batch_norm[i]:
                     x = self.batch_normalization(x, training)
