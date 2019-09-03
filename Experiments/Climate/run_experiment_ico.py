@@ -6,7 +6,7 @@ import shutil
 import sys
 sys.path.append('../..')
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # change to chosen GPU to use, nothing if work on CPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"  # change to chosen GPU to use, nothing if work on CPU
 
 import numpy as np
 import time
@@ -54,21 +54,21 @@ if __name__ == '__main__':
     validation = IcosahedronDataset(path+'data_5_all/', 'val')
     test = IcosahedronDataset(path+'data_5_all/', 'test')
     
-    EXP_NAME = 'Climate_pooling_{}_4layers_k4_morefeature_changeref'.format(sampling)
+    EXP_NAME = 'Climate_pooling_{}_7layers_k4_initial_moremorefeat'.format(sampling)
     
     # Cleanup before running again.
-    shutil.rmtree('../../summaries/{}/'.format(EXP_NAME), ignore_errors=True)
-    shutil.rmtree('../../checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
+#     shutil.rmtree('../../summaries/{}/'.format(EXP_NAME), ignore_errors=True)
+#     shutil.rmtree('../../checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
     
     import tensorflow as tf
-#     params = {'nsides': [5, 5, 4, 3, 2, 1, 0, 0],
-#               'F': [32, 64, 128, 256, 512, 512, 512],#np.max(labels_train).astype(int)+1],
-#               'K': [4]*7,
-#               'batch_norm': [True]*7}
-    params = {'nsides': [5, 5, 4, 3, 2],
-              'F': [32, 64, 128, 256],# feat: [8, 16, 32, 64], feat+: [32, 64, 128, 256], feat++: [32, 64, 128, 256] 
-              'K': [4]*4,
-              'batch_norm': [True]*4}
+    params = {'nsides': [5, 5, 4, 3, 2, 1, 0, 0],
+              'F': [64, 128, 256, 512, 1024, 1024, 1024],#np.max(labels_train).astype(int)+1],
+              'K': [4]*7,
+              'batch_norm': [True]*7}
+#     params = {'nsides': [5, 5, 4, 3, 2],
+#               'F': [32, 64, 128, 256],# feat: [8, 16, 32, 64], feat+: [32, 64, 128, 256], feat++: [32, 64, 128, 256] 
+#               'K': [4]*4,
+#               'batch_norm': [True]*4}
     params['sampling'] = sampling
     params['dir_name'] = EXP_NAME
     params['num_feat_in'] = 16 # x_train.shape[-1]
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     params['regularization'] = 0
     params['dropout'] = 1
     params['num_epochs'] = 30  # Number of passes through the training data.
-    params['batch_size'] = 64
+    params['batch_size'] = 8
     params['scheduler'] = lambda step: tf.train.exponential_decay(1e-3, step, decay_steps=2000, decay_rate=1)
     #params['optimizer'] = lambda lr: tf.train.GradientDescentOptimizer(lr)
     params['optimizer'] = lambda lr: tf.train.RMSPropOptimizer(lr, decay=0.9, momentum=0.)
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     params['dense'] = True
     params['weighted'] = False
 #     params['profile'] = True
-    params['tf_dataset'] = training.get_tf_dataset(params['batch_size'], transform=True)
+    params['tf_dataset'] = training.get_tf_dataset(params['batch_size'])
     
     model = models.deepsphere(**params)
     

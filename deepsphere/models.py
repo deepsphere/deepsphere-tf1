@@ -16,7 +16,7 @@ from scipy import sparse
 import sklearn
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
-# from tensorflow.contrib.losses.python.metric_learning import triplet_semihard_loss
+from tensorflow.contrib.losses.python.metric_learning import triplet_semihard_loss
 from tensorflow.nn import l2_normalize
 
 from . import utils
@@ -545,8 +545,8 @@ class base_model(object):
                 else:
                     if cache:
 #                         pass
-                        string, accuracy, f1, loss, metrics = "", 0, [0, 0, 0], 0., ([0,0,0],[0,0,0])
-#                         string, accuracy, f1, loss, metrics = self.evaluate(val_dataset, None, sess, cache=cache)
+#                         string, accuracy, f1, loss, metrics = "", 0, [0, 0, 0], 0., ([0,0,0],[0,0,0])
+                        string, accuracy, f1, loss, metrics = self.evaluate(val_dataset, None, sess, cache=cache)
                     else:
                         string, accuracy, f1, loss, metrics = self.evaluate(val_data, val_labels, sess)
                     if self.dense:
@@ -1018,11 +1018,6 @@ class cgcnn(base_model):
         N, M, Fin = x.get_shape()
         N, M, Fin = int(N), int(M), int(Fin)
         # Rescale Laplacian and store as a TF sparse tensor. Copy to not modify the shared L.
-#         L = sparse.csr_matrix(L)
-#         lmax = 1.02*sparse.linalg.eigsh(
-#                 L, k=1, which='LM', return_eigenvectors=False)[0]
-#         L = utils.rescale_L(L, lmax=lmax, scale=0.75)
-#         L = L.tocoo()
         indices = np.column_stack((L.row, L.col))
         L = tf.SparseTensor(indices, L.data, L.shape)
         L = tf.sparse_reorder(L)
@@ -1068,11 +1063,6 @@ class cgcnn(base_model):
         N, M, Fin = x.get_shape()
         N, M, Fin = int(N), int(M), int(Fin)
         # Rescale Laplacian and store as a TF sparse tensor. Copy to not modify the shared L.
-#         L = sparse.csr_matrix(L)
-#         lmax = 1.02*sparse.linalg.eigsh(
-#                 L, k=1, which='LM', return_eigenvectors=False)[0]
-#         L = utils.rescale_L(L, lmax=lmax)
-#         L = L.tocoo()
         indices = np.column_stack((L.row, L.col))
         L = tf.SparseTensor(indices, L.data, L.shape)
         L = tf.sparse_reorder(L)
@@ -1204,8 +1194,9 @@ class cgcnn(base_model):
 
     def _inference(self, x, training):
         infstart = time.time()
-#         self.conv_layers = []
+        self.conv_layers = []
         self.pool_layers = []
+        self.pool_layers.append(x)
         # Graph convolutional layers.
         # x = tf.expand_dims(x, 2)  # N x M x F=1        # or N x M x F=num_features_in
         for i in range(len(self.p)):
@@ -1221,11 +1212,12 @@ class cgcnn(base_model):
                 print("bn{}, time: ".format(i), time.time()-infstart)
                 x = self.bias(x)
                 x = self.activation(x)
+                self.pool_layers.append(x)
                 print("relu{}, time: ".format(i), time.time()-infstart)
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
                 print("pooling{}, time: ".format(i), time.time()-infstart)
-                self.pool_layers.append(x)
+#                 self.pool_layers.append(x)
 
         # Statistical layer (provides invariance to translation and rotation).
         with tf.variable_scope('stat'):
@@ -1273,7 +1265,7 @@ class cgcnn(base_model):
         decstart = time.time()
         for i in range(1, 1+len(self.p)):
 #             print(self.p[-i])
-            if self.p[-i]>1 and (i!=0 and i!=len(self.p)):
+            if self.p[-i]>1:
                 with tf.variable_scope('upconv{}'.format(len(self.p)-i)):
                     with tf.name_scope('pooling'):
                         if self.sampling == 'icosahedron':
