@@ -57,8 +57,9 @@ if __name__ == '__main__':
     training = EquiangularDataset(path, 'train', s3=False)    
     test = EquiangularDataset(path, 'test', s3=False)
     
-    EXP_NAME = 'Climate_pooling_{}_4layers_k4_lrprog'.format(sampling)
-    
+    EXP_NAME = 'Climate_pooling_{}_5layers_k4_initial'.format(sampling)
+    print(EXP_NAME)
+	
     import tensorflow as tf
     if flat:
         params = {'nsides': [(bw1, bw2), (bw1, bw2), (bw1, bw2), (bw1, bw2)],
@@ -66,10 +67,10 @@ if __name__ == '__main__':
                   'K': [8]*3,
                   'batch_norm': [True]*3}
     else:
-        params = {'nsides': [(384, 576), (384, 576), (384//4, 576//4), (384//16, 576//16), (384//16, 576//16)],
-                  'F': [8, 16, 32, 64],
-                  'K': [4]*4,
-                  'batch_norm': [True]*4}
+        params = {'nsides': [(384, 576), (384//16, 576//16), (384//32, 576//32), (384//64, 576//64), (384//64, 576//64), (384//64, 576//64)],
+                  'F': [16, 32, 64, 128, 256],
+                  'K': [4]*5,
+                  'batch_norm': [True]*5}
     params['sampling'] = sampling
     params['dir_name'] = EXP_NAME
     params['num_feat_in'] = 16
@@ -81,7 +82,7 @@ if __name__ == '__main__':
     params['dropout'] = 1
     params['num_epochs'] = 15  # Number of passes through the training data.
     params['batch_size'] = 1
-    params['scheduler'] = lambda step: tf.train.exponential_decay(1e-3, step, decay_steps=2000, decay_rate=1)
+    params['scheduler'] = lambda step: tf.train.exponential_decay(1e-3, step, decay_steps=2000, decay_rate=0.99)
     #params['optimizer'] = lambda lr: tf.train.GradientDescentOptimizer(lr)
     params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
 #     params['optimizer'] = lambda lr: tf.train.RMSPropOptimizer(lr, decay=0.9, momentum=0.)
@@ -92,7 +93,7 @@ if __name__ == '__main__':
     params['dense'] = True
     params['weighted'] = False
 #     params['profile'] = True
-    params['tf_dataset'] = training.get_tf_dataset(params['batch_size'])
+    params['tf_dataset'] = training.get_tf_dataset(params['batch_size'], dtype=np.float32)
     
     model = models.deepsphere(**params)
     
