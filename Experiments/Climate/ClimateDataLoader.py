@@ -135,7 +135,7 @@ class EquiangularDataset():
         self.std = stats[:,-1]
         fstats.close()
         
-    def get_tf_dataset(self, batch_size):
+    def get_tf_dataset(self, batch_size, dtype=tf.float32):
         dataset = tf.data.Dataset.from_tensor_slices(self.filenames)
         dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(self.N))
         
@@ -178,9 +178,9 @@ class EquiangularDataset():
             return data, labels
         
         if self.s3:
-            parse_fn = lambda file: tf.py_func(s3_dataset, [file], [tf.float32, tf.int64])
+            parse_fn = lambda file: tf.py_func(s3_dataset, [file], [dtype, tf.int64])
         else:
-            parse_fn = lambda file: tf.py_func(local_dataset, [file], [tf.float32, tf.int64])
+            parse_fn = lambda file: tf.py_func(local_dataset, [file], [dtype, tf.int64])
         dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=parse_fn, batch_size=batch_size))
         self.dataset = dataset.prefetch(buffer_size=8)
         return self.dataset

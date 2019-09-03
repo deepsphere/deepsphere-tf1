@@ -4,11 +4,11 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=12
 #SBATCH --partition=normal
 #SBATCH --constraint=gpu
-#SBATCH --output=climate-equi-normal-%j.log
-#SBATCH --error=climate-equi-normal-%j-e.log
+#SBATCH --output=climate-equi-normal-cpu-%j.log
+#SBATCH --error=climate-equi-normal-cpu-%j-e.log
 
 module load daint-gpu
 module load cray-python/3.6.5.1

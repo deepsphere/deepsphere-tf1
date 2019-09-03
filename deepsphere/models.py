@@ -443,13 +443,16 @@ class base_model(object):
                 filename = tf.train.latest_checkpoint(self._get_path('checkpoints'))
                 self.op_saver.restore(sess, filename)
                 start_step = int(filename.split('-')[-1])+1
+                print("training from last checkpoint")
             except ValueError:
                 start_step=1
                 shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
                 shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
                 os.makedirs(self._get_path('checkpoints'))
                 restore = False
+                print("training from scratch")
         else:
+            print("training from scratch")
             start_step=1
             shutil.rmtree(self._get_path('summaries'), ignore_errors=True)
             shutil.rmtree(self._get_path('checkpoints'), ignore_errors=True)
@@ -630,18 +633,25 @@ class base_model(object):
 
     # Methods to construct the computational graph.
 
-    def build_graph(self, M_0, nfeature=1, tf_dataset=None, regression=False):
+    def build_graph(self, M_0, nfeature=1, tf_dataset=None, regression=False, dtype=tf.float32):
         """Build the computational graph of the model."""
 
         gstart = time.time()
         self.loadable_generator = LoadableGenerator()
+        try:
+            if not self.restore:
+                raise ValueError
+            filename = tf.train.latest_checkpoint(self._get_path('checkpoints'))
+            self.startstep = int(filename.split('-')[-1])
+        except:
+            self.startstep = 0
 
         self.graph = tf.Graph()
         with self.graph.as_default():
 
             # Make the dataset
             self.tf_train_dataset = tf.data.Dataset.from_generator(self.loadable_generator.iter, 
-                                                                     output_types=(tf.float32, (tf.float32 if regression else tf.int32)))
+                                                                     output_types=(dtype, (dtype if regression else tf.int32)))
             self.tf_data_iterator = self.tf_train_dataset.prefetch(2).make_initializable_iterator()
             if tf_dataset is not None:
                 self.tf_data_iterator = tf_dataset.make_one_shot_iterator()
@@ -802,7 +812,7 @@ class base_model(object):
         """Adds to the loss model the Ops required to generate and apply gradients."""
         with tf.name_scope('training'):
             # Learning rate.
-            global_step = tf.Variable(0, name='global_step', trainable=False)
+            global_step = tf.Variable(self.startstep, name='global_step', trainable=False)
             learning_rate = self.scheduler(global_step)
             tf.summary.scalar('learning_rate', learning_rate)
             # Optimizer.
@@ -906,8 +916,8 @@ class cgcnn(base_model):
     """
 
     def __init__(self, L, F, K, p, batch_norm, M,
-                num_epochs, scheduler, optimizer, num_feat_in=1, tf_dataset=None,
-                conv='chebyshev5', pool='max', activation='relu', statistics=None, Fseg=None,
+                num_epochs, scheduler, optimizer, num_feat_in=1, tf_dataset=None, restore=False,
+                conv='chebyshev5', pool='max', activation='relu', statistics=None, Fseg=None, dtype=tf.float32,
                 regularization=0, dropout=1, batch_size=128, eval_frequency=200, regression=False, dense=False,
                 weighted=False, mask=None, extra_loss=False, dropFilt=1, dir_name='', profile=False, debug=False):
         super(cgcnn, self).__init__()
@@ -1004,12 +1014,14 @@ class cgcnn(base_model):
         self.regression = regression
         self.dense = dense
         self.weighted = weighted
+        self.dtype = dtype
+        self.restore = restore
         if mask:
             self.train_mask = mask[0]
             self.val_mask = mask[1]
 
         # Build the computational graph.
-        self.build_graph(M_0, num_feat_in, tf_dataset, regression)
+        self.build_graph(M_0, num_feat_in, tf_dataset, regression, dtype=dtype)
 
         # show_all_variables()
 
@@ -1021,6 +1033,7 @@ class cgcnn(base_model):
         indices = np.column_stack((L.row, L.col))
         L = tf.SparseTensor(indices, L.data, L.shape)
         L = tf.sparse_reorder(L)
+        L = tf.cast(L, self.dtype)
         # Transform to Chebyshev basis
         x0 = tf.transpose(x, perm=[1, 2, 0])  # M x Fin x N
         x0 = tf.reshape(x0, [M, Fin*N])  # M x Fin*N
@@ -1204,6 +1217,7 @@ class cgcnn(base_model):
 #                 print("conv{}".format(i), x.shape)
                 with tf.name_scope('filter'):
                     x = self.filter(x, self.L[i], self.F[i], self.K[i], training)
+#                 self.pool_layers.append(x)
                 print("filter{}, time: ".format(i), time.time()-infstart)
                 if i == len(self.p)-1 and len(self.M) == 0:
                     break  # That is a linear layer before the softmax.

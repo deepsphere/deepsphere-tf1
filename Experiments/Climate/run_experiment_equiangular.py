@@ -6,7 +6,7 @@ import shutil
 import sys
 sys.path.append('../..')
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # change to chosen GPU to use, nothing if work on CPU
+os.environ["CUDA_VISIBLE_DEVICES"] = ""  # change to chosen GPU to use, nothing if work on CPU
 
 import numpy as np
 import time
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     sampling = 'equiangular'
     filepath = 'results_equiangular'
     
-    flat = False
+    restore = True
     
     path = '../../../Climate/'
     g = SphereEquiangular(bandwidth=(384, 576), sampling='SOFT')
@@ -57,23 +57,20 @@ if __name__ == '__main__':
     validation = EquiangularDataset(path, 'val', s3=False)
     test = EquiangularDataset(path, 'test', s3=False)
     
-    EXP_NAME = 'Climate_pooling_{}_4layers_k4_lrprog'.format(sampling)
-    
+    EXP_NAME = 'Climate_pooling_{}_6layers_k4_initial'.format(sampling)
+    print(EXP_NAME)
+
     # Cleanup before running again.
-    shutil.rmtree('../../summaries/{}/'.format(EXP_NAME), ignore_errors=True)
-    shutil.rmtree('../../checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
+    if not restore:
+        shutil.rmtree('../../summaries/{}/'.format(EXP_NAME), ignore_errors=True)
+        shutil.rmtree('../../checkpoints/{}/'.format(EXP_NAME), ignore_errors=True)
     
     import tensorflow as tf
-    if flat:
-        params = {'nsides': [(bw1, bw2), (bw1, bw2), (bw1, bw2), (bw1, bw2)],
-                  'F': [16, 64, 128],#np.max(labels_train).astype(int)+1],
-                  'K': [8]*3,
-                  'batch_norm': [True]*3}
-    else:
-        params = {'nsides': [(384, 576), (384, 576), (384//4, 576//4), (384//16, 576//16), (384//16, 576//16)],
-                  'F': [8, 16, 32, 64],
-                  'K': [4]*4,
-                  'batch_norm': [True]*4}
+    
+    params = {'nsides': [(384, 576), (384//8, 576//8), (384//16, 576//16), (384//32, 576//32), (384//64, 576//64),(384//64, 576//64), (384//64, 576//64)],
+              'F': [16, 32, 64, 128, 256, 512],
+              'K': [4]*6,
+              'batch_norm': [True]*6}
     params['sampling'] = sampling
     params['dir_name'] = EXP_NAME
     params['num_feat_in'] = 16
@@ -85,7 +82,7 @@ if __name__ == '__main__':
     params['dropout'] = 1
     params['num_epochs'] = 15  # Number of passes through the training data.
     params['batch_size'] = 1
-    params['scheduler'] = lambda step: tf.train.exponential_decay(1e-3, step, decay_steps=2000, decay_rate=0.999)
+    params['scheduler'] = lambda step: tf.train.exponential_decay(1e-3, step, decay_steps=2000, decay_rate=0.99)
     #params['optimizer'] = lambda lr: tf.train.GradientDescentOptimizer(lr)
     params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
 #     params['optimizer'] = lambda lr: tf.train.RMSPropOptimizer(lr, decay=0.9, momentum=0.)
@@ -96,11 +93,14 @@ if __name__ == '__main__':
     params['dense'] = True
     params['weighted'] = False
 #     params['profile'] = True
-    params['tf_dataset'] = training.get_tf_dataset(params['batch_size'])
+    params['dtype'] = tf.float32
+    params['restore'] = True
+    params['tf_dataset'] = training.get_tf_dataset(params['batch_size'], dtype=np.float32)
     
     model = models.deepsphere(**params)
     
-    acc_val, loss_val, loss_train, t_step, t_batch = model.fit(training, validation, use_tf_dataset=True, cache='TF')
+    acc_val, loss_val, loss_train, t_step, t_batch = model.fit(training, validation, 
+                                                               use_tf_dataset=True, cache='TF', restore=restore)
     
     probabilities, _, _ = model.probs(test, 3, cache='TF')
     predictions, labels_test, loss = model.predict(test, cache='TF')
