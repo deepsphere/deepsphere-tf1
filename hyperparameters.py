@@ -55,14 +55,14 @@ def get_params(ntrain, EXP_NAME, order, Nside, architecture="FCN", verbose=True)
 
     # Training.
     params['num_epochs'] = 80  # Number of passes through the training data.
-    params['batch_size'] = 16    # Constant quantity of information (#pixels) per step (invariant to sample size).
+    params['batch_size'] = max(8 * order, 1)    # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.
     params['scheduler'] = lambda step: tf.train.exponential_decay(2e-4, step, decay_steps=1, decay_rate=0.999)
     params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
 
     # Number of model evaluations during training (influence training time).
-    n_evaluations = 200
+    n_evaluations = 80
     params['eval_frequency'] = int(params['num_epochs'] * ntrain / params['batch_size'] / n_evaluations)
 
     if verbose:
@@ -300,7 +300,7 @@ def get_params_shrec17_equiangular(ntrain, EXP_NAME, n_classes, nfeat_in=6, arch
     params['dropFilt'] = 1 # percentage of filter to keep in each layer
 
     # Training.
-    params['num_epochs'] = 40  # Number of passes through the training data.
+    params['num_epochs'] = 30  # Number of passes through the training data.
     params['batch_size'] = 32  # Constant quantity of information (#pixels) per step (invariant to sample size).
 
     # Optimization: learning rate schedule and optimizer.

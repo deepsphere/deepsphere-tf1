@@ -76,20 +76,31 @@ class base_model(object):
     
     def get_descriptor(self, data, sess=None, cache=True):
         sess = self._get_session(sess)
-        size = data.N
-        descriptors = np.empty((size, self.op_descriptor.shape[-1]))
-        if cache is 'TF':
-            dataset = data.get_tf_dataset(self.batch_size)
-            data_iter = dataset.make_one_shot_iterator()
+        if cache:
+            size = data.N
         else:
-            data_iter = data.iter(self.batch_size)
+            size = data.shape[0]
+        descriptors = np.empty((size, self.op_descriptor.shape[-2], self.op_descriptor.shape[-1]))
+        if cache:
+            if cache is 'TF':
+                dataset = data.get_tf_dataset(self.batch_size)
+                data_iter = dataset.make_one_shot_iterator()
+            else:
+                data_iter = data.iter(self.batch_size)
         for begin in range(0, size, self.batch_size):
             end = begin + self.batch_size
             end = min([end, size])
-            if cache is 'TF':
-                batch_data, _ = data_iter.get_next()
+            if cache:
+                if cache is 'TF':
+                    batch_data, _ = data_iter.get_next()
+                else:
+                    batch_data, _ = next(data_iter)
             else:
-                batch_data, _ = next(data_iter)
+                batch_data = np.zeros((self.batch_size, data.shape[1], data.shape[2]))
+                tmp_data = data[begin:end, :, :]
+                if type(tmp_data) is not np.ndarray:
+                    tmp_data = tmp_data.toarray()  # convert sparse matrices
+                batch_data[:end-begin] = tmp_data
             if type(batch_data) is not np.ndarray:
                 batch_data = batch_data.toarray()
             feed_dict = {self.ph_data: batch_data, self.ph_training: False}    
@@ -1219,20 +1230,21 @@ class cgcnn(base_model):
 #                 self.pool_layers.append(x)
                 print("filter{}, time: ".format(i), time.time()-infstart)
                 if i == len(self.p)-1 and len(self.M) == 0:
-                    self.pool_layers.append(x)
+#                     self.pool_layers.append(x)
                     break  # That is a linear layer before the softmax.
                 if self.batch_norm[i]:
                     x = self.batch_normalization(x, training)
                 print("bn{}, time: ".format(i), time.time()-infstart)
                 x = self.bias(x)
                 x = self.activation(x)
-                self.pool_layers.append(x)
+#                 self.pool_layers.append(x)
                 print("relu{}, time: ".format(i), time.time()-infstart)
                 with tf.name_scope('pooling'):
                     x = self.pool(x, self.p[i])
                 print("pooling{}, time: ".format(i), time.time()-infstart)
-#                 self.pool_layers.append(x)
+                self.pool_layers.append(x)
 
+        descriptor = x
         # Statistical layer (provides invariance to translation and rotation).
         with tf.variable_scope('stat'):
             n_samples, n_nodes, n_features = x.get_shape()
@@ -1257,7 +1269,7 @@ class cgcnn(base_model):
             else:
                 raise ValueError('Unknown statistical layer {}'.format(self.statistics))
         
-        descriptor = x
+#         descriptor = x
 
         # Fully connected hidden layers.
         for i, M in enumerate(self.M[:-1]):
@@ -1451,9 +1463,10 @@ class deepsphere(cgcnn):
         dir_name: Name for directories (summaries and model parameters).
     """
 
-    def __init__(self, nsides, indexes=None, use_4=False, sampling='healpix', std=None, full=False, **kwargs):
+    def __init__(self, nsides, indexes=None, use_4=False, sampling='healpix', std=None, full=False, new=True, n_neighbors=8, **kwargs):
         # nsides is bandwidth if sampling is equiangular (SOFT)
-        L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4, sampling=sampling, std=std, full=full)
+        L, p = utils.build_laplacians(nsides, indexes=indexes, use_4=use_4, sampling=sampling, 
+                                      std=std, full=full, new=new, n_neighbors=n_neighbors)
         self.sampling = sampling
         if sampling == 'equiangular':
             if isinstance(nsides[0], tuple):

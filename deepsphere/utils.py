@@ -109,6 +109,8 @@ def healpix_weightmatrix(nside=16, nest=True, indexes=None, dtype=np.float32, st
     else:
         kernel_width = std
     weights = np.exp(-distances / (2 * kernel_width))
+    
+#     weights[weights>0]=1
 
     # Similarity proposed by Renata & Pascal, ICCV 2017.
     # weights = 1 / distances
@@ -245,32 +247,35 @@ def healpix_graph(nside=16,
                   lap_type='normalized',
                   indexes=None,
                   use_4=False,
-                  dtype=np.float32):
+                  dtype=np.float32, 
+                  new=True):
     """Build a healpix graph using the pygsp from NSIDE."""
     
-    G = SphereHealpix(Nside=nside, nest=nest)
-#     from pygsp import graphs
+    if new:
+        G = SphereHealpix(nside=nside, indexes=indexes, nest=nest, lap_type=lap_type)
+    else:
+        from pygsp import graphs
 
-#     if indexes is None:
-#         indexes = range(4*bw**2)
+        if indexes is None:
+            indexes = range(4*bw**2)
 
-#     # 1) get the coordinates
-#     npix = hp.nside2npix(nside)  # number of pixels: 12 * nside**2
-#     pix = range(npix)
-#     x, y, z = hp.pix2vec(nside, pix, nest=nest)
-#     coords = np.vstack([x, y, z]).transpose()[indexes]
-#     # 2) computing the weight matrix
-#     if use_4:
-#         raise NotImplementedError()
-#         W = build_matrix_4_neighboors(nside, indexes, nest=nest, dtype=dtype)
-#     else:
-#         W = healpix_weightmatrix(
-#             nside=nside, nest=nest, indexes=indexes, dtype=dtype)
-#     # 3) building the graph
-#     G = graphs.Graph(
-#         W,
-#         lap_type=lap_type,
-#         coords=coords)
+        # 1) get the coordinates
+        npix = hp.nside2npix(nside)  # number of pixels: 12 * nside**2
+        pix = range(npix)
+        x, y, z = hp.pix2vec(nside, pix, nest=nest)
+        coords = np.vstack([x, y, z]).transpose()[indexes]
+        # 2) computing the weight matrix
+        if use_4:
+            raise NotImplementedError()
+            W = build_matrix_4_neighboors(nside, indexes, nest=nest, dtype=dtype)
+        else:
+            W = healpix_weightmatrix(
+                nside=nside, nest=nest, indexes=indexes, dtype=dtype)
+        # 3) building the graph
+        G = graphs.Graph(
+            W,
+            lap_type=lap_type,
+            coords=coords)
     return G
 
 def equiangular_graph(bw=64,
@@ -319,17 +324,21 @@ def healpix_laplacian(nside=16,
                       dtype=np.float32,
                       use_4=False, 
                       std=None,
-                      full=False):
+                      full=False,
+                      new=True,
+                      n_neighbors=8):
     """Build a Healpix Laplacian."""
-    G = SphereHealpix(Nside=nside, nest=nest)
-    G.compute_laplacian(lap_type)
-    L = sparse.csr_matrix(G.L, dtype=dtype)
-#     if use_4:
-#         W = build_matrix_4_neighboors(nside, indexes, nest=nest, dtype=dtype)
-#     else:
-#         W = healpix_weightmatrix(
-#             nside=nside, nest=nest, indexes=indexes, dtype=dtype, std=std, full=full)
-#     L = build_laplacian(W, lap_type=lap_type)
+    if new:
+        G = SphereHealpix(nside=nside, indexes=indexes, nest=nest, n_neighbors=n_neighbors)
+        G.compute_laplacian(lap_type)
+        L = sparse.csr_matrix(G.L, dtype=dtype)
+    else:
+        if use_4:
+            W = build_matrix_4_neighboors(nside, indexes, nest=nest, dtype=dtype)
+        else:
+            W = healpix_weightmatrix(
+                nside=nside, nest=nest, indexes=indexes, dtype=dtype, std=std, full=full)
+        L = build_laplacian(W, lap_type=lap_type)
     return L
 
 def equiangular_laplacian(bw=16,
@@ -376,7 +385,7 @@ def rescale_L(L, lmax=2, scale=1):
     return L*scale
 
 
-def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix', std=None, full=False):
+def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix', std=None, full=False, new=True, n_neighbors=8):
     """Build a list of Laplacians (and down-sampling factors) from a list of nsides."""
     L = []
     p = []
@@ -401,7 +410,8 @@ def build_laplacians(nsides, indexes=None, use_4=False, sampling='healpix', std=
         nside_last = nside
         if i < len(nsides) - 1:  # Last does not need a Laplacian.
             if sampling == 'healpix':
-                laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4, std=sigma, full=mat)
+                laplacian = healpix_laplacian(nside=nside, indexes=index, use_4=use_4, 
+                                              std=sigma, full=mat, new=new, n_neighbors=n_neighbors)
             elif sampling == 'equiangular':
                 laplacian = equiangular_laplacian(bw=bw, indexes=index, use_4=use_4)
             elif sampling == 'icosahedron':
