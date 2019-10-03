@@ -20,7 +20,7 @@ from deepsphere import models, experiment_helper, plot, utils
 from deepsphere.data import LabeledDatasetWithNoise, LabeledDataset
 import hyperparameters
 
-from SHREC17.load_shrec import Shrec17Dataset, Shrec17DatasetCache, Shrec17DatasetTF, fix_dataset
+from load_shrec import Shrec17Dataset, Shrec17DatasetCache, Shrec17DatasetTF, fix_dataset
 
 Nside = 128
 experiment_type = 'CNN'

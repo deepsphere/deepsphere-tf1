@@ -17,11 +17,11 @@ import trimesh
 import healpy as hp
 from tqdm import tqdm
 
-import time
+# import time
 import pickle as pkl
 import tensorflow as tf
 
-#import tensorflow as tf
+# import tensorflow as tf
 from itertools import cycle
 # To handle python 2
 try:
@@ -46,6 +46,7 @@ def shrec_output(descriptors, ids, probabilities, datapath, savedir='results_dee
         idfile = os.path.join(datapath,savedir,name)
         with open(idfile, "w") as f:
             f.write("\n".join(retrieved))
+
 
 def rotmat(a, b, c, hom_coord=False):   # apply to mesh using mesh.apply_transform(rotmat(a,b,c, True))
     """

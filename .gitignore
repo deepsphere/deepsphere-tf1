@@ -15,4 +15,4 @@ __pycache__/
 /figures/
 
 # Data too big
-/data/
+# /data/

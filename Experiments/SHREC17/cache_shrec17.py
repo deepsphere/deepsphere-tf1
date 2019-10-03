@@ -2,8 +2,7 @@
 # coding: utf-8
 
 import sys
-from SHREC17.load_shrec import fix_dataset, Shrec17Dataset
-from tqdm import tqdm
+from load_shrec import fix_dataset, Shrec17Dataset
 
 data_path = '../data/shrec17/'
 
