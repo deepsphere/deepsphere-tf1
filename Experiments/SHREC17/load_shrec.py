@@ -94,6 +94,25 @@ def make_sgrid(nside, alpha, beta, gamma):
     return sgrid
 
 
+def make_sgrid_equiangular(bw, alpha, beta, gamma):
+    _beta = np.pi * (2 * np.arange(2 * bw) + 1) / (4. * bw)
+    _alpha = np.arange(2 * bw) * np.pi / bw
+    theta, phi = np.meshgrid(*(_beta, _alpha), indexing='ij')
+    ct = np.cos(theta).flatten()
+    st = np.sin(theta).flatten()
+    cp = np.cos(phi).flatten()
+    sp = np.sin(phi).flatten()
+    x = st * cp
+    y = st * sp
+    z = ct
+    coords = np.vstack([x, y, z]).transpose()
+    coords = np.asarray(coords, dtype=np.float32)           # shape 3 x npix
+    R = rotmat(alpha, beta, gamma, hom_coord=False)
+    sgrid = np.einsum('ij,nj->ni', R, coords)    # inner(A,B).T
+
+    return sgrid
+
+
 def render_model(mesh, sgrid, outside=False, multiple=False):
 
     # Cast rays
@@ -211,7 +230,7 @@ def ToMesh(path, rot=False, tr=0.):
     return mesh
 
 
-def ProjectOnSphere(nside, mesh, outside=False, multiple=False):
+def ProjectOnSphere(nside, mesh, experiment='deepsphere', outside=False, multiple=False):
     ## outside = {'equator', 'pole', 'both'}
     if outside is 'equator':
 #         rot = rnd_rot(-np.random.rand()*np.pi/4+np.pi/8,1,0)
@@ -229,7 +248,10 @@ def ProjectOnSphere(nside, mesh, outside=False, multiple=False):
 #         mesh.apply_translation([rnd, 0, np.sqrt(4-rnd**2)])
         mesh.apply_translation([1.5, 0, 0])
         mesh.apply_transform(rnd_rot(0,-np.random.rand()*np.pi/2,0))
-    sgrid = make_sgrid(nside, alpha=0, beta=0, gamma=0)
+    if 'equiangular' in experiment:
+        sgrid = make_sgrid_equiangular(nside, alpha=0, beta=0, gamma=0)
+    else:
+        sgrid = make_sgrid(nside, alpha=0, beta=0, gamma=0)
     im = render_model(mesh, sgrid, outside=outside, multiple=multiple)
     if multiple:
         return im.astype(np.float32)
@@ -252,6 +274,7 @@ def ProjectOnSphere(nside, mesh, outside=False, multiple=False):
     im = im.astype(np.float32).T  # pylint: disable=E1101
 
     return im       # must be npix x nfeature
+
 
 def fix_dataset(dir):
     """
@@ -322,7 +345,7 @@ def cache_healpix_projection(root, dataset, nside, repeat=1, outside=False, rot=
             except:
                 try:
                     mesh = ToMesh(file, rot=rot, tr=0.)
-                    data = ProjectOnSphere(nside, mesh, outside)
+                    data = ProjectOnSphere(nside, mesh, 'deepsphere', outside)
                 except:
                     print("Exception during transform of {}".format(file))
                     raise
@@ -485,10 +508,10 @@ class Shrec17Dataset(object):
     def check_trans(self, file_path):
         # print("transform {}...".format(file_path))
         try:
-            if self.experiment=='equiangular':
-                raise NotImplementError("equiangular projection creation file not implemented yet")
-            mesh = ToMesh(file_path, rot=False, tr=0.1)
-            data = ProjectOnSphere(self.nside, mesh)
+            # if self.experiment=='equiangular':
+            #     raise NotImplementedError("equiangular projection creation file not implemented yet")
+            mesh = ToMesh(file_path, rot=('rot' in self.experiment), tr=0.1)
+            data = ProjectOnSphere(self.nside, mesh, self.experiment)
             return data
         except:
             print("Exception during transform of {}".format(file_path))
@@ -502,7 +525,7 @@ class Shrec17Dataset(object):
         npy_path = os.path.join(head, experiment, prefix + root + '_{0}.npy')
         if experiment is 'equiangular':
             prefix = "b{}_".format(self.nside)
-            npy_path = os.path.join(head, prefix + root + '_{0}.npy')
+            npy_path = os.path.join(head, experiment, prefix + root + '_{0}.npy')
 
         exists = [os.path.exists(npy_path.format(i)) for i in range(repeat)]
 
@@ -521,8 +544,8 @@ class Shrec17Dataset(object):
         for i in range(repeat):
             try:
                 img = np.load(npy_path.format(i))
-                if experiment is 'equiangular':
-                    img = img.reshape((6,-1)).T
+                # if experiment is 'equiangular':
+                #     img = img.reshape((6,-1)).T
             except (OSError, FileNotFoundError):
                 img = self.check_trans(file_path)
                 np.save(npy_path.format(i), img)
@@ -560,7 +583,7 @@ class Shrec17Dataset(object):
         x_raw_train, x_raw_validation, x_noise_train, x_noise_validation, labels_train, labels_validation, ids_train, ids_val = ret
         if verbose:
             print('Number of elements / class')
-            self._print_histogram(labels_train, labels_val)
+            self._print_histogram(labels_train, labels_validation)
 #         print('  Training set: ')
 #         for i in range(self.nclass):
 #             print('    Class {}: {} elements'.format(i, np.sum(labels_train == i)), flush=True)
@@ -850,10 +873,10 @@ class Shrec17DatasetCache(object):
     def check_trans(self, file_path):
         #print("transform {}...".format(file_path))
         try:
-            if self.experiment=='equiangular':
-                raise NotImplementError("equiangular projection creation file not implemented yet")
-            mesh = ToMesh(file_path, rot=False, tr=0.1)
-            data = ProjectOnSphere(self.nside, mesh)
+            # if self.experiment=='equiangular':
+            #     raise NotImplementError("equiangular projection creation file not implemented yet")
+            mesh = ToMesh(file_path, rot=('rot' in self.experiment), tr=0.1)
+            data = ProjectOnSphere(self.nside, mesh, self.experiment)
             return data
         except:
             print("Exception during transform of {}".format(file_path))
@@ -870,7 +893,7 @@ class Shrec17DatasetCache(object):
             npy_path = os.path.join(head, experiment, prefix + root + '_{0}.npy')
         if experiment is 'equiangular':
             prefix = "b{}_".format(self.nside)
-            npy_path = os.path.join(head, prefix + root + '_{0}.npy')
+            npy_path = os.path.join(head, experiment, prefix + root + '_{0}.npy')
 
         exists = [os.path.exists(npy_path.format(i)) for i in range(repeat)]
 
@@ -1081,7 +1104,7 @@ class Shrec17DatasetTF():
         if self.experiment == 'outside':
             file_pattern = os.path.join(self.dir, self.experiment, "nside{0}*_"+self.outside+"_{1}.npy")
         elif self.experiment == 'equiangular':
-            file_pattern = os.path.join(self.dir, "b{0}*{1}.npy")
+            file_pattern = os.path.join(self.dir, self.experiment, "b{0}*{1}.npy")
         else:
             file_pattern = os.path.join(self.dir, self.experiment, "nside{0}*{1}.npy")
         file_list = []
@@ -1113,12 +1136,12 @@ class Shrec17DatasetTF():
         
         def get_elem(file, transform=transform):
             try:
-                batch_data = []
-                batch_labels = []
+                # batch_data = []
+                # batch_labels = []
                 #for file in files:
                 data = np.load(file.decode()).astype(np.float32)
-                if self.experiment is 'equiangular':
-                    data = data.reshape((6,-1)).T
+                # if self.experiment is 'equiangular':
+                #     data = data.reshape((6,-1)).T
                 if self.experiment != 'outside':
                     data = data[:, :self.nfeat]
                     data = data - self.mean
