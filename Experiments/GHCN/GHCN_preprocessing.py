@@ -2,26 +2,20 @@
 # coding: utf-8
 
 import os
-import shutil
 import sys
+sys.append('../..')
 
 import numpy as np
-import time
 import matplotlib.pyplot as plt
-import healpy as hp
 import pandas as pd
 
-from tqdm import tqdm
-from mpl_toolkits.mplot3d import Axes3D
 import cartopy.crs as ccrs
 
-from deepsphere import models, experiment_helper, plot, utils
 from deepsphere.data import LabeledDatasetWithNoise, LabeledDataset
-import hyperparameters
 
-datapath = "/mnt/nas/LTS2/datasets/ghcn-daily/processed/"
-rawpath = "/mnt/nas/LTS2/datasets/ghcn-daily/raw/"
-newdatapath = "../../data/ghcn-daily/processed/"
+datapath = "../../data/ghcn-daily/processed/"  # "/mnt/nas/LTS2/datasets/ghcn-daily/processed/"
+rawpath = "../../data/ghcn-daily/raw/"  # "/mnt/nas/LTS2/datasets/ghcn-daily/raw/"
+# newdatapath = "../../data/ghcn-daily/processed/"
 
 def get_stations(data_path, years, rawpath=None):
     filename = 'stations_{:4d}-{:4d}.npz'.format(years[0], years[-1])
@@ -89,13 +83,13 @@ def get_data(datapath, years, feature_names, ghcn_to_local, rawpath=None):
     n_years  = len(years)
     for feature_name in feature_names:
         filenames.append('data_{:4d}-{:4d}_{}.npz'.format(years[0], years[-1], feature_name))
-        print(f'- Checking if file {filenames[-1]} exists..')
+        print('- Checking if file {} exists..'.format(filenames[-1]))
 
         # only recompute if necessary
-        if not os.path.isfile(newdatapath+filenames[-1]):
+        if not os.path.isfile(datapath+filenames[-1]):
 
             print('- The file is not there. Parsing everything from raw. This will take a while.')
-            os.makedirs(newdatapath, exist_ok=True)
+            os.makedirs(datapath, exist_ok=True)
             # Load the station measurements into a year-list of dataframes
             df_years = []
 
@@ -134,7 +128,7 @@ def get_data(datapath, years, feature_names, ghcn_to_local, rawpath=None):
 
             for _, name in enumerate(feature_names):
 
-                print(f' - Looking at {name}')
+                print(' - Looking at {}'.format(name))
 
                 data = np.zeros((n_stations, n_years, 12, 31), dtype=np.float) * np.nan
 
@@ -143,7 +137,7 @@ def get_data(datapath, years, feature_names, ghcn_to_local, rawpath=None):
                     df = df_years[yearIdx]
                     idf = df.loc[df.type.str.contains(name)]
 
-                    print(f'  - year {year}')
+                    print('  - year {}'.format(year))
 
                     # remove measurement of stations with unknown id_local
                     idf = idf[idf.id_local != -1] 
@@ -170,17 +164,17 @@ def get_data(datapath, years, feature_names, ghcn_to_local, rawpath=None):
                                 valid_days[yearIdx,monthIdx,dayIdx] = True
 
                 print('  - saving to disk')
-                np.savez_compressed(newdatapath+'data_{:4d}-{:4d}_{}.npz'.format(years[0], years[-1], name), data=data, valid_days=valid_days)
+                np.savez_compressed(datapath+'data_{:4d}-{:4d}_{}.npz'.format(years[0], years[-1], name), data=data, valid_days=valid_days)
 
                 del index, values, df, idf, jdf    
 
         else:    
             print('- Loading data from disk..')
 
-            data_file = np.load(newdatapath+filenames[-1])
+            data_file = np.load(datapath+filenames[-1])
             data, valid_days = data_file['data'], data_file['valid_days']        
             n_stations = data.shape[0]
-            print(f'- {n_stations} stations loaded.')
+            print('- {} stations loaded.'.format(n_stations))
             data = data.reshape((n_stations, n_years*12*31))
             if feature_name == 'TMIN' or feature_name == 'TMAX' or feature_name == 'PRCP':
                 data = data.astype(np.float)
@@ -233,8 +227,7 @@ def clean_nodes(data, feat, lon, lat, superset=False, neighbor=10, figs=False, *
     return dataset, keep, graph
 
 
-sys.path.append('../../deepsphere')
-from data import LabeledDataset
+
 def dataset_temp(datas, lon=None, lat=None, alt=None, w_days=None, add_feat=True, ratio=0.7):
     n_days = datas.shape[0]
     limit = int(ratio*n_days)
@@ -300,13 +293,13 @@ def dataset_prec(datas, lon=None, lat=None, alt=None, w_days=None, add_feat=True
 
 def dataset_reg(datas, lon=None, lat=None, alt=None, w_days=None, add_feat=False, days_pred=5, ratio=0.7):
     n_days, n_stations, n_feature= datas.shape
-    limit = int(0.7*(n_days-days_pred))
+    limit = int(ratio*(n_days-days_pred))
     
     dataset_x = np.vstack([np.roll(datas, -i, axis=0) for i in range(days_pred)])
     dataset_x = dataset_x.reshape(days_pred, n_days, n_stations, n_feature).transpose((1,2,3,0))
     
-    days_x = np.vstack([np.roll(w_days, -i, axis=0) for i in range(days_pred)])
-    days_x = days_x.reshape(days_pred, n_days).transpose()
+    # days_x = np.vstack([np.roll(w_days, -i, axis=0) for i in range(days_pred)])
+    # days_x = days_x.reshape(days_pred, n_days).transpose()
 
     x_train = dataset_x[:limit,:,:,:].transpose(0, 2, 1, 3).reshape(-1, n_stations, days_pred)
     labels_train = datas[days_pred:limit+days_pred,:,:].transpose(0,2,1).reshape(-1, n_stations)
@@ -416,8 +409,8 @@ class sphereGraph(NNGraph):
         y = st * sp
         z = ct
         self.coords = np.vstack([x, y, z]).T
-        NNtype = 'radius' if epsilon else 'knn'
+        nntype = 'radius' if epsilon else 'knn'
         plotting = {"limits": np.array([-1, 1, -1, 1, -1, 1])*0.5}
         self.n_vertices = len(self.coords)
-        super(sphereGraph, self).__init__(self.coords, k=neighbors, NNtype=NNtype, center=False, rescale=False,
+        super(sphereGraph, self).__init__(self.coords, k=neighbors, NNtype=nntype, center=False, rescale=False,
                                      plotting=plotting, **kwargs)
