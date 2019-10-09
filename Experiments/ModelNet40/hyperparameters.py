@@ -1,10 +1,6 @@
 """Parameters used for the experiments of the paper."""
 
 import tensorflow as tf
-import numpy as np
-
-from deepsphere import utils
-
 
 def get_params_mn40_optim(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architecture="FCN", verbose=True):
 
@@ -17,7 +13,7 @@ def get_params_mn40_optim(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, archit
     :param verbose: bool, print info
     :return: parameters needed to create a deepsphere model
     """
-    
+
     params = dict()
     params['dir_name'] = EXP_NAME
     params['num_feat_in'] = nfeat_in
@@ -31,14 +27,14 @@ def get_params_mn40_optim(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, archit
     # Architecture.
     params['F'] = [16, 32, 64, 128, 256, 512, 1024, 2048, 2048, n_classes]  # Graph convolutional layers: number of feature maps.
     params['K'] = [4] * 10  # Polynomial orders.
-#     params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int), 
-#                    np.ceil(np.sqrt(3)*Nside//4).astype(int), 
+#     params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int),
+#                    np.ceil(np.sqrt(3)*Nside//4).astype(int),
 #                    np.ceil(np.sqrt(3)*Nside//8).astype(int)]
     params['batch_norm'] = [True] * 10  # Batch normalization.
     params['M'] = []  # Fully connected layers: output dimensionalities.
 
     # Pooling.
-    nsides = [Nside, Nside//2, Nside//4, Nside//4, Nside//8, Nside//8, 
+    nsides = [Nside, Nside//2, Nside//4, Nside//4, Nside//8, Nside//8,
               Nside//16, Nside//16, Nside//32, Nside//32, Nside//32]
     params['nsides'] = nsides
     params['indexes'] = None
@@ -115,8 +111,8 @@ def get_params_mn40(ntrain, EXP_NAME, Nside, n_classes, nfeat_in=6, architecture
     # Architecture.
     params['F'] = [16, 16, 32, 32, 64, 64, 128, 128, 256, 256, n_classes]
     params['K'] = [4] * 11  # Polynomial orders.
-#     params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int), 
-#                    np.ceil(np.sqrt(3)*Nside//4).astype(int), 
+#     params['K'] = [np.ceil(np.sqrt(3)*Nside).astype(int),
+#                    np.ceil(np.sqrt(3)*Nside//4).astype(int),
 #                    np.ceil(np.sqrt(3)*Nside//8).astype(int)]
     params['batch_norm'] = [True] * 11  # Batch normalization.
     params['M'] = []  # Fully connected layers: output dimensionalities.

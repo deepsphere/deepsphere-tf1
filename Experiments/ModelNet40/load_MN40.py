@@ -6,7 +6,6 @@
     and https://github.com/AMLab-Amsterdam/lie_learn/blob/master/lie_learn/spaces/S2.py
 """
 
-import csv
 import glob
 import os
 import re
@@ -15,7 +14,6 @@ import trimesh
 import healpy as hp
 from tqdm import tqdm
 
-import time
 import pickle as pkl
 import tensorflow as tf
 
