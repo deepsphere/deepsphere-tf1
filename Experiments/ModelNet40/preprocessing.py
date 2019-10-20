@@ -18,7 +18,7 @@ if len(sys.argv) > 4:
 else:
     nside = 32
     augmentation = 3
-    data_path = '../../data/mn40/'
+    data_path = '../../data/modelnet40/'
     experiment = 'deepsphere_rot'  # in ['rot', 'notr', 'Z']
     dl = True
 

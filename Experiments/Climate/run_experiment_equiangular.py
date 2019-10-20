@@ -6,16 +6,9 @@ import shutil
 import sys
 sys.path.append('../..')
 
-os.environ["CUDA_VISIBLE_DEVICES"] = ""  # change to chosen GPU to use, nothing if work on CPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # change to chosen GPU to use, nothing if work on CPU
 
 import numpy as np
-import time
-# import matplotlib.pyplot as plt
-import h5py
-
-from tqdm import tqdm
-# from mpl_toolkits.mplot3d import Axes3D
-# import cartopy.crs as ccrs
 
 from deepsphere import models
 from ClimateDataLoader import EquiangularDataset
@@ -67,7 +60,8 @@ if __name__ == '__main__':
     
     import tensorflow as tf
     
-    params = {'nsides': [(384, 576), (384//8, 576//8), (384//16, 576//16), (384//32, 576//32), (384//64, 576//64),(384//64, 576//64), (384//64, 576//64)],
+    params = {'nsides': [(384, 576), (384//8, 576//8), (384//16, 576//16), (384//32, 576//32),
+                         (384//64, 576//64),(384//64, 576//64), (384//64, 576//64)],
               'F': [16, 32, 64, 128, 256, 512],
               'K': [4]*6,
               'batch_norm': [True]*6}
@@ -83,16 +77,13 @@ if __name__ == '__main__':
     params['num_epochs'] = 15  # Number of passes through the training data.
     params['batch_size'] = 1
     params['scheduler'] = lambda step: tf.train.exponential_decay(1e-3, step, decay_steps=2000, decay_rate=0.99)
-    #params['optimizer'] = lambda lr: tf.train.GradientDescentOptimizer(lr)
     params['optimizer'] = lambda lr: tf.train.AdamOptimizer(lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
-#     params['optimizer'] = lambda lr: tf.train.RMSPropOptimizer(lr, decay=0.9, momentum=0.)
     n_evaluations = 90
     params['eval_frequency'] = int(params['num_epochs'] * (training.N) / params['batch_size'] / n_evaluations)
     params['M'] = []
     params['Fseg'] = 3
     params['dense'] = True
     params['weighted'] = False
-#     params['profile'] = True
     params['dtype'] = tf.float32
     params['restore'] = True
     params['tf_dataset'] = training.get_tf_dataset(params['batch_size'], dtype=np.float32)

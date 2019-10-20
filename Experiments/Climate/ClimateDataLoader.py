@@ -5,19 +5,14 @@
     Load dataset in h5 files using s3
 """
 
-import csv
 import glob
 import os
-import re
 import h5py
 import numpy as np
-from tqdm import tqdm
 
 import time
 import tensorflow as tf
 
-#import tensorflow as tf
-from itertools import cycle
 # To handle python 2
 try:
     from itertools import zip_longest as zip_longest
@@ -56,13 +51,7 @@ class IcosahedronDataset():
         self.lat = np.rad2deg(g.lat)
         del g
         
-        
-#         data[partition] = {'data': np.zeros((len(flist),10242,16)),
-#                            'labels': np.zeros((len(flist),10242))}
-#         for i, f in enumerate(flist):
-#             file = np.load(f)
-#             data[partition]['data'][i] = (file['data'].T - precomp_mean) / precomp_std
-#             data[partition]['labels'][i] = np.argmax(file['labels'].astype(np.int), axis=0)
+
 
     def get_tf_dataset(self, batch_size, transform=False):
         dataset = tf.data.Dataset.from_tensor_slices(self.filenames)
@@ -101,7 +90,7 @@ class IcosahedronDataset():
 
 
 class EquiangularDataset():
-    def __init__(self, path=None, partition='train', s3=True):
+    def __init__(self, path=None, partition='train', s3=False):
         self.s3 = s3
         if partition not in ['train', 'val', 'test']:
             raise ValueError('invalid partition: {}'.format(partition))
@@ -112,17 +101,10 @@ class EquiangularDataset():
         if len(self.filenames)==0:
             raise ValueError('Files not found')
         if s3:
-#             import subprocess
             self.s3bucket = '10380-903b2ba14e0d980c25436f9ca5bb29f5'
             self.s3dir = 's3://{}/Datasets/Climate/'
 
-#             cmd = 's3cmd ls '+self.s3dir.format(self.s3bucket)
-#             filenames = subprocess.check_output(cmd, shell=True).decode()
-            # without subprocess
             self.filenames = tf.gfile.Glob(self.s3dir.format(self.s3bucket)+'data*')
-#             filenames = tf.gfile.ListDirectory(self.s3dir.format(self.s3bucket))  # maybe use Glob
-#             self.filenames = [self.s3dir.format(self.s3bucket)+elem for elem in filenames]
-#             self.filenames = [elem.split(' ')[-1] for elem in filenames.split('\n')[:-1]]
         else:
             filenames = glob.glob(path+'data*.h5')
             self.filenames = list(set(self.filenames) & set(filenames))
@@ -211,19 +193,4 @@ class EquiangularDataset():
         dataset = dataset.apply(tf.contrib.data.map_and_batch(map_func=parse_fn, batch_size=batch_size))
         self.dataset = dataset.prefetch(buffer_size=16)
         return self.dataset
-    
-#     def get_dataset_v2(self, batch_size):
-#         class generator:
-#             def __call__(self, file):
-#                 with h5py.File(file, 'r') as hf:
-#                     for im in hf["climate"]:
-#                         yield im
-
-#         ds = tf.data.Dataset.from_tensor_slices(filenames)
-#         ds = ds.interleave(lambda filename: tf.data.Dataset.from_generator(
-#                 generator(), 
-#                 tf.uint8, 
-#                 tf.TensorShape([427,561,3]),
-#                 args=(filename,)),
-#                cycle_length, block_length)
     

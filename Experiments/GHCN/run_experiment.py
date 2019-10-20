@@ -7,11 +7,6 @@ sys.path.append('../..')
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # change to chosen GPU to use, nothing if work on CPU
 
 import numpy as np
-import matplotlib.pyplot as plt
-
-from tqdm import tqdm
-from mpl_toolkits.mplot3d import Axes3D
-import cartopy.crs as ccrs
 
 from sklearn.metrics import r2_score, explained_variance_score, mean_absolute_error, mean_squared_error
 
