@@ -15,7 +15,7 @@ if len(sys.argv) > 4:
     # verbose = False
 else:
     nside = 32
-    augmentation = 3
+    augmentation = 0
     data_path = './'
     experiment = 'deepsphere_rot'
     download = True

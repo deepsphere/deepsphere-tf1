@@ -93,6 +93,6 @@ if __name__ == '__main__':
     datapath = "./" # '/mnt/scratch/lts2/mdeff/deepsphere/data'
     convert(inpath='training/', outpath='same_psd/')
     convert(inpath='testing/', outpath='same_psd_testing/')
-    for sigma in [0]:
+    for sigma in [3]:
         smooth(inpath=datapath+'/same_psd/', outpath='same_psd/', sigma=sigma)
         smooth(inpath=datapath+'/same_psd_testing/', outpath='same_psd_testing/', sigma=sigma)

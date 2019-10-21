@@ -24,14 +24,15 @@ experiment_type = 'CNN'
 ename = '_'+experiment_type
 datapath = '../../data/shrec17/'  # localisation of the .obj files
 
-if len(sys.argv) > 3:
-    experiment = sys.argv[1]
+if len(sys.argv) > 4:
+    Nside = int(sys.argv[1])
     augmentation = int(sys.argv[2])
-    nfeat = int(sys.argv[3])
+    experiment = sys.argv[3]
+    nfeat = int(sys.argv[4])
 else:
     augmentation = 3        # number of element per file (1 = no augmentation of dataset)
     nfeat = 6
-    experiment = 'deepsphere'
+    experiment = 'deepsphere_rot'
 
 EXP_NAME = 'shrec17_newGraph_{}feat_{}aug_{}sides{}'.format(nfeat, augmentation, Nside, ename)
 

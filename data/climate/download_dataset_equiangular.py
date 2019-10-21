@@ -2,8 +2,8 @@
 # coding: utf-8
 
 """
- Load dataset year by year, interpolate each map, and add label for each pixel.
- No special preprocessing for the labels, only bouding box
+ Load dataset year by year
+ Possibility to interpolate each map, and add label for each pixel.
 """
 
 import os
@@ -95,50 +95,65 @@ if __name__=='__main__':
     days = np.arange(1,32)
     hours = np.arange(8)
     runs = np.arange(1,7)
-    url = 'https://portal.nersc.gov/project/dasrepo/deepcam/segm_h5_v3_reformat/data-{}-{:0>2d}-{:0>2d}-{:0>2d}-{}.h5'
-    datapath = '../../data/Climate/'
-    file = 'data-{}-{:0>2d}-{:0>2d}-{:0>2d}-{}-32nside.npz'
-    
-    npix = hp.nside2npix(32)
+    url = 'https://portal.nersc.gov/project/dasrepo/deepcam/segm_h5_v3_reformat/'
+    datapath = '../../data/climate/equiangular/'
+    # file = 'data-{}-{:0>2d}-{:0>2d}-{:0>2d}-{}-32nside.npz'
+    #
+    # npix = hp.nside2npix(32)
     
     os.makedirs(datapath, exist_ok=True)
-    h5_path = download(datapath, 'https://portal.nersc.gov/project/dasrepo/deepcam/segm_h5_v3_reformat/stats.h5', (None,))
-    
-    
-    for year in years:
-#         datas = np.ones((len(months), len(days), len(hours), 16, npix, len(runs))) * np.nan
-#         print(datas.shape)
-        for month, day, hour in product(months, days, hours):
-            for run in runs:
-                if os.path.exists(os.path.join(datapath, file.format(year, month, day, hour, run))):
-                    continue
-                try:
-                    h5_path = download(datapath, url, (year, month, day, hour, run))
-                except Exception as e:
-    #                 print(e)
-                    continue
-#                 try:
-#                     h5f = h5py.File(h5_path)
-#                     # Features
-#                     # [TMQ, U850, V850, UBOT, VBOT, QREFHT, PS, PSL, T200, T500, PRECT, TS, TREFHT, Z1000, Z200, ZBOT]
-#                     data = h5f['climate']["data"]     # 16x768x1152  Features X lat X lon
-#                 except:
-#                     os.remove(h5_path)
-#                     print("h5 file {} removed".format(h5_path))
+    h5_path = download(datapath, url+'stats.h5', (None,))
+
+    lines=[]
+    for elem in ['train.txt', 'test.txt', 'val.txt']:
+        f = open(datapath+elem, 'r')
+        lines += f.readlines()
+
+    print(len(lines))
+    exit()
+    for line in lines:
+        line = line[:-1]
+        if os.path.exists(os.path.join(datapath, line)):
+            continue
+        try:
+            h5_path = download(datapath, url + line)
+        except Exception as e:
+            print(e)
+            continue
+#     for year in years:
+# #         datas = np.ones((len(months), len(days), len(hours), 16, npix, len(runs))) * np.nan
+# #         print(datas.shape)
+#         for month, day, hour in product(months, days, hours):
+#             for run in runs:
+#                 if os.path.exists(os.path.join(datapath, file.format(year, month, day, hour, run))):
 #                     continue
-#                 labels = h5f['climate']["labels"] # 768x1152     lat X lon
-#                 data, labels = interpolate(data, labels)
-    #             datas[month-1, day-1, hour, :, :, run-1] = interpolate(data)
-#                 if year>2106:
-#                     os.remove(h5_path)
-#                     print("h5 file removed")
-    #         datas = datas.reshape(-1, 16, npix, len(runs))
-    #         print(datas.shape)
-    #         print(valid_days(datas).shape)
-    #         datas = datas[valid_days(datas)]
-#                 np.savez(datapath+file.format(year, month, day, hour, run), datas=data, labels=labels)
-#                 print("save file at: "+file.format(year, month, day, hour, run))
-#                 break
+#                 try:
+#                     h5_path = download(datapath, url, (year, month, day, hour, run))
+#                 except Exception as e:
+#     #                 print(e)
+#                     continue
+# #                 try:
+# #                     h5f = h5py.File(h5_path)
+# #                     # Features
+# #                     # [TMQ, U850, V850, UBOT, VBOT, QREFHT, PS, PSL, T200, T500, PRECT, TS, TREFHT, Z1000, Z200, ZBOT]
+# #                     data = h5f['climate']["data"]     # 16x768x1152  Features X lat X lon
+# #                 except:
+# #                     os.remove(h5_path)
+# #                     print("h5 file {} removed".format(h5_path))
+# #                     continue
+# #                 labels = h5f['climate']["labels"] # 768x1152     lat X lon
+# #                 data, labels = interpolate(data, labels)
+#     #             datas[month-1, day-1, hour, :, :, run-1] = interpolate(data)
+# #                 if year>2106:
+# #                     os.remove(h5_path)
+# #                     print("h5 file removed")
+#     #         datas = datas.reshape(-1, 16, npix, len(runs))
+#     #         print(datas.shape)
+#     #         print(valid_days(datas).shape)
+#     #         datas = datas[valid_days(datas)]
+# #                 np.savez(datapath+file.format(year, month, day, hour, run), datas=data, labels=labels)
+# #                 print("save file at: "+file.format(year, month, day, hour, run))
+# #                 break
     
     
     

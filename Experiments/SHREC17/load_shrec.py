@@ -437,7 +437,7 @@ class Shrec17Dataset(object):
                                ' You can use download=True to download it')
 
         self.files = sorted(glob.glob(os.path.join(self.dir, '*.obj')))
-        if dataset != "test_pert":
+        if dataset != "test":
             with open(os.path.join(self.root, dataset + ".csv"), 'rt') as f:
                 reader = csv.reader(f)
                 self.labels_dict = {}
