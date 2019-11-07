@@ -52,9 +52,11 @@ Follow the below steps to reproduce the paper's results. The steps are essantial
 Run the download script
 
 ```python data/{experiment_name}/download_dataset.py```
+
 2. Preprocess the dataset (if necessary)
 
 ```python Experiments/{experiment_name}/preprocessing.py```
+
 3. Run the experiment
 
 ```python Experiments/{experiment_name}/run_experiment.py```
