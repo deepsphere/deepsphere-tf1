@@ -1,22 +1,27 @@
-# An empirical study of spherical convolutional neural networks
+# DeepSphere: a graph-based spherical CNN
 
-Frédérick Gusset, [Nathanaël Perraudin][nath], [Michaël Defferrard][mdeff]
+Frédérick Gusset, Martino Milani, [Michaël Defferrard][mdeff], [Nathanaël Perraudin][nath]
 
 [nath]: https://perraudin.info
 [mdeff]: http://deff.ch
 
-The code in this repository is based on [DeepSphere](https://github.com/SwissDataScienceCenter/DeepSphere) and regroups all experiments performed in the master thesis ["An empirical study of spherical convolutional neural networks"][thesis]. This master project was performed in the LTS2 lab at EPFL, during Spring semester 2019.
+The code in this repository is based on [DeepSphere](https://github.com/SwissDataScienceCenter/DeepSphere) and regroups all experiments performed in the paper ["DeepSphere: a graph-based spherical CNN"][paper]. 
 
-[thesis]: https://infoscience.epfl.ch/record/267531?&ln=fr
+[paper]: http://localhost
 
 ## Installation
+[![Binder](https://mybinder.org/badge_logo.svg)][binder_lab]
+&nbsp; Click the binder badge to play with the notebooks from your browser without installing anything.
+
+[binder_lab]: http://localhost
+
 
 For a local installation, follow the below instructions.
 
 1. Clone this repository.
    ```sh
-   git clone https://github.com/Droxef/PDMdeepsphere.git
-   cd PDMdeepSphere
+   git clone https://github.com/Droxef/deepsphere_v2_code.git
+   cd deepsphere_v2_code
    ```
 
 2. Install the dependencies.
@@ -39,6 +44,20 @@ and a sandbox notebook to explore the data and hyperparameters.
 3. GHCN
 
 4. Climate
+
+### Reproducing the results
+Follow the below steps to reproduce the paper's results. The steps are essantially the same for each experiment, and additional instructions are present in the [data](data/README.md) and [experiments](Experiments/README.md) README.
+1. Download the dataset
+Run the download script
+```python data/{experiment_name}/download_dataset.py```
+2. Preprocess the dataset (if necessary)
+```python Experiments/{experiment_name}/preprocessing.py```
+3. Run the experiment
+```python Experiments/{experiment_name}/run_experiment.py```
+
+
+## Notebooks
+Various notebooks are grouped in the [Notebooks](Notebooks) folder, such as code for the proof of the theorem and tests with different sampling scheme.
 
 
 ## License & co
