@@ -13,7 +13,7 @@ healpy==1.11.0
 git+https://github.com/Droxef/pygsp.git@new_sphere_graph#egg=PyGSP
 tqdm==4.19.6
 
-notebook==5.4.0
+notebook==5.7.8
 
 # file handling
 rtree==0.8.3
