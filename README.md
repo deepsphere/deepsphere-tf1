@@ -11,6 +11,7 @@ The code in this repository is based on [DeepSphere](https://github.com/SwissDat
 
 ## Installation
 [![Binder](https://mybinder.org/badge_logo.svg)][binder_lab]
+
 &nbsp; Click the binder badge to play with the notebooks from your browser without installing anything.
 
 [binder_lab]: http://localhost
@@ -49,10 +50,13 @@ and a sandbox notebook to explore the data and hyperparameters.
 Follow the below steps to reproduce the paper's results. The steps are essantially the same for each experiment, and additional instructions are present in the [data](data/README.md) and [experiments](Experiments/README.md) README.
 1. Download the dataset
 Run the download script
+
 ```python data/{experiment_name}/download_dataset.py```
 2. Preprocess the dataset (if necessary)
+
 ```python Experiments/{experiment_name}/preprocessing.py```
 3. Run the experiment
+
 ```python Experiments/{experiment_name}/run_experiment.py```
 
 
