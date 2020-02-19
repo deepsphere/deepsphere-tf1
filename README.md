@@ -68,4 +68,4 @@ Various notebooks are grouped in the [Notebooks](Notebooks) folder, such as code
 
 ## License & co
 
-The content of this repository is released under the terms of the [MIT license](LICENCE.txt).
+The content of this repository is released under the terms of the [MIT license](LICENSE.txt).
