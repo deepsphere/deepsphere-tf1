@@ -27,7 +27,7 @@ For a local installation, follow the below instructions.
 
 2. Install the dependencies.
    ```sh
-   conda env create -f environment_conda.yml
+   conda env create -f environment.yml
    ```
 
    **Note**: the code has been developed and tested with Python 3.5.
