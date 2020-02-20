@@ -11,8 +11,5 @@ __pycache__/
 /checkpoints/
 /summaries/
 
-# Figures are produced by paper_plots.ipynb
-/figures/
-
 # Data too big
 # /data/
