@@ -32,35 +32,20 @@ For a local installation, follow the below instructions.
 
    **Note**: the code has been developed and tested with Python 3.5.
 
-## Experiments
+## Reproducing the results of the paper
 
-The different benchmarks are regrouped in the [Experiment](Experiments) folder,
-and each has at least a run_experiment script to rerun the experiment and reproduce the results in the report,
-and a sandbox notebook to explore the data and hyperparameters.
+Each experiment has a folder in [data](data) with scripts to download the data, and a folder in [experiments](experiments) with scripts to preprocess and reproduce the experiment.
+Additionally, there is a notebook to explore the data and hyper-parameters.
 
-1. SHREC17
+The steps are essentially the same for each experiment (`climate`, `cosmo`, `ghcn`, `modelnet40`, `shrec17`), as follows:
 
-2. ModelNet40
-    
-3. GHCN
+```sh
+python data/{experiment_name}/download_dataset.py
+python experiments/{experiment_name}/preprocessing.py
+python experiments/{experiment_name}/run_experiment.py
+```
 
-4. Climate
-
-### Reproducing the results
-Follow the below steps to reproduce the paper's results. The steps are essantially the same for each experiment, and additional instructions are present in the [data](data/README.md) and [experiments](Experiments/README.md) README.
-1. Download the dataset
-Run the download script
-
-```python data/{experiment_name}/download_dataset.py```
-
-2. Preprocess the dataset (if necessary)
-
-```python Experiments/{experiment_name}/preprocessing.py```
-
-3. Run the experiment
-
-```python Experiments/{experiment_name}/run_experiment.py```
-
+Additional instructions are contained in the [data](data) and [experiments](experiments) READMEs.
 
 ## Notebooks
 Various notebooks are grouped in the [Notebooks](Notebooks) folder, such as code for the proof of the theorem and tests with different sampling scheme.
