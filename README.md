@@ -69,3 +69,37 @@ Various notebooks are grouped in the [Notebooks](Notebooks) folder, such as code
 ## License & co
 
 The content of this repository is released under the terms of the [MIT license](LICENSE.txt).
+
+The code, based on the original [TensorFlow implementation of DeepSphere for cosmology](https://github.com/deepsphere/deepsphere-cosmo-tf1), was mostly developed during the master theses of Frédérick Gusset ([code][frédérick_code], [report][frédérick_report], [slides][frédérick_slides]) and Martino Milani ([code][martino_code], [report][martino_report], [slides][martino_slides], [poster][martino_poster]).
+
+[martino_code]: https://github.com/MartMilani/PDM
+[martino_report]: https://infoscience.epfl.ch/record/268192/files/Graph%20Laplacians%20on%20the%20Sphere%20for%20Rotation%20Equivariant%20Neural%20Networks.pdf
+[martino_slides]: https://infoscience.epfl.ch/record/268192/files/Presentation.pdf
+[martino_poster]: https://infoscience.epfl.ch/record/268192/files/Poster.pdf
+[frédérick_code]: https://github.com/Droxef/PDMdeepsphere
+[frédérick_report]: https://infoscience.epfl.ch/record/267531/files/Spherical%20Convolutional%20Neural%20Networks.pdf
+[frédérick_slides]: https://infoscience.epfl.ch/record/267531/files/Final%20Presentation.pdf
+
+Please consider citing our papers if you find this repository useful.
+
+```
+@inproceedings{deepsphere_iclr,
+  title = {{DeepSphere}: a graph-based spherical {CNN}},
+  author = {Defferrard, Michaël and Milani, Martino and Gusset, Frédérick and Perraudin, Nathanaël},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year = {2020},
+  url = {https://openreview.net/forum?id=B1e3OlStPB},
+}
+```
+
+```
+@inproceedings{deepsphere_rlgm,
+  title = {{DeepSphere}: towards an equivariant graph-based spherical {CNN}},
+  author = {Defferrard, Micha\"el and Perraudin, Nathana\"el and Kacprzak, Tomasz and Sgier, Raphael},
+  booktitle = {ICLR Workshop on Representation Learning on Graphs and Manifolds},
+  year = {2019},
+  archiveprefix = {arXiv},
+  eprint = {1904.05146},
+  url = {https://arxiv.org/abs/1904.05146},
+}
+```
