@@ -10,27 +10,19 @@ The code in this repository is based on [DeepSphere](https://github.com/SwissDat
 [paper]: http://localhost
 
 ## Installation
-[![Binder](https://mybinder.org/badge_logo.svg)][binder_lab]
-
-&nbsp; Click the binder badge to play with the notebooks from your browser without installing anything.
-
-[binder_lab]: http://localhost
-
 
 For a local installation, follow the below instructions.
 
 1. Clone this repository.
-   ```sh
-   git clone https://github.com/Droxef/deepsphere_v2_code.git
-   cd deepsphere_v2_code
-   ```
+    ```sh
+    git clone https://github.com/deepsphere/deepsphere-tf1.git
+    cd deepsphere-tf1
+    ```
 
 2. Install the dependencies.
-   ```sh
-   conda env create -f environment.yml
-   ```
-
-   **Note**: the code has been developed and tested with Python 3.5.
+    ```sh
+    conda env create -f environment.yml
+    ```
 
 ## Reproducing the results of the paper
 
