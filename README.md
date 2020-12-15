@@ -40,8 +40,22 @@ python experiments/{experiment_name}/run_experiment.py
 Additional instructions are contained in the [data](data) and [experiments](experiments) READMEs.
 
 ## Notebooks
-Various notebooks are grouped in the [Notebooks](Notebooks) folder, such as code for the proof of the theorem and tests with different sampling scheme.
 
+The below notebooks contain some experiments.
+
+1. [From sampled spheres to graphs.][sphere_to_graph]
+   Experiments showing how to build a graph from a sampled sphere.
+
+   **Note:** The tested and recommended implementations are now available in the [PyGSP].
+
+1. [Irregular pooling.][irregular_pooling]
+   Experiments with pooling on non-uniformly and partially sampled spheres.
+
+Explanatory notebooks about the method are available [here](https://github.com/deepsphere/deepsphere-cosmo-tf1/#notebooks) and [there](https://github.com/deepsphere/deepsphere-cosmo-tf2/#notebooks).
+
+[sphere_to_graph]: https://nbviewer.jupyter.org/github/deepsphere/deepsphere-tf1/blob/master/notebooks/sphere_to_graph.ipynb
+[irregular_pooling]: https://nbviewer.jupyter.org/github/deepsphere/deepsphere-tf1/blob/master/notebooks/irregular_pooling.ipynb
+[PyGSP]: https://github.com/epfl-lts2/pygsp
 
 ## License & co
 
