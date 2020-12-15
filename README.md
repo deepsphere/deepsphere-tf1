@@ -1,13 +1,15 @@
 # DeepSphere: a graph-based spherical CNN
 
-Frédérick Gusset, Martino Milani, [Michaël Defferrard][mdeff], [Nathanaël Perraudin][nath]
+[Michaël Defferrard](https://deff.ch),
+[Martino Milani](https://www.linkedin.com/in/martino-milani-11258350),
+[Frédérick Gusset](https://www.linkedin.com/in/frédérick-gusset-a42485191),
+[Nathanaël Perraudin](https://perraudin.info)
 
-[nath]: https://perraudin.info
-[mdeff]: http://deff.ch
-
-The code in this repository is based on [DeepSphere](https://github.com/SwissDataScienceCenter/DeepSphere) and regroups all experiments performed in the paper ["DeepSphere: a graph-based spherical CNN"][paper]. 
-
-[paper]: http://localhost
+The code in this repository implements a generalization of Convolutional Neural Networks (CNNs) to the sphere.
+We here model the discretized sphere as a graph of connected pixels.
+The resulting convolution is efficient (especially when data doesn't span the whole sphere) and mostly equivariant to rotation (small distortions are due to the non-existence of a regular sampling of the sphere).
+The pooling strategy exploits hierarchical pixelizations of the sphere to analyze the data at multiple scales.
+The performance of DeepSphere is demonstrated on four problems: the recognition of 3D objects, the discrimination of cosmological models, the segmentation of extreme events in climate simulations, and the identification of trends in historical weather.
 
 ## Installation
 
